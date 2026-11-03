@@ -12,7 +12,11 @@ From the `distributor-app/` directory:
 | :--- | :--- | :--- |
 | **Run all tests collectively** | `npm run test` | Executes all Vitest test suites across all modules in <1 second. |
 | **Run tests in watch mode** | `npm run test:watch` | Reruns tests on every file save during development. |
-| **Test Module 1 (Auth) only** | `npx vitest run src/__tests__/auth.test.ts` | Runs the 12 isolated auth, cryptographic OTP, and JWT tests. |
+| **Test Module 1 (Auth) only** | `npx vitest run src/__tests__/auth.test.ts` | Runs the 13 isolated auth, cryptographic OTP, and JWT tests. |
+| **Test Module 2 (Catalogue) only** | `npx vitest run src/__tests__/catalogue.test.ts` | Runs the 8 isolated catalogue, pricing, and stock tests. |
+| **Test Module 3 (Schemes) only** | `npx vitest run src/__tests__/schemes.test.ts` | Runs the 10 pure scheme engine and GST calculation tests. |
+| **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
+| **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
 | **Run full production build** | `npm run build` | Compiles TypeScript, runs Turbopack, verifies static/dynamic routes. |
 | **Start local dev server** | `npm run dev` | Spins up live development server at `http://localhost:3000`. |
 | **Start local production server** | `npm run start` | Serves the optimized production build at `http://localhost:3000`. |

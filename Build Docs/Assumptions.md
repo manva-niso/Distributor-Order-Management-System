@@ -40,6 +40,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A28]** | Module 1: Auth/Onboarding | Single Phone Identity Constraint | Mobile numbers serve as primary entity keys; duplicate registrations with identical 10-digit phone numbers return HTTP 409 Conflict. |
 | **[A29]** | Module 4: Cart/Orders | B2B Order Status State Machine | Orders within headroom initiate as `PLACED`; orders exceeding credit headroom flag `CREDIT_HOLD` for clerk review (never dead buttons). |
 | **[A30]** | Module 4: Cart/Orders | Physical Promotional Stock Lock | Free promotional cases (`freeCases`) are deducted atomically alongside billed cases from warehouse stock to prevent stockout cuts. |
+| **[A31]** | Master Data / Setup | Dynamic Excel/CSV Catalog Ingestion | System dynamically ingests arbitrary distributor price lists and retailer credit sheets (.xlsx/.xls/.csv), eliminating hardcoded data dependency. |
+| **[A32]** | Master Data / Setup | Header Synonym Tolerance & Safe Defaults | Ingestion engine tolerates varied column synonyms ("Rate", "Dealer Price", "Case Pack") and applies standard FMCG defaults when non-critical metadata is omitted. |
 
 ---
 
@@ -156,6 +158,18 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A30]` Physical Promotional Stock Locking
 - **Context:** Delivery fulfillment on free goods trade schemes.
 - **Assumption:** Physical warehouse inventory must cover both ordered master cases and promotional free goods cases (`totalDeliveredCases = orderedCases + freeCases`). Free goods are deducted atomically from warehouse physical stock at checkout to ensure van pickers are never faced with inventory deficits at loading time.
+
+---
+
+### Master Data Setup & Dynamic Excel Ingestion
+
+#### `[A31]` Dynamic Excel/CSV Catalog Ingestion
+- **Context:** Third-party distributors and evaluators testing the application with their own proprietary product catalogs, pack sizes, wholesale prices, and retail accounts.
+- **Assumption:** The application is not locked to hardcoded seed data. Users can upload arbitrary `.xlsx`, `.xls`, or `.csv` workbooks via `/setup` or `/api/setup/import-excel`. The ingestion engine parses items and retailers, dynamically updates in-memory and relational tables, generates per-pack unit pricing, and binds active trade schemes instantly across all screens.
+
+#### `[A32]` Header Synonym Tolerance & Safe Defaults
+- **Context:** Varied column naming conventions in distributor ERP exports (Tally, Busy, Marg, SAP).
+- **Assumption:** Ingestion normalizes column headers and tolerates standard synonyms: *"Item Name"*, *"Product"*, *"Description"* $\to$ Name; *"Dealer Price"*, *"Wholesale Rate"*, *"Case Price"*, *"Rate"* $\to$ Dealer Price; *"Case Pack"*, *"Units/Case"*, *"Packs Per Case"* $\to$ Units Per Case. When non-critical columns are missing, standard FMCG defaults are assigned (18.0% GST, 50 stock cases, 1 unit/case, ₹50,000 credit limit).
 
 ---
 

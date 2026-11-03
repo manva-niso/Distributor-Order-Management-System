@@ -14,6 +14,7 @@ import {
   UserCheck,
   CheckCircle2,
   Sparkles,
+  FileSpreadsheet,
 } from "lucide-react";
 
 type Language = "en" | "hi";
@@ -44,8 +45,21 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [loadedRetailers, setLoadedRetailers] = useState<Array<{ id: string; name: string; phone: string; route: string; availableCredit: number }>>([]);
 
   const otpInputsRef = useRef<Array<HTMLInputElement | null>>([]);
+
+  // Load active accounts directory on mount
+  useEffect(() => {
+    fetch("/api/setup/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.retailers) {
+          setLoadedRetailers(data.retailers);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Check business identity when phone changes
   useEffect(() => {
@@ -263,28 +277,46 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Testing / Demo Quick-Select Role Badges */}
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{lang === "hi" ? "त्वरित खाता चयन (डेमो)" : "Quick Test Accounts"}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => selectQuickRole("9826000001")}
-              className={`p-2 rounded-lg text-left border text-xs font-semibold transition-all ${
-                phone.includes("00001")
-                  ? "border-emerald-600 bg-emerald-50 text-emerald-900"
-                  : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
-              }`}
-            >
-              <div className="font-bold flex items-center gap-1">
-                <Store className="w-3 h-3 text-emerald-700" /> Retailer
+        {/* Excel Importer & First-Time Setup Callout */}
+        <Link
+          href="/setup"
+          className="bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between gap-3 transition-colors group cursor-pointer"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-emerald-700/80 flex items-center justify-center shrink-0">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-200" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
+                {lang === "hi" ? "प्रथम बार उपयोगकर्ता? एक्सेल मास्टर सेटअप" : "First Time Here? Custom Excel Setup"}
               </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5">...00001</div>
-            </button>
+              <div className="text-xs font-medium text-white">
+                {lang === "hi"
+                  ? "अपनी थोक मूल्य सूची अपलोड करें या रेडीमेड डेटासेट लोड करें →"
+                  : "Upload your custom product Excel sheet or load demo catalog →"}
+              </div>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-1 transition-transform shrink-0" />
+        </Link>
 
+        {/* Quick Test Accounts Directory */}
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+              <span>{lang === "hi" ? "सक्रिय खाते (1-क्लिक टेस्ट)" : "Active Accounts Directory"}</span>
+            </div>
+            <Link
+              href="/setup"
+              className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
+            >
+              <span>{lang === "hi" ? "डेटा बदलें" : "Manage Data"}</span>
+            </Link>
+          </div>
+
+          {/* Core Roles: Desk & Salesman */}
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => selectQuickRole("9826000099")}
@@ -295,9 +327,9 @@ export default function LoginPage() {
               }`}
             >
               <div className="font-bold flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-emerald-700" /> Order Desk
+                <Building2 className="w-3.5 h-3.5 text-emerald-700" /> Order Desk
               </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5">...00099</div>
+              <div className="text-[11px] text-slate-500 font-mono mt-0.5">+91 9826000099</div>
             </button>
 
             <button
@@ -310,10 +342,43 @@ export default function LoginPage() {
               }`}
             >
               <div className="font-bold flex items-center gap-1">
-                <UserCheck className="w-3 h-3 text-emerald-700" /> Salesman
+                <UserCheck className="w-3.5 h-3.5 text-emerald-700" /> Salesman Beat
               </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5">...00018</div>
+              <div className="text-[11px] text-slate-500 font-mono mt-0.5">+91 9826000018</div>
             </button>
+          </div>
+
+          {/* Active Kiranas Grid */}
+          <div className="pt-1">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              {lang === "hi" ? "सक्रिय किराना स्टोर:" : "Select Registered Kirana Store:"}
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+              {(loadedRetailers.length > 0 ? loadedRetailers : [
+                { id: "RET-0001", name: "Sharma Kirana", phone: "9826000001", route: "Napier Town", availableCredit: 38000 },
+                { id: "RET-0002", name: "Verma General", phone: "9826000002", route: "Adhartal", availableCredit: 36500 },
+              ]).map((ret) => (
+                <button
+                  key={ret.id}
+                  type="button"
+                  onClick={() => selectQuickRole(ret.phone)}
+                  className={`p-2 rounded-lg text-left border text-xs transition-all ${
+                    phone.includes(ret.phone.slice(-5))
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-bold"
+                      : "border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  <div className="truncate font-semibold flex items-center gap-1">
+                    <Store className="w-3 h-3 text-emerald-700 shrink-0" />
+                    <span className="truncate">{ret.name}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between mt-0.5">
+                    <span>..{ret.phone.slice(-5)}</span>
+                    <span className="text-emerald-800 font-bold">₹{Math.round(ret.availableCredit / 1000)}k</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

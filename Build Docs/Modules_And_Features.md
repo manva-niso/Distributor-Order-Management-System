@@ -29,6 +29,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 2** | Retailer Catalogue, Pricing & Live Stock | Retailer, Salesman | ✅ Completed | Live catalog, search, brand filters, out-of-stock guards, pack/case pricing |
 | **Module 3** | Pure Scheme Calculation Engine | System / Cart | ✅ Completed | Buy X Get Y free, slab tier discounts, GST calculation, unit tests |
 | **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ✅ Completed | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
+| **Master Setup** | Dynamic Excel Importer & First-Time Onboarding Hub | Distributor, Reviewer | ✅ Completed | Upload custom .xlsx/.csv, 1-click industry presets, live database explorer, downloadable templates |
 | **Module 5** | Multi-Modal AI Order Intake & Disambiguation | Retailer, Desk, Salesman | ⏳ Pending | WhatsApp text paste, photo canvas compression, voice note recorder, rules + Gemini fallback, unit clarification |
 | **Module 6** | Desk Verification Queue, Line Editing & Concurrency | Order Desk Clerk | ⏳ Pending | OCC version check, inline line edits, alias auto-learning, credit hold approval |
 | **Module 7** | Tally XML Export & Batch Processing | Order Desk Clerk | ⏳ Pending | Tally ERP / Prime compliant XML batch download, exported status marking |
@@ -217,3 +218,49 @@ This document tracks each Core Build Module step by step, its features, implemen
     - OCC version increment and stale update conflict rejection (`[A19]`).
   - **Total Repository Tests:** 35/35 tests passing across all 4 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/cart` and `/orders` compiled cleanly.
+
+---
+
+## Master Data Setup & Dynamic Excel Ingestion Engine
+
+### 1. Features Implemented
+- [x] **Universal Excel / CSV Parser (`src/lib/excel/importer.ts`):**
+  - Robust multi-tab workbook ingestion using `xlsx` (SheetJS) supporting `.xlsx`, `.xls`, and `.csv`.
+  - Header normalization and synonym tolerance (`[A32]`): automaps *"Rate"* / *"Wholesale Price"* $\to$ Dealer Price, *"Case Pack"* $\to$ Units Per Case.
+  - Automatically parses trade schemes: Free Goods (`Buy 10 Get 1`) and Slab Discounts (`3% on 5+ cases`).
+  - Automatically computes per-pack unit rates from case wholesale prices.
+  - Generates downloadable sample `.xlsx` template files with realistic FMCG items and kirana accounts (`GET /api/setup/template`).
+- [x] **Store Batch Mutation Engine (`src/db/store.ts`):**
+  - `importSkus(skus, mode)`: Dynamic catalog replacement or merging.
+  - `importRetailers(retailers, mode)`: Dynamic customer ledger ingestion with auto-provisioned user login accounts.
+  - `getStoreStats()`: Real-time telemetry (total SKUs, active kiranas, warehouse cases, total wholesale value).
+- [x] **Master Data Hub UI (`src/app/setup/page.tsx`):**
+  - **Live Inventory Telemetry Strip:** Displays active SKUs, kirana counters, total stock cases, and warehouse value.
+  - **Drag & Drop Upload Zone:** Ingests Excel workbooks with replacement or merge strategy.
+  - **1-Click Realistic Industry Presets:**
+    - Preset 1: *Company A Master* (12 realistic SKUs + 6 Kiranas across Jabalpur delivery routes).
+    - Preset 2: *Grocery & Packaged Foods* (Biscuits, Tea, Edible Oil, Noodles).
+    - Preset 3: *Home Care & Detergents* (Ghadi, Surf Excel, Laundry cakes, Dettol soap).
+  - **Live Database Explorer:** Searchable, real-time tables showing loaded SKUs and Kirana credit balances with 1-click login links.
+- [x] **Login Screen Directory & Account Switcher:**
+  - Displays dynamic directory of all currently loaded Kirana counters with available credit badges and 1-tap test login.
+  - Direct callout linking to `/setup` for immediate Excel onboarding.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/excel/importer.ts` - Excel parsing, validation, and template generation library
+  - `src/app/api/setup/import-excel/route.ts` - Multipart Excel ingestion API
+  - `src/app/api/setup/template/route.ts` - Downloadable Excel template generator API
+  - `src/app/api/setup/status/route.ts` - Real-time store telemetry and records API
+  - `src/app/api/setup/load-preset/route.ts` - 1-click industry preset loader
+  - `src/app/setup/page.tsx` - Master Data Setup & Excel Importer UI
+  - `src/app/(auth)/login/page.tsx` - Enhanced with Master Setup banner & dynamic accounts directory
+  - `src/db/seed-data.ts` - Enriched with 12 realistic FMCG SKUs and 6 Jabalpur Kiranas
+  - `src/db/store.ts` - Added batch import and telemetry methods
+  - `src/__tests__/excel-import.test.ts` - 4 unit tests covering template generation, parsing, synonym matching, and catalog replacement
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/excel-import.test.ts`
+  - 4/4 unit tests passing (59ms runtime).
+  - **Combined Suite:** Total 39/39 tests passing across all 5 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/setup` and `/api/setup/*` compiled cleanly.

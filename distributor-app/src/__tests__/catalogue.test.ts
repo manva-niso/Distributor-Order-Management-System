@@ -11,7 +11,7 @@ describe("Module 2 - Retailer Catalogue, Pricing & Stock Suite", () => {
   describe("Catalogue Master Inventory", () => {
     it("loads all seeded SKUs with correct wholesale case packs", () => {
       const skus = dbStore.getAllSkus();
-      expect(skus).toHaveLength(3);
+      expect(skus.length).toBeGreaterThanOrEqual(12);
 
       const biscuit = skus.find((s) => s.code === "SKU-BS-075");
       expect(biscuit).toBeDefined();

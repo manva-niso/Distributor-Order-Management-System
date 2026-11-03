@@ -133,6 +133,62 @@ class MemoryStore {
     return Array.from(this.skus.values()).find((s) => s.code === code);
   }
 
+  // --- Batch Import & Master Data Operations ---
+  public importSkus(newSkus: SeedSku[], mode: "replace" | "merge" = "merge"): { count: number } {
+    if (mode === "replace") {
+      this.skus.clear();
+    }
+    for (const sku of newSkus) {
+      this.skus.set(sku.id, sku);
+    }
+    return { count: this.skus.size };
+  }
+
+  public importRetailers(newRetailers: SeedRetailer[], mode: "replace" | "merge" = "merge"): { count: number } {
+    if (mode === "replace") {
+      this.retailers.clear();
+      // Keep desk and salesman users, clear retailer users
+      const coreUsers = Array.from(this.users.values()).filter((u) => u.role !== "retailer");
+      this.users.clear();
+      for (const u of coreUsers) {
+        this.users.set(u.id, u);
+      }
+    }
+    for (const r of newRetailers) {
+      this.retailers.set(r.id, r);
+      // Auto-provision user account for this retailer
+      const cleanPhone = r.phone.replace(/\D/g, "").slice(-10);
+      const existingUser = this.getUserByPhone(cleanPhone);
+      if (!existingUser) {
+        this.createUser({
+          id: `usr_${r.id}`,
+          phone: cleanPhone,
+          name: r.ownerName,
+          role: "retailer",
+          retailerId: r.id,
+          active: true,
+        });
+      }
+    }
+    return { count: this.retailers.size };
+  }
+
+  public getStoreStats() {
+    let totalStockCases = 0;
+    let totalWholesaleValue = 0;
+    for (const sku of this.skus.values()) {
+      totalStockCases += sku.stockCases;
+      totalWholesaleValue += sku.stockCases * sku.dealerPrice;
+    }
+    return {
+      totalSkus: this.skus.size,
+      totalRetailers: this.retailers.size,
+      totalOrders: this.orders.size,
+      totalStockCases,
+      totalWholesaleValue: Math.round(totalWholesaleValue),
+    };
+  }
+
   // --- OTP Operations ---
   public saveOtp(otp: StoredOtp): void {
     this.otps.set(otp.id, otp);

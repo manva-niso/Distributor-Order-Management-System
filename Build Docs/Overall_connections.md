@@ -136,6 +136,9 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Pure function trade scheme and tax engine.
   - Computes Free Goods (floor division), Slab Tier Cash Discounts pre-tax, and Rule 46 CGST/SGST 50/50 tax split with micro-epsilon half-up rounding.
   - Produces complete invoice breakdowns (`gross`, `discounts`, `taxable`, `cgst`, `sgst`, `roundOff`, `grandTotal`).
+- **`src/lib/excel/importer.ts`**:
+  - Universal Excel / CSV workbook parsing engine using `xlsx` (SheetJS).
+  - Normalizes headers, resolves column synonyms (`[A32]`), parses trade schemes, and generates downloadable sample `.xlsx` templates.
 
 ---
 
@@ -160,6 +163,14 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `POST`: Validates retailer session, computes invoice via scheme engine, enforces physical stock ceilings on ordered and promotional free goods cases (`[A30]`), checks credit exposure for `CREDIT_HOLD` vs `PLACED` status (`[A14]`), deducts warehouse inventory atomically, and updates retailer ledger balance.
 - **`src/app/api/orders/route.ts`**:
   - `GET`: Returns past and active order records with route metadata and itemized breakdowns. Scoped to authenticated retailer or full beat for order desk.
+- **`src/app/api/setup/import-excel/route.ts`**:
+  - `POST`: Parses uploaded Excel/CSV files (`.xlsx`, `.xls`, `.csv`), validates columns and types, and updates SKUs and Retailers in `dbStore`.
+- **`src/app/api/setup/template/route.ts`**:
+  - `GET`: Generates and streams downloadable sample Excel template workbooks (`distributor_master_template.xlsx`).
+- **`src/app/api/setup/status/route.ts`**:
+  - `GET`: Returns warehouse inventory telemetry (total SKUs, total cases, wholesale value) and active retailer directory.
+- **`src/app/api/setup/load-preset/route.ts`**:
+  - `POST`: 1-click industry preset switcher (Company A FMCG, Food & Grocery, Home Care & Hygiene).
 
 ---
 
@@ -196,6 +207,9 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Real-time order tracking with status badges (`PLACED`, `CREDIT_HOLD`, `VERIFIED`, `EXPORTED_TALLY`).
   - Itemized lines, case counts, free goods breakdown, and van route assignment.
   - Celebratory confirmation banner on new order checkout.
+- **`src/app/setup/page.tsx`**:
+  - Master Data & Excel Ingestion Hub.
+  - Supports drag & drop `.xlsx`/`.csv` upload, downloadable sample templates, 1-click realistic industry presets, and live database explorer.
 - **`src/components/layout/BottomNav.tsx`**:
   - Mobile bottom navigation bar with 48px touch targets for Catalogue, Quick Order AI, Cart, and Order History tabs.
   - Real-time badge counter linking to active cart items.
@@ -207,6 +221,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
 - **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
 - **`src/__tests__/orders.test.ts`**: 4 automated unit tests verifying order checkout under credit limit, automatic `CREDIT_HOLD` flagging on headroom breach (`[A14]`), anti-backorder warehouse stock protection (`[A9]`), and OCC conflict detection on status updates (`[A19]`).
+- **`src/__tests__/excel-import.test.ts`**: 4 automated unit tests verifying Excel template generation, workbook buffer extraction, column synonym tolerance, and dynamic in-memory catalog replacement.
 
 ---
 

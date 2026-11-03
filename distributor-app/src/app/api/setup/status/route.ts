@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server";
+import { dbStore } from "@/db/store";
+
+export async function GET() {
+  const stats = dbStore.getStoreStats();
+  const retailers = dbStore.getAllRetailers().map((r) => ({
+    id: r.id,
+    name: r.name,
+    ownerName: r.ownerName,
+    phone: r.phone,
+    route: r.route,
+    creditLimit: r.creditLimit,
+    currentBalance: r.currentBalance,
+    availableCredit: r.creditLimit - r.currentBalance,
+  }));
+
+  const skus = dbStore.getAllSkus().map((s) => ({
+    id: s.id,
+    code: s.code,
+    name: s.name,
+    brand: s.brand,
+    category: s.category,
+    packSize: s.packSize,
+    unitsPerCase: s.unitsPerCase,
+    dealerPrice: s.dealerPrice,
+    stockCases: s.stockCases,
+    schemeType: s.schemeType,
+    gstRate: s.gstRate,
+  }));
+
+  return NextResponse.json({
+    success: true,
+    stats,
+    retailers,
+    skus,
+  });
+}
