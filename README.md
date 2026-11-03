@@ -26,15 +26,23 @@ This repository contains the end-to-end B2B order management system engineered t
 │   ├── Errors.md                                 # Root cause incident log for all build/runtime issues
 │   ├── Overall_connections.md                    # Directory breakdown, file roles & end-to-end data flow
 │   ├── Test_And_Run_Guide.md                     # Runbook for testing each part individually & collectively
-│   └── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A23]) by module
+│   ├── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A44]) by module
+│   ├── TDD_Draft.md                              # Technical Design Document (Deliverable #1)
+│   └── deployment.md                             # Step-by-step local and production deployment guide (Deliverable #2)
 ├── distributor-app/                              # Next.js App Router full-stack codebase
 │   ├── src/
-│   │   ├── app/                                  # App router pages & API route handlers
+│   │   ├── app/                                  # App router pages & 32 production route handlers
 │   │   │   ├── (auth)/login/                     # Screen 1: Bilingual Login & OTP verification
-│   │   │   └── api/auth/                         # OTP dispatch, verification, profile & logout APIs
+│   │   │   ├── (portal)/catalogue/               # Screen 2: Retailer catalogue & scheme pricing
+│   │   │   ├── (portal)/quick-order/             # Screen 3 & 4: Multi-modal AI quick ingest
+│   │   │   ├── (portal)/cart/                    # Screen 5: Cart & credit headroom meter
+│   │   │   ├── (portal)/orders/                  # Screen 6: Order tracking & history
+│   │   │   ├── desk/                             # Screen 7: Central Operations Terminal (Tally Export, Van Manifest, Dormant Retention)
+│   │   │   ├── desk/orders/[id]/                 # Screen 8: Split-screen order verification workspace with OCC & alias learning
+│   │   │   └── setup/                            # Master data & universal Excel ingestion hub
 │   │   ├── db/                                   # Drizzle ORM schema, reactive store & seed data
-│   │   ├── lib/                                  # Auth utilities (JWT, OTP, SMS gateways)
-│   │   └── __tests__/                            # Vitest unit & integration test suites
+│   │   ├── lib/                                  # Pure scheme engine, AI parser, Tally XML generator, Excel importer
+│   │   └── __tests__/                            # 10 Vitest test suites (77 automated tests)
 │   ├── next.config.ts                            # Next.js production configuration
 │   └── package.json                              # Dependencies & test scripts
 ├── Inital Documents/                             # Initial client briefs & specifications
@@ -78,4 +86,4 @@ Run the automated Vitest test suite:
 cd distributor-app
 npm run test
 ```
-All unit and integration tests run in under 1 second without requiring external network dependencies.
+All 77 unit and integration tests across 10 test suites run in <1 second without requiring external network dependencies. Production build compiles 32/32 routes with 0 errors via `npm run build`.

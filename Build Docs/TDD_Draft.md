@@ -98,19 +98,35 @@ The interface follows the **Merchant Utility** design tokens:
 2. **Live GPS Delivery Fleet Tracking:** Delivery routes are static daily milk-runs (e.g., Van 4 visits Napier Town every morning). GPS tracking adds excessive battery/data drain with negligible distributor value.
 3. **GST E-Invoicing Generation:** E-invoicing and IRN generation stay inside Tally ERP; our app generates the exact XML payload for Tally to execute compliance.
 
+### Implemented Operational Capabilities (Modules 7, 8, 9)
+1. **Module 7: Tally ERP 9 / TallyPrime XML Batch Export Engine (`[A21]`, `[A39]`, `[A40]`):** Native `<ENVELOPE>` voucher generator with Actual vs Billed quantities for schemes, double-entry ledgers, and live XML preview and download modal.
+2. **Module 8: Van Loading Route Manifest Engine (`[A22]`, `[A41]`, `[A42]`):** Route-level picking list aggregating master cases and promotional free goods by SKU, sequential driver stop challans, and vehicle payload weight telemetry.
+3. **Module 9: 14-Day Dormant Retailers Retention Dashboard (`[A23]`, `[A43]`, `[A44]`):** Identifies inactive kiranas (≥14 days), categorizes churn risk tiers (High vs Critical), tracks at-risk monthly volume, and generates 1-tap personalized Devanagari Hindi WhatsApp re-order nudges.
+
 ### Next Features (Post-Core Roadmap)
-1. Salesman offline IndexedDB queue synchronization via Serwist Service Worker.
-2. Van Loading Route Manifest aggregation printing.
-3. 14-Day Dormant Retailers Dashboard with automated WhatsApp deep-link nudges.
+1. Salesman offline IndexedDB background queue synchronization via Serwist Service Worker.
+2. Bluetooth thermal printer direct ESC/POS command streaming for van delivery challans.
 
 ---
 
 ## 7. Assumptions Registry
 
-All assumptions are cataloged with permanent identifiers (`[A1]` to `[A23]`) in [`Build Docs/Assumptions.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md). Key examples:
+All 44 operational and technical assumptions are cataloged with permanent identifiers (`[A1]` to `[A44]`) in [`Build Docs/Assumptions.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md). Key examples:
 - `[A1]`: 2:00 PM route cutoff for scheduled morning dispatch.
+- `[A2]`: Intra-state Madhya Pradesh 50/50 CGST + SGST tax ledger splitting with half-up rounding.
 - `[A8]`: Stock tracked in wholesale master cases; pack rates are informational.
 - `[A11]`: Free goods formula $\lfloor \text{qty} / 10 \rfloor \times 1$ delivered at ₹0.00 value.
 - `[A14]`: Credit exposure ceiling check routing over-limit orders to `CREDIT_HOLD`.
-- `[A16]`: Missing packaging units are asked, never guessed.
-- `[A19]`: Optimistic concurrency control (`occ_version`) on desk orders.
+- `[A16]`: Missing packaging units are asked, never guessed (*"peti"* = Case).
+- `[A19]`: Optimistic concurrency control (`occ_version`) on desk orders with HTTP 409 Conflict.
+- `[A20]`: Retailer vocabulary auto-learning persisting corrections to `retailer_aliases`.
+- `[A21]`: Standard Tally ERP 9 / Prime XML Sales Voucher export envelope.
+- `[A22]`: Route-level warehouse picking list grouping total master cases by SKU across beat orders.
+- `[A23]`: 14-day inactivity threshold triggering churn alerts and WhatsApp re-order nudges.
+- `[A36]`: Partial master case requests (*"case of 20 mai se 15"*) trigger `BROKEN_CASE` guardrail.
+- `[A39]`: Tally trade schemes formatted via native `<ACTUALQTY>` vs `<BILLEDQTY>`.
+- `[A40]`: Tally double-entry algebraic sign conventions (Debtor +, Credits -) balancing to 0.00.
+- `[A41]`: Scheme free cases included on warehouse pick slips (`totalCases = paidCases + freeCases`).
+- `[A42]`: Cargo payload weight calculations to protect delivery vehicle safety limits.
+- `[A43]`: Progressive churn risk stratification (High Risk 14-20 days vs Critical Churn ≥21 days).
+- `[A44]`: Personalized bilingual Devanagari Hindi WhatsApp promotional nudge formatting.

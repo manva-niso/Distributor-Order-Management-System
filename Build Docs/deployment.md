@@ -51,7 +51,7 @@ The application has been pre-seeded with realistic Jabalpur distribution master 
    ```bash
    npm run test
    ```
-   *(Executes all Vitest unit and integration suites in <1 second).*
+   *(Executes all 77 automated Vitest unit and integration tests across 10 test suites in <1.5s).*
 
 5. **Start the Development Server:**
    ```bash
