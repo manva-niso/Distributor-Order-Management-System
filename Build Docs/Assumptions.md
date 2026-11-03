@@ -42,6 +42,9 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A30]** | Module 4: Cart/Orders | Physical Promotional Stock Lock | Free promotional cases (`freeCases`) are deducted atomically alongside billed cases from warehouse stock to prevent stockout cuts. |
 | **[A31]** | Master Data / Setup | Dynamic Excel/CSV Catalog Ingestion | System dynamically ingests arbitrary distributor price lists and retailer credit sheets (.xlsx/.xls/.csv), eliminating hardcoded data dependency. |
 | **[A32]** | Master Data / Setup | Header Synonym Tolerance & Safe Defaults | Ingestion engine tolerates varied column synonyms ("Rate", "Dealer Price", "Case Pack") and applies standard FMCG defaults when non-critical metadata is omitted. |
+| **[A33]** | Module 5: AI Capture | Pluggable Parser Strategy & ML Extensibility | Parser implements `OrderParserPipeline` adapter pattern so any custom ML microservice (Python/FastAPI) can drop-in replace rules without UI changes. |
+| **[A34]** | Module 5: AI Capture | Trilingual & Devanagari Numeral Normalization | Accepts Arabic digits (`0-9`), Devanagari numerals (`०-९`), and written words (`ek`, `paanch`, `दो`), stripping colloquial pleasantries before SKU matching. |
+| **[A35]** | Module 5: AI Capture | Pack-to-Case Ceiling Multiple Conversion | When retail loose packs are specified, engine calculates wholesale master cases using ceiling multiples of SKU pack configuration (`ceil(packs / unitsPerCase)`). |
 
 ---
 
@@ -189,6 +192,18 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A18]` Human-in-the-Loop Order Booking
 - **Context:** Preventing rogue orders.
 - **Assumption:** AI extractions are strictly temporary draft captures stored in the `captures` table. **No order is placed into the system until a human** (either the retailer on mobile or a desk clerk in the office) verifies the lines, prices, and quantities and taps **"Confirm Order"**.
+
+#### `[A33]` Pluggable Parser Strategy & ML Microservice Extensibility
+- **Context:** Decoupling intake algorithms so custom Python/FastAPI/PyTorch ML models can replace rule heuristics.
+- **Assumption:** Text parsing implements the `OrderParserPipeline` contract (`parseText(rawText, context): Promise<ParseResult>`). By toggling `ORDER_PARSER_PROVIDER="custom_ml"` and specifying `CUSTOM_ML_API_URL`, external microservices receive standard JSON and return parsed lines without modifying the frontend or database schemas. If the external microservice is offline or errors, the system gracefully falls back to deterministic rules with zero downtime (`[A17]`).
+
+#### `[A34]` Trilingual & Devanagari Numeral Normalization
+- **Context:** Jabalpur shopkeepers write orders across English, Hinglish, and Devanagari Hindi with varying digit representations.
+- **Assumption:** The parser maps Devanagari numerals (`०-९`) to standard Arabic digits (`0-9`), translates word numbers across English (`one`, `two`), Hinglish (`ek`, `do`, `chaar`, `paanch`, `das`), and Hindi (`एक`, `दो`, `चार`, `पाँच`), and strips non-order conversational pleasantries (*"bhaiya"*, *"jaldi bhejo"*, *"kal subah"*, *"chahiye"*) prior to matching SKU descriptions.
+
+#### `[A35]` Pack-to-Case Ceiling Multiple Conversion
+- **Context:** Wholesale distributors sell and pick strictly in full master cases, but kirana shopkeepers occasionally order by consumer packet count.
+- **Assumption:** When a shopkeeper orders in loose packets (e.g. *"120 packets Parle-G 75g"* with 96 packs/case), the system converts the quantity to whole master cases via ceiling division: `Math.max(1, Math.ceil(packs / unitsPerCase))`. The UI clearly displays both the requested packet quantity and the corresponding full case allocation to maintain warehouse logistics integrity.
 
 ---
 

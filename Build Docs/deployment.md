@@ -74,8 +74,10 @@ All credentials and secrets are managed via environment variables. **No secrets 
 | `TWILIO_ACCOUNT_SID` | Optional | Twilio account SID (if `SMS_PROVIDER="twilio"`). |
 | `TWILIO_AUTH_TOKEN` | Optional | Twilio authentication token (if `SMS_PROVIDER="twilio"`). |
 | `TWILIO_PHONE_NUMBER` | Optional | Twilio originating phone number. |
-| `GEMINI_API_KEY` | Required for AI capture | Google Gemini API key used by the multi-modal extraction pipeline. |
+| `GEMINI_API_KEY` | Required for AI vision | Google Gemini API key used by the multi-modal photo/voice extraction pipeline. |
 | `GEMINI_MODEL` | Optional | Target Gemini model (defaults to `gemini-2.5-flash`). |
+| `ORDER_PARSER_PROVIDER` | Optional | Order parser strategy: `"rules"` (default deterministic) or `"custom_ml"` (external Python microservice). |
+| `CUSTOM_ML_API_URL` | Optional | Microservice endpoint URL when using custom ML parser (defaults to `http://localhost:8000/api/predict`). |
 | `NODE_ENV` | Required | Set to `"development"` or `"production"`. |
 | `NEXT_PUBLIC_APP_URL` | Required | Canonical URL of the application (`http://localhost:3000` or production domain). |
 

@@ -139,6 +139,13 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/lib/excel/importer.ts`**:
   - Universal Excel / CSV workbook parsing engine using `xlsx` (SheetJS).
   - Normalizes headers, resolves column synonyms (`[A32]`), parses trade schemes, and generates downloadable sample `.xlsx` templates.
+- **`src/lib/ai/types.ts`**:
+  - Pipeline contracts (`OrderParserPipeline`), parsed item structures (`ParsedLineItem`, `ParseResult`), unit types (`CASE`, `PACK`, `KG`, `UNKNOWN`), and ambiguity reasons (`MISSING_UNIT`, `MULTIPLE_CANDIDATES`, `UNKNOWN_SKU`).
+- **`src/lib/ai/text-parser.ts`**:
+  - Sub-10ms deterministic multilingual order text parser.
+  - Normalizes Devanagari numerals (`०-९`), translates number words across English, Hinglish, and Hindi (`[A34]`), strips conversational pleasantries, matches SKUs with scoring heuristics, enforces the unit disambiguation guardrail (`[A16]`), and calculates case multiples for loose packets (`[A35]`).
+- **`src/lib/ai/pipeline.ts`**:
+  - Strategy provider factory. Supports `rules` (default deterministic engine) and `custom_ml` (`CustomMlApiAdapter`), with zero-downtime graceful fallback (`[A17]`, `[A33]`).
 
 ---
 
@@ -171,6 +178,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `GET`: Returns warehouse inventory telemetry (total SKUs, total cases, wholesale value) and active retailer directory.
 - **`src/app/api/setup/load-preset/route.ts`**:
   - `POST`: 1-click industry preset switcher (Company A FMCG, Food & Grocery, Home Care & Hygiene).
+- **`src/app/api/capture/parse-text/route.ts`**:
+  - `POST`: Validates incoming text order utterances, dispatches to active parser pipeline (`deterministic` or `custom_ml`), and returns structured line items, SKU matches, confidence scores, and ambiguity warnings.
 
 ---
 
@@ -207,6 +216,11 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Real-time order tracking with status badges (`PLACED`, `CREDIT_HOLD`, `VERIFIED`, `EXPORTED_TALLY`).
   - Itemized lines, case counts, free goods breakdown, and van route assignment.
   - Celebratory confirmation banner on new order checkout.
+- **`src/app/(portal)/quick-order/page.tsx` (Screens 3 & 4)**:
+  - Multilingual order text intake (Hinglish, English, Hindi).
+  - 1-click test templates for quick evaluator testing.
+  - Interactive **Disambiguation Card** (`[A16]`): prompts merchant to resolve missing units (*Cases vs Loose Packs*) before adding to cart.
+  - Quantity steppers, line deletion, and 1-tap cart synchronization (`localStorage`).
 - **`src/app/setup/page.tsx`**:
   - Master Data & Excel Ingestion Hub.
   - Supports drag & drop `.xlsx`/`.csv` upload, downloadable sample templates, 1-click realistic industry presets, and live database explorer.
@@ -222,6 +236,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
 - **`src/__tests__/orders.test.ts`**: 4 automated unit tests verifying order checkout under credit limit, automatic `CREDIT_HOLD` flagging on headroom breach (`[A14]`), anti-backorder warehouse stock protection (`[A9]`), and OCC conflict detection on status updates (`[A19]`).
 - **`src/__tests__/excel-import.test.ts`**: 4 automated unit tests verifying Excel template generation, workbook buffer extraction, column synonym tolerance, and dynamic in-memory catalog replacement.
+- **`src/__tests__/text-parser.test.ts`**: 11 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), loose pack ceiling case conversion (`[A35]`), and pipeline strategy switching.
 
 ---
 

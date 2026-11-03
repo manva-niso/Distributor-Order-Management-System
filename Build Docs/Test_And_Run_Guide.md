@@ -17,6 +17,7 @@ From the `distributor-app/` directory:
 | **Test Module 3 (Schemes) only** | `npx vitest run src/__tests__/schemes.test.ts` | Runs the 10 pure scheme engine and GST calculation tests. |
 | **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
 | **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
+| **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 11 multilingual text parser and ambiguity guardrail tests. |
 | **Run full production build** | `npm run build` | Compiles TypeScript, runs Turbopack, verifies static/dynamic routes. |
 | **Start local dev server** | `npm run dev` | Spins up live development server at `http://localhost:3000`. |
 | **Start local production server** | `npm run start` | Serves the optimized production build at `http://localhost:3000`. |
@@ -225,6 +226,31 @@ npm run build
 - `ƒ /api/auth/*` (Dynamic route handlers)
 - `ƒ Proxy (Middleware)` (Active edge security guard)
 - Zero TypeScript (`tsc`) warnings or errors.
+
+### E. Testing Module 5: Multilingual Text Order Parser in Isolation
+The test suite [`src/__tests__/text-parser.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/text-parser.test.ts) verifies parsing of English, Hinglish, and Hindi orders without external API dependencies:
+
+```bash
+cd distributor-app
+npx vitest run src/__tests__/text-parser.test.ts
+```
+
+#### What It Tests Individually:
+1. **Devanagari Numerals:** Normalizes `०, १, २, ३, ४, ५, ६, ७, ८, ९` into standard Arabic digits `0-9`.
+2. **Word Numerals:** Translates written numbers across Hinglish (`do`, `chaar`, `paanch`, `das`), English (`two`, `five`), and Hindi (`दो`, `चार`, `पाँच`).
+3. **Colloquial Units:** Maps *"peti"*, *"dabba"*, *"case"* to wholesale `CASE`, and *"packet"*, *"pack"* to `PACK`.
+4. **Unit Ambiguity Guardrail (`[A16]`):** When a message states *"5 biscuit chhota"* without specifying *"peti"* or *"packet"*, marks line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"`.
+5. **Pack-to-Case Conversion (`[A35]`):** Computes whole master cases via ceiling division (`ceil(packs / unitsPerCase)`).
+6. **Pipeline Strategy & ML Extensibility (`[A33]`):** Validates strategy provider and pluggable adapter fallback.
+
+#### Testing Text Parser API Endpoint (`POST /api/capture/parse-text`)
+*PowerShell:*
+```powershell
+$body = @{ text = "bhaiya 5 peti biscuit chhota`n2 peti ghadi powder 1 kg" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/api/capture/parse-text" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
+```
+
+---
 
 ### C. Middleware Route Protection Verification
 
