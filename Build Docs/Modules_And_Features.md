@@ -26,7 +26,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | Module | Name | Primary Persona | Status | Target Scope |
 | :--- | :--- | :--- | :--- | :--- |
 | **Module 1** | Scaffolding, Database Schema & Auth (Login, OTP, Session) | Retailer, Desk, Salesman | ✅ Completed | App scaffold, Drizzle schema, OTP generation & verification, JWT cookies, Login UI |
-| **Module 2** | Retailer Catalogue, Pricing & Live Stock | Retailer, Salesman | ⏳ Pending | Live catalog, search, brand filters, out-of-stock guards, pack/case pricing |
+| **Module 2** | Retailer Catalogue, Pricing & Live Stock | Retailer, Salesman | ✅ Completed | Live catalog, search, brand filters, out-of-stock guards, pack/case pricing |
 | **Module 3** | Pure Scheme Calculation Engine | System / Cart | ⏳ Pending | Buy X Get Y free, slab tier discounts, GST calculation, unit tests |
 | **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ⏳ Pending | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
 | **Module 5** | Multi-Modal AI Order Intake & Disambiguation | Retailer, Desk, Salesman | ⏳ Pending | WhatsApp text paste, photo canvas compression, voice note recorder, rules + Gemini fallback, unit clarification |
@@ -82,3 +82,51 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Role detection and profile loading (`retailer`, `desk`, `salesman`).
     - Cryptographic JWT session signing & tamper-detection.
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, all routes statically optimized or server-rendered dynamic.
+
+---
+
+## Module 2: Retailer Catalogue, Pricing & Live Stock Status
+
+### 1. Features Implemented
+- [x] **Live Catalog Engine (`src/lib/catalogue/cart-store.ts`):**
+  - Instant client-side cart calculations with persistence to `localStorage`.
+  - Dynamic Ex-GST vs Incl-GST price display (`priceInclGst = round(priceExGst * (1 + gstRate/100), 2)`).
+  - Pack-to-case calculations (e.g. 24 packs/case) and per-pack unit price breakdown so retailers understand their margin.
+  - Automatic scheme indicators: "Buy 10 Get 1 FREE" (`B10G1`) and slab discounts ("Flat 3% Off on 5+ cases").
+  - Live stock state enforcement: Green (`IN STOCK`), Amber (`LOW STOCK` ≤10 cases), Red (`OUT OF STOCK`).
+  - Strict UI disablement and quantity cap prevents backorders or negative inventory checkouts.
+  - Restock notification mechanism (`POST /api/catalogue/notify-restock`) for out-of-stock items (`SKU-TE-250`).
+- [x] **Catalogue API Handlers (`src/app/api/catalogue/`):**
+  - `GET /api/catalogue`: Returns all active SKUs enriched with schemes, available stock, brand filters, and category groupings. Supports query parameters (`?q=...&brand=...&category=...`).
+  - `POST /api/catalogue/notify-restock`: Captures retailer phone and SKU ID when out-of-stock items are requested.
+- [x] **Screen 2 UI (`src/app/(portal)/catalogue/page.tsx`):**
+  - Header with Retailer Name (`Sharma Kirana Store`), Route badge (`Van 4 - Napier Town`), and Credit headroom ticker (`₹38,000 credit remaining`).
+  - Search input with debounce and 1-tap clear button.
+  - Brand filter pills (`All`, `Brand A - Food`, `Brand B - Detergents`, `Brand C - Beverages`, `Brand D - Personal Care`).
+  - SKU Product Cards with high-contrast typography, clear stock chips, scheme tags, pack breakdown, quantity stepper (`-` / count / `+`), and out-of-stock guard.
+  - Sticky bottom cart bar showing active item count, total price (Ex-GST & Incl-GST), and 1-tap checkout transition button.
+  - Bilingual Hindi/English language toggle preserved across views.
+- [x] **Navigation (`src/components/layout/BottomNav.tsx`):**
+  - Persistent 48px touch-target mobile bottom navigation bar (`Catalogue`, `Quick Order AI`, `Cart`, `Orders`).
+  - Real-time badge counter on Cart icon.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/catalogue/cart-store.ts` - Cart state store & calculation math
+  - `src/app/api/catalogue/route.ts` - Live catalogue API with search & filters
+  - `src/app/api/catalogue/notify-restock/route.ts` - Restock notification trigger
+  - `src/components/layout/BottomNav.tsx` - 4-tab mobile bottom navigation bar
+  - `src/app/(portal)/catalogue/page.tsx` - Screen 2 Retailer catalogue UI
+  - `src/__tests__/catalogue.test.ts` - 8 unit tests covering catalogue & cart logic
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/catalogue.test.ts`
+  - 8/8 unit tests passing (20ms runtime) covering:
+    - Ex-GST to Incl-GST rounding accuracy.
+    - Pack price calculation from case rate.
+    - Stock quantity bounds checking & prevention of negative orders.
+    - Buy 10 Get 1 free computation.
+    - 3% slab tier discount activation on 5+ cases.
+    - Cart total aggregation and item addition/removal.
+  - **Combined Suite:** Total 20/20 tests passing across all suites (`auth.test.ts` + `catalogue.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/catalogue` route compiled cleanly.

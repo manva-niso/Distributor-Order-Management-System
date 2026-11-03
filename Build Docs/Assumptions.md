@@ -33,6 +33,9 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A21]** | Module 7: Tally Export | Standard XML Envelope | Exports match standard Tally ERP 9 / Tally Prime Sales Voucher XML specifications. |
 | **[A22]** | Module 8: Van Manifest | Route Level Aggregation | Warehouse picking slips group orders by route and sum total master cases per SKU. |
 | **[A23]** | Module 9: Dormant Desk | Inactivity Window (14 Days) | Retailers with $\ge 14$ days since last order trigger sales beat alerts and WhatsApp nudges. |
+| **[A24]** | Module 2: Catalogue | Search & Filter Logic | Case-insensitive instant multi-field match (name, brand, category, code); client state caches results. |
+| **[A25]** | Module 2: Catalogue | Client Cart Resiliency | Active draft cart item quantities persist in `localStorage` to survive network drops & page refreshes. |
+| **[A26]** | Module 2: Catalogue | Stockout Notification Telemetry | "Notify when available" registers an intent event in `audit_logs` without allowing checkout of zero-stock SKUs. |
 
 ---
 
@@ -87,6 +90,18 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A10]` Pricing Display Transparency (Ex-GST vs. Incl-GST)
 - **Context:** Kirana invoice expectations.
 - **Assumption:** To avoid distributor-retailer friction, wholesale rates are displayed primarily as **Ex-GST wholesale dealer price** (`₹777.60/case`), immediately followed by a clear tax badge (`+18% GST = ₹917.57 Incl.`).
+
+#### `[A24]` Search & Brand Filter Matching
+- **Context:** Finding products between customer footfall.
+- **Assumption:** Catalogue search performs immediate, case-insensitive substring matching against SKU names, brand names, and SKU codes. Brand chips (`All`, `Parle`, `Ghadi`, `Wagh Bakri`) filter instantaneously in client memory without additional server round-trips.
+
+#### `[A25]` Client Cart State Resiliency
+- **Context:** Spotty 3G mobile connections in Jabalpur bazaars.
+- **Assumption:** Draft cart selections and case quantities are persisted in browser `localStorage`. If a shopkeeper takes a call, switches apps, or reloads, their staged items, quantities, and scheme unlocks remain intact.
+
+#### `[A26]` Out-of-Stock Notification Telemetry
+- **Context:** Handling stockouts without dead buttons.
+- **Assumption:** When a shopkeeper taps *"Notify when available"* on out-of-stock SKU-TE-250, the action is not a dead link; it triggers an audit telemetry record (`RESTOCK_ALERT_REQUESTED`), stores the retailer's phone, and renders an instant green acknowledgment toast (`✓ Notified / स्टॉक आते ही आपको सूचित किया जाएगा`).
 
 ---
 

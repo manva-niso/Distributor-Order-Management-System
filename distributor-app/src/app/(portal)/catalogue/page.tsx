@@ -1,0 +1,578 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  Store,
+  Wallet,
+  Sparkles,
+  Percent,
+  Gift,
+  Bell,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Plus,
+  Minus,
+  MessageSquare,
+  LogOut,
+  RefreshCw,
+} from "lucide-react";
+import { SeedSku } from "@/db/seed-data";
+import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
+import { BottomNav } from "@/components/layout/BottomNav";
+
+interface RetailerHeader {
+  id: string;
+  name: string;
+  ownerName: string;
+  creditLimit: number;
+  currentBalance: number;
+  availableCredit: number;
+  creditHold: boolean;
+  route: string;
+}
+
+export default function CataloguePage() {
+  const router = useRouter();
+
+  // State
+  const [lang, setLang] = useState<"en" | "hi">("en");
+  const [retailer, setRetailer] = useState<RetailerHeader | null>(null);
+  const [skus, setSkus] = useState<SeedSku[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
+  const [cartMap, setCartMap] = useState<Record<string, number>>({});
+  const [notifiedSkus, setNotifiedSkus] = useState<Record<string, boolean>>({});
+
+  // 1. Load Catalogue & Retailer Session
+  useEffect(() => {
+    // Restore cart from localStorage if present
+    try {
+      const savedCart = localStorage.getItem("isolabs_draft_cart");
+      if (savedCart) {
+        setCartMap(JSON.parse(savedCart));
+      }
+    } catch {
+      // Fallback if localStorage unavailable
+    }
+
+    fetch("/api/catalogue")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setSkus(data.skus || []);
+          setRetailer(data.retailer || null);
+          // Pre-populate Sharma Kirana initial demo cart (10 biscuit, 4 detergent) if fresh
+          if (Object.keys(cartMap).length === 0) {
+            const initialMap: Record<string, number> = {
+              "SKU-BS-075": 10,
+              "SKU-DT-1KG": 4,
+            };
+            setCartMap(initialMap);
+            try {
+              localStorage.setItem("isolabs_draft_cart", JSON.stringify(initialMap));
+            } catch {}
+          }
+        }
+      })
+      .catch((err) => console.error("Failed to load catalogue:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Sync cart changes to localStorage
+  const updateCartQty = (skuId: string, delta: number) => {
+    setCartMap((prev) => {
+      const current = prev[skuId] || 0;
+      const next = Math.max(0, current + delta);
+      const updated = { ...prev };
+      if (next === 0) {
+        delete updated[skuId];
+      } else {
+        updated[skuId] = next;
+      }
+      try {
+        localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  // Convert cartMap into calculated CartItems
+  const cartItems: CartItem[] = useMemo(() => {
+    return skus.map((s) => ({
+      ...s,
+      quantityCases: cartMap[s.id] || 0,
+    }));
+  }, [skus, cartMap]);
+
+  const totals = useMemo(() => {
+    return calculateCartTotals(cartItems);
+  }, [cartItems]);
+
+  // Search & Filter
+  const filteredSkus = useMemo(() => {
+    return skus.filter((item) => {
+      const matchesBrand = selectedBrand === "ALL" || item.brand.toUpperCase() === selectedBrand.toUpperCase();
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        item.name.toLowerCase().includes(query) ||
+        item.brand.toLowerCase().includes(query) ||
+        item.code.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query);
+      return matchesBrand && matchesSearch;
+    });
+  }, [skus, selectedBrand, searchQuery]);
+
+  // Brand Chips
+  const brands = useMemo(() => {
+    const list = Array.from(new Set(skus.map((s) => s.brand)));
+    return ["ALL", ...list];
+  }, [skus]);
+
+  // Handle Out of Stock Restock Notification
+  const handleNotifyRestock = async (sku: SeedSku) => {
+    try {
+      setNotifiedSkus((prev) => ({ ...prev, [sku.id]: true }));
+      await fetch("/api/catalogue/notify-restock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skuId: sku.id }),
+      });
+    } catch {
+      // Keep optimistic feedback
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 pb-36 font-sans antialiased">
+      {/* Top Fixed Header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+        {/* Row 1: Brand, Account & Language */}
+        <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-base shadow-xs shrink-0">
+              A
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-slate-900 text-sm leading-none">Company A</span>
+                <span className="text-[11px] text-slate-500 font-medium">Jabalpur</span>
+              </div>
+              <span className="text-xs font-bold text-emerald-800 truncate">
+                {retailer ? retailer.name : "Sharma Kirana"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Language Switch */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setLang("en")}
+                className={`h-7 px-2 rounded text-xs font-bold transition-all ${
+                  lang === "en" ? "bg-white text-emerald-800 shadow-xs" : "text-slate-600"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLang("hi")}
+                className={`h-7 px-2 rounded text-xs font-bold transition-all ${
+                  lang === "hi" ? "bg-white text-emerald-800 shadow-xs" : "text-slate-600"
+                }`}
+              >
+                हिन्दी
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Logout"
+              className="w-8 h-8 rounded-lg text-slate-500 hover:text-red-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Credit Headroom & Route Strip */}
+        <div className="bg-slate-100/80 border-t border-slate-200 px-4 py-1.5">
+          <div className="max-w-md mx-auto flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1 text-slate-600">
+              <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+              <span>{lang === "hi" ? "उपलब्ध उधार: " : "Credit Headroom: "}</span>
+              <strong className="text-emerald-800 font-bold font-mono">
+                ₹{retailer ? retailer.availableCredit.toLocaleString("en-IN") : "38,000"}
+              </strong>
+            </div>
+            <span className="text-slate-500 text-[11px] truncate">
+              {retailer?.route || "Napier Town Route #4"}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Body Container */}
+      <main className="max-w-md w-full mx-auto px-4 pt-3 flex flex-col gap-3">
+        {/* Quick Order (AI) Promo Action Card */}
+        <Link
+          href="/quick-order"
+          className="bg-emerald-800 text-white rounded-xl p-3 shadow-sm flex items-center justify-between gap-3 hover:bg-emerald-900 transition-all select-none"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-emerald-700/80 flex items-center justify-center shrink-0">
+              <MessageSquare className="w-5 h-5 text-emerald-200" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
+                {lang === "hi" ? "व्हाट्सएप / बोलकर आर्डर" : "WhatsApp or Voice Order"}
+              </span>
+              <span className="text-sm font-semibold truncate">
+                {lang === "hi" ? "मैसेज या पर्ची फोटो से आर्डर करें" : "Order in 1 minute using AI"}
+              </span>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-emerald-300 shrink-0" />
+        </Link>
+
+        {/* Search Input (48px Touch Area) */}
+        <div className="relative flex items-center w-full">
+          <Search className="w-5 h-5 text-slate-400 absolute left-3 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={lang === "hi" ? "सामान या ब्रांड खोजें..." : "Search biscuit, detergent, tea..."}
+            className="w-full h-12 pl-10 pr-4 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs"
+          />
+        </div>
+
+        {/* Brand Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none">
+          {brands.map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setSelectedBrand(b)}
+              className={`min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer ${
+                selectedBrand === b
+                  ? "bg-emerald-800 text-white shadow-xs"
+                  : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              {b === "ALL" ? (lang === "hi" ? "सभी ब्रांड (All)" : "All Brands") : b}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="flex flex-col gap-3 py-6 items-center justify-center text-slate-500">
+            <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
+            <span className="text-xs font-semibold">
+              {lang === "hi" ? "कैटलॉग लोड हो रहा है..." : "Loading wholesale inventory..."}
+            </span>
+          </div>
+        )}
+
+        {/* SKU Cards Grid / Vertical List */}
+        {!loading && filteredSkus.length === 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500 my-4">
+            <Store className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+            <div className="font-bold text-sm text-slate-800">
+              {lang === "hi" ? "कोई सामान नहीं मिला" : "No matching products found"}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {lang === "hi" ? "कृपया दूसरा नाम या ब्रांड खोजें।" : "Try clearing your search query or filters."}
+            </p>
+          </div>
+        )}
+
+        {!loading &&
+          filteredSkus.map((sku) => {
+            const currentQty = cartMap[sku.id] || 0;
+            const isOutOfStock = sku.stockCases <= 0;
+            const lineCalc = calculateLineItem({ ...sku, quantityCases: currentQty });
+
+            return (
+              <article
+                key={sku.id}
+                className={`bg-white border rounded-xl p-4 shadow-xs flex flex-col gap-3 transition-all ${
+                  isOutOfStock ? "border-slate-200 bg-slate-50/70" : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                {/* Header: Title, Brand, Code & Stock Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                        {sku.brand} • {sku.code}
+                      </span>
+                    </div>
+                    <h2 className="text-base font-bold text-slate-900 leading-snug">{sku.name}</h2>
+                    <span className="text-xs text-slate-500">
+                      {lang === "hi"
+                        ? `पेटी में ${sku.unitsPerCase} पैकेट (${sku.packSize})`
+                        : `Case of ${sku.unitsPerCase} packs (${sku.packSize})`}
+                    </span>
+                  </div>
+
+                  {/* Stock Status Badge */}
+                  <div className="shrink-0">
+                    {isOutOfStock ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-800 text-[11px] font-bold">
+                        {lang === "hi" ? "स्टॉक समाप्त" : "Out of Stock"}
+                      </span>
+                    ) : sku.stockCases <= 20 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[11px] font-bold">
+                        <AlertTriangle className="w-3 h-3 text-amber-700" />
+                        {sku.stockCases} Cases Left
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[11px] font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                        In Stock ({sku.stockCases})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Price Breakdown Strip (Ex-GST Dealer Rate + GST Badge) */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5 flex items-baseline justify-between">
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold font-mono text-slate-900">
+                        ₹{sku.dealerPrice.toFixed(2)}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">/ case (पेटी)</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      (₹{sku.packPrice.toFixed(2)}/pack) • Ex-GST
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-bold uppercase tracking-wider font-mono">
+                      +{sku.gstRate}% GST
+                    </span>
+                    <span className="block text-[11px] text-slate-600 font-semibold mt-0.5 font-mono">
+                      ₹{((sku.dealerPrice * (1 + sku.gstRate / 100))).toFixed(2)} Incl.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Active Trade Scheme Pill */}
+                {sku.schemeType === "FREE_GOODS" && sku.schemeDetail?.buyQty && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-2 text-xs text-amber-900 font-semibold">
+                    <Gift className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>
+                      {lang === "hi"
+                        ? `★ 10 पेटी पर 1 पेटी मुफ्त! (Buy 10 get 1 free)`
+                        : `★ Buy ${sku.schemeDetail.buyQty} cases, get ${sku.schemeDetail.getFreeQty} case FREE!`}
+                    </span>
+                  </div>
+                )}
+
+                {sku.schemeType === "SLAB_DISCOUNT" && sku.schemeDetail?.minCases && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-2 text-xs text-amber-900 font-semibold">
+                    <Percent className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>
+                      {lang === "hi"
+                        ? `★ 5 या अधिक पेटी पर ${sku.schemeDetail.discountPct}% थोक छूट!`
+                        : `★ ${sku.schemeDetail.discountPct}% discount on ${sku.schemeDetail.minCases}+ cases!`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Dynamic Scheme Alert / Threshold Nudge */}
+                {!isOutOfStock && currentQty > 0 && (
+                  <>
+                    {/* Glucose Biscuit Free Scheme Progress */}
+                    {sku.schemeType === "FREE_GOODS" && (
+                      <div
+                        className={`rounded-lg p-2 text-xs flex items-center gap-2 font-bold ${
+                          lineCalc.freeCases > 0
+                            ? "bg-emerald-100 text-emerald-950 border border-emerald-300"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <div>
+                          {lineCalc.freeCases > 0 ? (
+                            <span>
+                              🎉 {lineCalc.freeCases} Free Case
+                              {lineCalc.freeCases > 1 ? "s" : ""} Unlocked! (Total:{" "}
+                              {currentQty + lineCalc.freeCases} cases delivered)
+                            </span>
+                          ) : (
+                            <span>
+                              {lang === "hi"
+                                ? `1 मुफ्त पेटी हेतु ${10 - currentQty} और पेटी जोड़ें`
+                                : `Add ${10 - currentQty} more cases to earn 1 FREE case!`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detergent Powder Slab Discount Progress */}
+                    {sku.schemeType === "SLAB_DISCOUNT" && (
+                      <div
+                        className={`rounded-lg p-2 text-xs flex items-center gap-2 font-bold ${
+                          lineCalc.discountAmount > 0
+                            ? "bg-emerald-100 text-emerald-950 border border-emerald-300"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        <Percent className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <div>
+                          {lineCalc.discountAmount > 0 ? (
+                            <span>
+                              ✓ 3% Wholesale Discount Applied! Saved -₹{lineCalc.discountAmount.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span>
+                              {lang === "hi"
+                                ? `3% छूट हेतु ${5 - currentQty} और पेटी जोड़ें`
+                                : `Add ${5 - currentQty} more cases to unlock 3% slab cash rebate!`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Quantity Action Row (48px Touch Steppers or Out-of-Stock Notify) */}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  {isOutOfStock ? (
+                    <button
+                      type="button"
+                      disabled={notifiedSkus[sku.id]}
+                      onClick={() => handleNotifyRestock(sku)}
+                      className={`w-full min-h-[48px] rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        notifiedSkus[sku.id]
+                          ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+                          : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100 active:bg-slate-200"
+                      }`}
+                    >
+                      {notifiedSkus[sku.id] ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                          <span>
+                            {lang === "hi"
+                              ? "✓ सूचित किया जाएगा (Notification Set)"
+                              : "✓ Alert set on WhatsApp when stock arrives"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="w-4 h-4 text-slate-500" />
+                          <span>
+                            {lang === "hi"
+                              ? "स्टॉक आने पर सूचित करें (Notify When Available)"
+                              : "Notify When Available (स्टॉक अलर्ट)"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase">Line Total</span>
+                        <span className="text-sm font-bold font-mono text-slate-900">
+                          ₹{lineCalc.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {/* 48px Ergonomic Touch Target Stepper */}
+                      <div className="flex items-center bg-slate-100 border border-slate-300 rounded-lg p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          aria-label="Decrease quantity"
+                          disabled={currentQty <= 0}
+                          onClick={() => updateCartQty(sku.id, -1)}
+                          className="w-12 h-12 rounded-md bg-white text-slate-900 flex items-center justify-center shadow-xs active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        >
+                          <Minus className="w-5 h-5 text-slate-800" />
+                        </button>
+
+                        <div className="w-14 text-center select-none">
+                          <span className="text-base font-bold font-mono text-slate-900 block leading-none">
+                            {currentQty}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
+                            {lang === "hi" ? "पेटी" : "cases"}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          aria-label="Increase quantity"
+                          onClick={() => updateCartQty(sku.id, 1)}
+                          className="w-12 h-12 rounded-md bg-emerald-700 text-white flex items-center justify-center shadow-xs active:bg-emerald-800 transition-all cursor-pointer"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+      </main>
+
+      {/* Sticky Bottom Cart Bar (Appears when items are selected) */}
+      {totals.totalCases > 0 && (
+        <aside className="fixed bottom-16 inset-x-0 z-40 bg-slate-900 text-white p-3 shadow-xl">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
+                <span>{totals.itemCount} Items</span>
+                <span>•</span>
+                <span>{totals.totalCases} Cases</span>
+                {totals.totalFreeCases > 0 && (
+                  <span className="text-amber-400 font-bold">
+                    (+{totals.totalFreeCases} Free)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-lg font-bold font-mono text-white">
+                  ₹{totals.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium">Incl. GST</span>
+              </div>
+            </div>
+
+            <Link
+              href="/cart"
+              className="min-h-[48px] px-5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-sm rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer"
+            >
+              <span>{lang === "hi" ? "आर्डर देखें" : "View Cart"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </aside>
+      )}
+
+      {/* Bottom PWA Navigation Bar */}
+      <BottomNav cartItemCount={totals.totalCases} lang={lang} />
+    </div>
+  );
+}

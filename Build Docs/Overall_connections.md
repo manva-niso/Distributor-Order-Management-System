@@ -119,7 +119,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### D. Authentication Core (`src/lib/auth/`)
+### D. Authentication & Catalogue Core (`src/lib/`)
 - **`src/lib/auth/jwt.ts`**:
   - `signSessionToken(payload)`: Mints cryptographically signed, tamper-resistant HS256 JWT tokens valid for 7 days.
   - `verifySessionToken(token)`: Validates signature and decodes user metadata (`userId`, `role`, `retailerId`, `phone`).
@@ -128,6 +128,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `generateNumericOtp()`: Cryptographic 6-digit random code generation.
   - `createAndSendOtp(phone)`: Enforces 30-second re-send rate limits, sets 5-minute expiry, and dispatches via SMS provider (Fast2SMS / Twilio) or development console.
   - `verifyOtp(phone, code)`: Enforces a maximum limit of 3 failed attempts before burning the OTP, performs timing-safe comparison, and links the verified session to the retailer profile.
+- **`src/lib/catalogue/cart-store.ts`**:
+  - In-browser reactive cart state store with `localStorage` synchronization (`distributor_cart_v1`).
+  - Implements scheme calculations (`calculateSchemePreview`), pack unit pricing, Ex-GST vs Incl-GST rounding.
+  - Guards against ordering zero or negative quantities, and enforces live available stock ceilings.
 
 ---
 
@@ -142,10 +146,14 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `GET`: Resolves the active session cookie and returns current user details and retailer credit ledger balances.
 - **`src/app/api/auth/logout/route.ts`**:
   - `POST`: Clears the session cookie and logs out the user.
+- **`src/app/api/catalogue/route.ts`**:
+  - `GET`: Returns active SKUs with real-time stock levels, pack specs, pricing, and applied trade schemes. Supports text search (`?q=`) and brand filters (`?brand=`).
+- **`src/app/api/catalogue/notify-restock/route.ts`**:
+  - `POST`: Registers a notification request when a retailer attempts to order an out-of-stock SKU.
 
 ---
 
-### F. User Interface & Pages (`src/app/`)
+### F. User Interface & Pages (`src/app/` & `src/components/`)
 - **`src/app/layout.tsx`**: Root HTML wrapper. Disables mobile zooming (`user-scalable=no`) and sets baseline typography and background.
 - **`src/app/globals.css`**: Tailwind CSS v4 styling rules and utility imports.
 - **`src/app/page.tsx`**: Dynamic root traffic gatekeeper (`/`). Reads session cookie:
@@ -158,18 +166,21 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Auto-formatting phone input with linked store detection.
   - 1-click test role selector chips (Retailer, Desk Clerk, Salesman).
   - 6-digit OTP input grid with auto-focus progression, backspace recovery, and paste distribution.
+- **`src/app/(portal)/catalogue/page.tsx` (Screen 2)**:
+  - Header with retailer credit ledger summary (Limit ₹50k, ₹38k available).
+  - Search bar + brand filter chips (`Brand A`, `Brand B`, `Brand C`, `Brand D`).
+  - SKU product cards with stock status badge (Green/Amber/Red), Buy 10 Get 1 / 3% slab promotion banners, case/pack unit rates, and interactive quantity steppers.
+  - Out-of-stock notification CTA for zero-inventory items.
+  - Sticky bottom cart checkout drawer with real-time Ex-GST and Incl-GST totals.
+- **`src/components/layout/BottomNav.tsx`**:
+  - Mobile bottom navigation bar with 48px touch targets for Catalogue, Quick Order AI, Cart, and Order History tabs.
+  - Real-time badge counter linking to active cart items.
 
 ---
 
 ### G. Test Suite (`src/__tests__/`)
-- **`src/__tests__/auth.test.ts`**: Comprehensive Vitest suite running 12 automated test cases in ~34ms:
-  - Verifies cryptographic OTP generation.
-  - Verifies 30-second rate-limiting.
-  - Verifies 5-minute expiration enforcement.
-  - Verifies attempt burning after 3 incorrect submissions.
-  - Verifies constant-time comparison protection.
-  - Verifies role detection (`retailer`, `desk`, `salesman`).
-  - Verifies JWT signing and tamper detection.
+- **`src/__tests__/auth.test.ts`**: 12 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, and JWT signature verification.
+- **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
 
 ---
 
