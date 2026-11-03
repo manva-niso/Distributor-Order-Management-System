@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/catalogue") ||
     pathname.startsWith("/cart") ||
     pathname.startsWith("/orders") ||
+    pathname.startsWith("/quick-order") ||
     pathname.startsWith("/capture");
 
   // Validate session if token present
@@ -45,6 +46,7 @@ export const config = {
     "/catalogue/:path*",
     "/cart/:path*",
     "/orders/:path*",
+    "/quick-order/:path*",
     "/capture/:path*",
   ],
 };

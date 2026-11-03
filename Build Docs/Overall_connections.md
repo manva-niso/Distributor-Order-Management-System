@@ -180,6 +180,15 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `POST`: 1-click industry preset switcher (Company A FMCG, Food & Grocery, Home Care & Hygiene).
 - **`src/app/api/capture/parse-text/route.ts`**:
   - `POST`: Validates incoming text order utterances, dispatches to active parser pipeline (`deterministic` or `custom_ml`), and returns structured line items, SKU matches, confidence scores, and ambiguity warnings.
+- **`src/app/api/desk/orders/route.ts`**:
+  - `GET`: Returns active and past orders with status chips (`PLACED`, `CREDIT_HOLD`, `VERIFIED`, `EXPORTED_TALLY`) and real-time triage summary statistics.
+- **`src/app/api/desk/orders/[id]/route.ts`**:
+  - `GET`: Fetches order record, retailer ledger profile, order items, catalogue SKUs, and auto-learned retailer aliases.
+  - `PATCH`: Validates `expectedOccVersion` (OCC rule `[A19]`), recalculates trade schemes and GST via pure engine (`[A38]`), updates order lines and status, and auto-persists retailer vocabulary mappings to `retailer_aliases` (`[A20]`).
+- **`src/app/api/desk/orders/[id]/release-hold/route.ts`**:
+  - `POST`: 1-click clearance endpoint for credit-held orders; captures authorization notes, stamps clerk identity, transitions status to `VERIFIED`, and increments `occVersion` (`[A37]`).
+- **`src/app/api/desk/stats/route.ts`**:
+  - `GET`: Returns high-level operational counts (today's orders, needs review, credit holds, confirmed, total wholesale value).
 
 ---
 
@@ -224,6 +233,17 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/app/setup/page.tsx`**:
   - Master Data & Excel Ingestion Hub.
   - Supports drag & drop `.xlsx`/`.csv` upload, downloadable sample templates, 1-click realistic industry presets, and live database explorer.
+- **`src/app/desk/page.tsx` (Screen 7)**:
+  - Central Order Desk operations terminal for distributor clerks.
+  - Triage summary metrics (today's orders, needs review, credit holds, confirmed, exported value).
+  - High-density data table with live status filtering, search by Order # or Route beat, and 1-click Credit Hold release modal (`[A37]`).
+  - Batch export bar indicating count of verified orders ready for Tally XML transmission.
+- **`src/app/desk/orders/[id]/page.tsx` (Screen 8)**:
+  - Split-screen desk verification workspace.
+  - Left panel: Original raw WhatsApp order text, customer trade details, delivery route, and live credit headroom meter.
+  - Right panel: Editable line items, SKU substitution dropdown, case quantity steppers, live scheme math (`[A38]`), and invoice recalculation.
+  - OCC version conflict guard (`[A19]`) preventing concurrent clerk overwrites.
+  - Retailer alias auto-learning banner (`[A20]`) permanently training customer vocabulary upon SKU corrections.
 - **`src/components/layout/BottomNav.tsx`**:
   - Mobile bottom navigation bar with 48px touch targets for Catalogue, Quick Order AI, Cart, and Order History tabs.
   - Real-time badge counter linking to active cart items.
@@ -236,7 +256,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
 - **`src/__tests__/orders.test.ts`**: 4 automated unit tests verifying order checkout under credit limit, automatic `CREDIT_HOLD` flagging on headroom breach (`[A14]`), anti-backorder warehouse stock protection (`[A9]`), and OCC conflict detection on status updates (`[A19]`).
 - **`src/__tests__/excel-import.test.ts`**: 4 automated unit tests verifying Excel template generation, workbook buffer extraction, column synonym tolerance, and dynamic in-memory catalog replacement.
-- **`src/__tests__/text-parser.test.ts`**: 11 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), loose pack ceiling case conversion (`[A35]`), and pipeline strategy switching.
+- **`src/__tests__/text-parser.test.ts`**: 14 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), cut-pack / broken case detection (`[A36]`), and pipeline strategy switching.
+- **`src/__tests__/desk.test.ts`**: 8 automated unit tests verifying desk queue queries, summary metrics, line item editing with live scheme recalculation (`[A38]`), OCC concurrency collision detection (`[A19]`), credit hold release authorization (`[A37]`), and retailer alias auto-learning (`[A20]`).
 
 ---
 

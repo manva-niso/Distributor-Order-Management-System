@@ -46,6 +46,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A34]** | Module 5: AI Capture | Trilingual & Devanagari Numeral Normalization | Accepts Arabic digits (`0-9`), Devanagari numerals (`०-९`), and written words (`ek`, `paanch`, `दो`), stripping colloquial pleasantries before SKU matching. |
 | **[A35]** | Module 5: AI Capture | Pack-to-Case Ceiling Multiple Conversion | When retail loose packs are specified, engine calculates wholesale master cases using ceiling multiples of SKU pack configuration (`ceil(packs / unitsPerCase)`). |
 | **[A36]** | Module 5: AI Capture | Broken Master Case & Cut Pack Policy | Partial-case requests ("case of 20 mai se 15") trigger `BROKEN_CASE` guardrail with 2 options: Round Up to 1 Full Case (recommended) or Request Loose Packs with desk approval. |
+| **[A37]** | Module 6: Order Desk | Credit Hold Release Authorization Protocol | Over-limit orders can be approved exclusively by desk clerks (`role: 'desk'`) with mandatory audit notes; stamped onto record with atomic OCC increment. |
+| **[A38]** | Module 6: Order Desk | Live Authoritative Invoice Recalculation | Line edits on desk terminal run authoritative recalculation through pure scheme engine, ensuring free goods, slab discounts, and 50/50 GST splits remain mathematically exact. |
 
 ---
 
@@ -226,6 +228,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A20]` Retailer Alias Auto-Learning
 - **Context:** Increasing AI accuracy over time.
 - **Assumption:** Whenever an office clerk manually corrects an AI-extracted SKU line, the original raw phrase and the selected SKU ID are automatically saved to `retailer_aliases` for that specific retailer (`times_used += 1`). Future orders from that retailer match that phrase with 100% confidence.
+
+#### `[A37]` Credit Hold Release Authorization Protocol
+- **Context:** Over-limit kirana store orders entering `CREDIT_HOLD` (`[A14]`).
+- **Assumption:** Only an authenticated user with `role: "desk"` can release a credit hold. When releasing, the clerk must submit an operational justification note (e.g., *"Customer promised cash payment on van delivery"* or *"Approved by owner"*). The note and clerk identity are stamped onto the order (`holdReleasedBy`, `holdReleaseNote`), transitioning the status to `VERIFIED` and incrementing `occVersion` (`[A19]`).
+
+#### `[A38]` Live Authoritative Invoice Recalculation on Desk Edits
+- **Context:** Desk clerks modifying case counts or substituting SKUs on Screen 8.
+- **Assumption:** When a clerk alters line items in `/desk/orders/[id]`, the system performs live recalculation through the pure scheme engine (`calculateOrderSummary`). Any newly unlocked free promotional cases or slab discounts are calculated immediately and stored in the order ledger, guaranteeing 100% mathematical consistency with Tally sales vouchers.
 
 ---
 

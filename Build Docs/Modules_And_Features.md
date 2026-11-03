@@ -31,7 +31,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ✅ Completed | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
 | **Master Setup** | Dynamic Excel Importer & First-Time Onboarding Hub | Distributor, Reviewer | ✅ Completed | Upload custom .xlsx/.csv, 1-click industry presets, live database explorer, downloadable templates |
 | **Module 5** | Multi-Modal Order Intake & Unit Disambiguation (Basic Text) | Retailer, Desk, Salesman | ✅ Completed | Multilingual text parser (Hinglish/Hindi/English), word numerals, unit guardrail card, pluggable ML adapter, direct cart sync |
-| **Module 6** | Desk Verification Queue, Line Editing & Concurrency | Order Desk Clerk | ⏳ Pending | OCC version check, inline line edits, alias auto-learning, credit hold approval |
+| **Module 6** | Order Desk Operations, Verification & OCC Concurrency | Order Desk Clerk | ✅ Completed | OCC version check (`[A19]`), split-screen desk terminal, line editing with live recalculation, alias auto-learning (`[A20]`), credit hold release (`[A37]`) |
 | **Module 7** | Tally XML Export & Batch Processing | Order Desk Clerk | ⏳ Pending | Tally ERP / Prime compliant XML batch download, exported status marking |
 | **Module 8** | Van Loading Route Manifest & Warehouse Picking | Desk Clerk / Warehouse | ⏳ Pending | Route & stop sequencing, aggregate SKU case picking lists, vehicle load tally |
 | **Module 9** | 14-Day Dormant Retailers Dashboard & WhatsApp Nudge | Owner / Desk Clerk | ⏳ Pending | Dormancy filtering (≥14 days), credit exposure, 1-tap Hindi WhatsApp nudge |
@@ -310,3 +310,53 @@ This document tracks each Core Build Module step by step, its features, implemen
   - 14/14 unit tests passing (24ms runtime).
   - **Combined Suite:** Total 53/53 tests passing across all 6 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 25/25 routes compiled cleanly.
+
+---
+
+## Module 6: Order Desk Operations, Split-Screen Verification & OCC Concurrency
+
+### 1. Features Implemented
+- [x] **Central Operations Dashboard (Screen 7) (`/desk`):**
+  - **Triage Metrics Strip:** Real-time counters showing Total Orders Today, Needs Review (`PLACED`), Credit Holds (`CREDIT_HOLD`), Confirmed (`VERIFIED`), and Exported to Tally (`EXPORTED_TALLY`), plus total wholesale value.
+  - **Live Filter Chips & Fast Search:** Quick-filter by order status; search by Order #, Retailer Name, or Delivery Beat.
+  - **High-Density Order Table:** Dense desktop layout with order timestamps, source badges (`WhatsApp AI`, `Portal Catalogue`, `Salesman Counter`), total item/case counts, invoice totals, and direct action triggers.
+  - **Batch Tally Export Indicator:** Ready-to-transmit count and 1-click batch export hook leading into Module 7.
+- [x] **Quick Credit Hold Clearance Modal (`[A14]`, `[A37]`):**
+  - Instant clearance dialog for over-limit orders.
+  - Captures office authorization note (e.g. *"Customer promised cash payment on van delivery"*), permanently records approving clerk's name (`holdReleasedBy`), transitions status to `VERIFIED`, and increments `occVersion`.
+- [x] **Split-Screen Desk Verification Terminal (Screen 8) (`/desk/orders/[id]`):**
+  - **Left Pane (Source Truth):** Displays original raw WhatsApp text message / parchi transcription, customer shop & owner details, delivery beat, and live credit headroom meter with projected exposure.
+  - **Right Pane (Editable Line Items):** Allows desk clerks to alter matched SKUs via dropdown, adjust case quantities via numeric steppers, delete lines, or add new lines.
+  - **Live Scheme & Invoice Recalculation (`[A38]`):** Re-runs scheme math live upon every line change—computes newly unlocked free goods cases (`Buy 10 Get 1`) and slab discounts (`3% on 5+ cases`), and recalculates intra-state 50/50 GST splits and invoice totals before saving.
+- [x] **Optimistic Concurrency Control (OCC) Protection (`[A19]`):**
+  - Every update carries `expectedOccVersion`.
+  - The database rejects stale updates if another clerk edited the record simultaneously, returning `HTTP 409 Conflict` with an actionable alert prompting the user to reload the latest record.
+- [x] **Retailer Vocabulary Auto-Learning (`[A20]`):**
+  - When a clerk corrects an ambiguous or misread SKU line, the mapping `(retailerId, rawPhrase, skuId)` is automatically saved to `retailer_aliases` for that specific retailer.
+  - Scoped strictly per retailer without leaking across accounts; future incoming orders match at 100% confidence.
+- [x] **Backend Store & API Endpoints:**
+  - `GET /api/desk/orders`: Query orders with status and search filters.
+  - `GET /api/desk/orders/[id]`: Single order retrieval with full retailer profile, lines, catalogue SKUs, and auto-learned aliases.
+  - `PATCH /api/desk/orders/[id]`: Authoritative update handler with OCC version enforcement, live scheme recalculation, status progression, and alias persistence.
+  - `POST /api/desk/orders/[id]/release-hold`: Dedicated 1-click credit hold release endpoint.
+  - `GET /api/desk/stats`: Real-time operational summary metrics.
+- [x] **Realistic Demo Seeding:**
+  - 4 realistic orders seeded across Jabalpur routes (`RET-0001` through `RET-0004`), ensuring the reviewer opens a rich, non-empty workspace.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/db/store.ts` - Added `updateOrderDetails`, `releaseCreditHold`, `saveRetailerAlias`, `getRetailerAliases`, `getDeskStats`, and realistic demo order seeding
+  - `src/app/api/desk/orders/route.ts` - Desk orders queue query API
+  - `src/app/api/desk/orders/[id]/route.ts` - Single order fetch & authoritative line update API with OCC
+  - `src/app/api/desk/orders/[id]/release-hold/route.ts` - Credit hold release API
+  - `src/app/api/desk/stats/route.ts` - Real-time triage telemetry API
+  - `src/app/desk/page.tsx` - Screen 7: Central Desk Operations Dashboard
+  - `src/app/desk/orders/[id]/page.tsx` - Screen 8: Split-Screen Verification Terminal
+  - `src/middleware.ts` - Route protection & role enforcement (`role: "desk"`)
+  - `src/__tests__/desk.test.ts` - 8 unit tests covering stats, line editing, OCC concurrency collision detection, hold release, and alias learning
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/desk.test.ts`
+  - 8/8 unit tests passing (23ms runtime).
+  - **Combined Suite:** Total 61/61 tests passing across all 7 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 28/28 routes compiled cleanly.

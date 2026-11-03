@@ -18,6 +18,7 @@ From the `distributor-app/` directory:
 | **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
 | **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
 | **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 14 multilingual text parser, broken case, and ambiguity guardrail tests. |
+| **Test Module 6 (Order Desk) only** | `npx vitest run src/__tests__/desk.test.ts` | Runs the 8 Order Desk triage, OCC concurrency collision, line editing, and alias learning tests. |
 | **Run full production build** | `npm run build` | Compiles TypeScript, runs Turbopack, verifies static/dynamic routes. |
 | **Start local dev server** | `npm run dev` | Spins up live development server at `http://localhost:3000`. |
 | **Start local production server** | `npm run start` | Serves the optimized production build at `http://localhost:3000`. |
@@ -248,6 +249,33 @@ npx vitest run src/__tests__/text-parser.test.ts
 ```powershell
 $body = @{ text = "bhaiya 5 peti biscuit chhota`n2 peti ghadi powder 1 kg" } | ConvertTo-Json
 Invoke-RestMethod -Uri "http://localhost:3000/api/capture/parse-text" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
+```
+
+---
+
+### F. Testing Module 6: Order Desk Operations & Concurrency in Isolation
+The test suite [`src/__tests__/desk.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/desk.test.ts) verifies desk triage, OCC concurrency collision rejection, and auto-learned alias persistence:
+
+```bash
+cd distributor-app
+npx vitest run src/__tests__/desk.test.ts
+```
+
+#### What It Tests Individually:
+1. **Queue Retrieval & Metrics:** Asserts that pre-seeded realistic Jabalpur orders load with accurate status tallies and wholesale value.
+2. **Line Item Editing & Authoritative Scheme Math (`[A38]`):** Simulates increasing case quantities on the desk terminal, verifying live scheme math unlocks free goods cases (`Buy 10 Get 1`) and recalculates GST splits.
+3. **Optimistic Concurrency Control (OCC) Collision Rejection (`[A19]`):** Simulates Clerk A confirming an order (incrementing `occVersion` from 1 to 2), and verifies that Clerk B attempting to save with stale version 1 is strictly rejected with `HTTP 409 Conflict`.
+4. **Credit Hold Clearance Authorization (`[A37]`):** Releasing an over-limit order (`ORD-10483`) stamps `holdReleasedBy` and `holdReleaseNote`, increments `occVersion`, and updates status to `VERIFIED`.
+5. **Retailer Alias Auto-Learning (`[A20]`):** Verifies that clerk SKU corrections persist customer vocabulary to `retailer_aliases`, incrementing the `timesUsed` counter while keeping mappings strictly scoped per retailer.
+
+#### Testing Desk Endpoints via CLI / PowerShell:
+```powershell
+# 1. Fetch Orders Queue with Status Filter
+Invoke-RestMethod -Uri "http://localhost:3000/api/desk/orders?status=CREDIT_HOLD" -Method GET | ConvertTo-Json -Depth 3
+
+# 2. Release Credit Hold on Order ORD-10483
+$body = @{ expectedOccVersion = 1; authorizedBy = "Amit Jain"; approvalNote = "Cash on delivery approved" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/api/desk/orders/ORD-10483/release-hold" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json
 ```
 
 ---
