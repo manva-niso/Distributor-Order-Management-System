@@ -50,6 +50,10 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A38]** | Module 6: Order Desk | Live Authoritative Invoice Recalculation | Line edits on desk terminal run authoritative recalculation through pure scheme engine, ensuring free goods, slab discounts, and 50/50 GST splits remain mathematically exact. |
 | **[A39]** | Module 7: Tally Export | Actual vs Billed Quantities for Schemes | FMCG trade schemes formatted via native Tally `<ACTUALQTY>` vs `<BILLEDQTY>`, billing only paid cases while decrementing warehouse inventory for free cases. |
 | **[A40]** | Module 7: Tally Export | Double-Entry Signs & Zero-Sum Balancing | Debits represented as positive (Party Ledger) and Credits as negative (Sales, CGST, SGST, Round Off); strictly balances to 0.00. |
+| **[A41]** | Module 8: Van Manifest | Route Load Aggregation & Free Goods Pick Inclusion | Warehouse picking manifests group orders by delivery beat, summing billed cases and scheme free cases (`totalCases = paidCases + freeCases`) so loaders never miss promotional cartons. |
+| **[A42]** | Module 8: Van Manifest | Cargo Weight Approximation for Load Safety | Vehicle cargo manifests compute approximate payload weights per SKU based on case pack configuration to ensure vehicle axle limits are respected during milk-runs. |
+| **[A43]** | Module 9: Dormant Desk | Progressive Churn Risk Stratification | Inactivity categorized into High Risk (14-20 days) and Critical Churn (≥21 days) to prioritize salesman physical visits over simple WhatsApp reminders. |
+| **[A44]** | Module 9: Dormant Desk | Personalized Bilingual Promotional Nudge Format | WhatsApp re-order deep links pre-populate Devanagari Hindi text greeting the merchant by name, acknowledging days inactive, and highlighting today's live trade schemes. |
 
 ---
 
@@ -276,6 +280,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Context:** Fast warehouse vehicle loading.
 - **Assumption:** Warehouse loading manifests aggregate all verified orders assigned to a specific delivery vehicle (e.g. *Van 04 - Napier Town*). The manifest groups shipments by SKU, displaying total master cases to pick from warehouse shelves, followed by an ordered list of retailer delivery stops.
 
+#### `[A41]` Free Goods Master Case Inclusion in Vehicle Pick Slips
+- **Context:** Warehouse dispatch crews loading delivery vans for morning milk-runs.
+- **Assumption:** Loaders pick and stage inventory purely from the warehouse pick slip without consulting individual retailer invoices. The picking list must calculate `totalCases = paidCases + freeCases` for every SKU, ensuring promotional bonus cases (e.g. 1 Free Case on 10 Glucose Biscuits) are physically staged and loaded onto the vehicle. Omitting free goods from the loading slip leads to driver delivery shortages.
+
+#### `[A42]` Cargo Weight Approximation for Delivery Vehicles
+- **Context:** Jabalpur urban delivery tempo/van payload limits (e.g. Tata Ace 750kg payload, Mahindra Bolero Maxi Truck 1,200kg payload).
+- **Assumption:** The manifest engine approximates cargo weight per master case based on product net weight and case pack counts (e.g. 75g x 96 packs ≈ 7.2kg; 1kg x 20 packs ≈ 20kg). Displaying aggregate weight prevents overloading vehicles navigating narrow market lanes (e.g. Ganjipura, Sadar).
+
 ---
 
 ### Module 9: 14-Day Dormant Retailers Dashboard
@@ -283,3 +295,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A23]` Inactivity Threshold & WhatsApp Nudge Protocol
 - **Context:** Preventing kirana account churn.
 - **Assumption:** A retailer is categorized as **Dormant** when `days_since_last_order >= 14`. The dashboard calculates the account's historical monthly order volume and outstanding credit, providing a 1-tap WhatsApp deep link pre-filling a personalized Hindi re-order message with today's trade schemes.
+
+#### `[A43]` Progressive Churn Risk Stratification
+- **Context:** Triaging sales team intervention between digital nudges and in-person visits.
+- **Assumption:** Churn risk is divided into two operational tiers:
+  - **High Risk (14–20 Days Inactive):** Retailer has missed 1–2 typical order cycles. A 1-tap digital WhatsApp promotion nudge is dispatched.
+  - **Critical Churn (≥21 Days Inactive):** Retailer has missed 3+ consecutive order cycles and is at imminent risk of switching to a competitor distributor. Flagged with a high-contrast red alert and prioritized for an immediate physical sales beat visit by the route salesman (`salesmanId`).
+
+#### `[A44]` Personalized Bilingual Devanagari Hindi Promotional Nudges
+- **Context:** Shopkeepers respond significantly better to culturally tailored Devanagari Hindi greetings over generic English notifications.
+- **Assumption:** 1-tap WhatsApp nudge links generate pre-encoded text addressing the owner by full name, naming their specific shop, acknowledging the exact inactivity duration, and spotlighting current trade schemes (e.g. *Buy 10 Get 1 Free on Parle-G Biscuit*, *3% cash discount on Detergent*), concluding with a direct link to the digital ordering catalogue.

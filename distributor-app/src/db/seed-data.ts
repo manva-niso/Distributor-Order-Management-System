@@ -123,6 +123,32 @@ export const SEED_RETAILERS: SeedRetailer[] = [
     creditHold: false,
     lastOrderAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000), // 22 days ago (Dormant > 14 days)
   },
+  {
+    id: "RET-0007",
+    name: "Patel Kirana Store",
+    ownerName: "Suresh Patel",
+    phone: "9826000007",
+    address: "Main Bazar, Ganjipura, Jabalpur",
+    route: "Ganjipura Route #7",
+    salesmanId: "USR-SALES-1",
+    creditLimit: 50000,
+    currentBalance: 5000,
+    creditHold: false,
+    lastOrderAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago (Dormant > 14 days)
+  },
+  {
+    id: "RET-0008",
+    name: "Bajpai Provisions",
+    ownerName: "Naveen Bajpai",
+    phone: "9826000008",
+    address: "Near High Court, Civil Lines, Jabalpur",
+    route: "Civil Lines Route #8",
+    salesmanId: "USR-SALES-1",
+    creditLimit: 65000,
+    currentBalance: 18000,
+    creditHold: false,
+    lastOrderAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000), // 28 days ago (Dormant > 14 days)
+  },
 ];
 
 export const SEED_USERS: SeedUser[] = [
@@ -172,6 +198,22 @@ export const SEED_USERS: SeedUser[] = [
     name: "Sanjay Chouksey",
     role: "retailer",
     retailerId: "RET-0006",
+    active: true,
+  },
+  {
+    id: "USR-RET-7",
+    phone: "9826000007",
+    name: "Suresh Patel",
+    role: "retailer",
+    retailerId: "RET-0007",
+    active: true,
+  },
+  {
+    id: "USR-RET-8",
+    phone: "9826000008",
+    name: "Naveen Bajpai",
+    role: "retailer",
+    retailerId: "RET-0008",
     active: true,
   },
   {

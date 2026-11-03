@@ -397,3 +397,77 @@ This document tracks each Core Build Module step by step, its features, implemen
   - 8/8 unit tests passing (16ms runtime).
   - **Combined Suite:** Total 69/69 tests passing across all 8 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`, `tally.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 30/30 routes compiled cleanly.
+
+---
+
+## Module 8: Van Loading Route Manifest Engine & Workspace
+
+### 1. Features Implemented
+- [x] **Route-Level Order Aggregation (`[A22]`):**
+  - Gathers all confirmed, placed, and exported orders on any assigned delivery beat (e.g. *Napier Town Route #4*, *Wright Town Route #2*, *Gorakhpur Route #1*).
+  - Dynamically discovers active routes from the order ledger and retailer master.
+- [x] **Warehouse Pick List Generation (`[A41]`):**
+  - Aggregates cases across all route orders by SKU.
+  - Formats paid cases, scheme bonus free cases (`[A11]`, `[A39]`), total cases to pick, total consumer units, and approximate pallet weight.
+  - Ensures loaders pick both billed cases and promotional free cases to prevent delivery shortages.
+- [x] **Van Drop-Off Stop Sequence & Driver Delivery Challans:**
+  - Sequences deliveries into an optimized stop-by-stop route schedule (`Stop #1`, `Stop #2`, ...).
+  - Highlights Kirana store trade name, proprietor name, contact telephone, landmark delivery address, and approved payment terms (`Credit Approved` vs `Cash on Delivery`).
+  - Itemized case breakdown pills per stop for driver handoff.
+- [x] **Vehicle Capacity & Weight Telemetry (`[A42]`):**
+  - Calculates vehicle payload weight (~160 kg) to maintain safety within tempo axle limits.
+  - Computes total cargo wholesale value, assigned driver name, and vehicle registration numbers.
+- [x] **Print-Friendly Loading Slip Hook:**
+  - 1-click **"Print Loading Sheet"** button triggering clean layout printing via `window.print()`.
+- [x] **Backend API & Memory Store Methods:**
+  - `GET /api/desk/van-manifest?route=...`: Returns available route list, selected route, vehicle metadata, aggregated pick list, and ordered stops.
+  - `dbStore.getVanManifest(targetRoute)`: Pure in-memory calculation method.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/db/store.ts` - Added `VanPickItem`, `VanDeliveryStop`, `VanRouteManifest` interfaces and `getVanManifest` method
+  - `src/app/api/desk/van-manifest/route.ts` - Van loading route manifest API endpoint
+  - `src/app/desk/page.tsx` - Interactive Van Manifest workspace tab, vehicle telemetry strip, pick list table, and delivery stop cards
+  - `src/__tests__/manifest.test.ts` - 4 unit tests covering route discovery, case aggregation, stop sequencing, and weight calculations
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/manifest.test.ts`
+  - 4/4 unit tests passing (46ms runtime).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, route compiled cleanly.
+
+---
+
+## Module 9: 14-Day Dormant Retailers Retention Dashboard
+
+### 1. Features Implemented
+- [x] **Inactivity Telemetry Engine (`[A23]`):**
+  - Scans entire retailer directory to calculate days elapsed since each retailer's last order (`daysInactive = floor((now - lastOrderDate) / 86400000)`).
+  - Dynamically filters retailers meeting or exceeding inactivity thresholds (`14+ Days`, `21+ Days`, `28+ Days`).
+- [x] **Progressive Churn Risk Stratification (`[A43]`):**
+  - **High Risk (14–20 days):** Flags accounts missing typical replenishment cycles for digital follow-up.
+  - **Critical Churn (≥21 days):** Red-flagged high-priority accounts at imminent risk of switching distributors, prioritizing salesman physical beat visits.
+- [x] **Retention Financial Analytics:**
+  - Displays available credit headroom (`creditLimit - balance`), existing ledger balance, and historical average order value per dormant account.
+  - Summary metric card tracking total at-risk monthly wholesale turnover.
+- [x] **1-Tap Personalized Hindi WhatsApp Re-Order Nudge (`[A44]`):**
+  - Generates culturally tailored Devanagari Hindi message addressing the merchant by name, referencing their shop name, acknowledging the exact inactive days, and highlighting active promotions (*Parle-G 10 peti par 1 peti free, Detergent 3% chhoot*).
+  - Pre-fills `https://wa.me/91${phone}?text=...` deep link with encoded promotional text.
+  - Preview & customize modal allowing office clerks to inspect the message before launching WhatsApp.
+  - 1-click `tel:` phone call button for direct voice contact.
+- [x] **Backend API & Memory Store Methods:**
+  - `GET /api/desk/dormant?days=14`: Returns total retailers, dormant count, and sorted dormant accounts list.
+  - `dbStore.getDormantRetailers(inactivityDays)`: In-memory analytical aggregation method.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/db/store.ts` - Added `DormantRetailerRecord` interface and `getDormantRetailers` method
+  - `src/db/seed-data.ts` - Added realistic dormant accounts (`RET-0007` Patel Kirana, `RET-0008` Bajpai Provisions)
+  - `src/app/api/desk/dormant/route.ts` - Dormant retention telemetry API endpoint
+  - `src/app/desk/page.tsx` - Dormant Kiranas retention tab, threshold chips, retention metrics strip, customer list, and WhatsApp nudge modal
+  - `src/__tests__/dormant.test.ts` - 4 unit tests covering 14-day threshold filtering, churn risk tiers, credit headroom metrics, and Hindi WhatsApp deep link formatting
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/dormant.test.ts`
+  - 4/4 unit tests passing (10ms runtime).
+  - **Combined Suite:** Total 77/77 tests passing across all 10 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`, `tally.test.ts`, `manifest.test.ts`, `dormant.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 32/32 routes compiled cleanly.

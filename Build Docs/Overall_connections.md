@@ -199,6 +199,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `GET`: Gathers all confirmed (`VERIFIED`) orders pending export, generates live XML payload snippet, and checks structural validity.
 - **`src/app/api/tally/export/route.ts`**:
   - `POST`: Generates Tally XML batch, streams downloadable `.xml` file (`tally-export-YYYYMMDD.xml`), and transitions exported orders to `EXPORTED_TALLY` with `tallyExportedAt` timestamp.
+- **`src/app/api/desk/van-manifest/route.ts`**:
+  - `GET`: Generates route-level warehouse picking lists aggregating master cases by SKU, vehicle cargo payload weights, and sequential delivery stop challans (`[A22]`, `[A41]`, `[A42]`).
+- **`src/app/api/desk/dormant/route.ts`**:
+  - `GET`: Analyzes kirana account activity, filters accounts with zero orders in $\ge 14$ days, computes churn risk tiers, and builds pre-filled Hindi WhatsApp re-order nudges (`[A23]`, `[A43]`, `[A44]`).
 
 ---
 
@@ -269,6 +273,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/text-parser.test.ts`**: 14 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), cut-pack / broken case detection (`[A36]`), and pipeline strategy switching.
 - **`src/__tests__/desk.test.ts`**: 8 automated unit tests verifying desk queue queries, summary metrics, line item editing with live scheme recalculation (`[A38]`), OCC concurrency collision detection (`[A19]`), credit hold release authorization (`[A37]`), and retailer alias auto-learning (`[A20]`).
 - **`src/__tests__/tally.test.ts`**: 8 automated unit tests verifying XML escaping, Tally date formatting, single voucher nodes, Buy 10 Get 1 free scheme Actual vs Billed quantities (`[A39]`), double-entry balance (`[A40]`), batch envelope wrappers, XML structure validation, and `EXPORTED_TALLY` status transitions.
+- **`src/__tests__/manifest.test.ts`**: 4 automated unit tests verifying delivery route discovery, warehouse SKU case aggregation (`totalCases = paidCases + freeCases`), stop sequencing, and vehicle weight calculations (`[A22]`, `[A41]`, `[A42]`).
+- **`src/__tests__/dormant.test.ts`**: 4 automated unit tests verifying 14-day inactivity threshold filtering, churn risk tiers (High vs Critical), credit headroom analytics, and Devanagari Hindi WhatsApp nudge formatting (`[A23]`, `[A43]`, `[A44]`).
 
 ---
 

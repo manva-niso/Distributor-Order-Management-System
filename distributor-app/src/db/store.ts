@@ -68,6 +68,73 @@ export interface StoredOrderItem {
   gstAmount: number;
 }
 
+export interface VanPickItem {
+  skuId: string;
+  skuCode: string;
+  skuName: string;
+  brand: string;
+  unitsPerCase: number;
+  paidCases: number;
+  freeCases: number;
+  totalCases: number;
+  totalPacks: number;
+  approxWeightKg: number;
+}
+
+export interface VanDeliveryStop {
+  stopNumber: number;
+  orderId: string;
+  orderStatus: string;
+  retailerId: string;
+  retailerName: string;
+  ownerName: string;
+  phone: string;
+  address: string;
+  route: string;
+  totalCases: number;
+  freeCases: number;
+  grandTotal: number;
+  paymentMode: "CREDIT" | "CASH_ON_DELIVERY";
+  lines: Array<{
+    skuId: string;
+    skuName: string;
+    paidCases: number;
+    freeCases: number;
+  }>;
+}
+
+export interface VanRouteManifest {
+  route: string;
+  vanNumber: string;
+  driverName: string;
+  dispatchDate: string;
+  totalOrders: number;
+  totalMasterCases: number;
+  totalFreeCases: number;
+  totalWholesaleValue: number;
+  approxTotalWeightKg: number;
+  pickList: VanPickItem[];
+  stops: VanDeliveryStop[];
+}
+
+export interface DormantRetailerRecord {
+  id: string;
+  name: string;
+  ownerName: string;
+  phone: string;
+  address: string;
+  route: string;
+  daysInactive: number;
+  lastOrderDate: Date;
+  avgOrderValue: number;
+  creditLimit: number;
+  currentBalance: number;
+  availableCredit: number;
+  churnRisk: "CRITICAL" | "HIGH" | "MODERATE";
+  activePromoTextHindi: string;
+  whatsappDeepLink: string;
+}
+
 // In-memory state persistent across route handlers during process runtime
 class MemoryStore {
   private users: Map<string, SeedUser> = new Map();
@@ -657,6 +724,245 @@ class MemoryStore {
     sku.stockCases -= casesToDeduct;
     this.skus.set(skuId, sku);
     return true;
+  }
+
+  public getVanManifest(targetRoute?: string): {
+    availableRoutes: string[];
+    selectedRoute: string;
+    manifest: VanRouteManifest;
+  } {
+    const allOrdersWithItems = this.getAllOrders();
+
+    // 1. Discover available routes across orders and retailers
+    const routeSet = new Set<string>();
+    for (const { order } of allOrdersWithItems) {
+      if (order.status !== "CANCELLED") {
+        const ret = this.getRetailerById(order.retailerId);
+        const routeName = order.route || ret?.route;
+        if (routeName) routeSet.add(routeName);
+      }
+    }
+    for (const ret of this.retailers.values()) {
+      if (ret.route) routeSet.add(ret.route);
+    }
+
+    const availableRoutes = Array.from(routeSet);
+    if (availableRoutes.length === 0) {
+      availableRoutes.push("Napier Town Route #4", "Wright Town Route #2", "Gorakhpur Route #1");
+    }
+
+    const selectedRoute =
+      targetRoute && availableRoutes.includes(targetRoute)
+        ? targetRoute
+        : availableRoutes.find((r) => r.includes("Napier")) || availableRoutes[0];
+
+    // 2. Filter orders matching selectedRoute (VERIFIED, EXPORTED_TALLY, and PLACED)
+    const routeOrders = allOrdersWithItems.filter(({ order }) => {
+      if (order.status === "CANCELLED") return false;
+      const ret = this.getRetailerById(order.retailerId);
+      const r = order.route || ret?.route || "";
+      return r === selectedRoute || (!r && selectedRoute.includes("Napier"));
+    });
+
+    // 3. Van & Driver metadata
+    const vanNumber = selectedRoute.includes("Napier")
+      ? "MP-20-GA-4812 (Van 04)"
+      : selectedRoute.includes("Wright")
+      ? "MP-20-GA-3319 (Van 02)"
+      : "MP-20-GA-7721 (Van 01)";
+    const driverName = selectedRoute.includes("Napier")
+      ? "Mukesh Yadav (Ph: 9425100044)"
+      : "Raju Kushwaha (Ph: 9425100088)";
+
+    // 4. Aggregate Pick List by SKU across all route orders (Rule [A22])
+    const pickMap = new Map<
+      string,
+      {
+        skuId: string;
+        skuCode: string;
+        skuName: string;
+        brand: string;
+        unitsPerCase: number;
+        paidCases: number;
+        freeCases: number;
+        approxWeightKg: number;
+      }
+    >();
+
+    let totalMasterCases = 0;
+    let totalFreeCases = 0;
+    let totalWholesaleValue = 0;
+
+    for (const { order, items } of routeOrders) {
+      totalWholesaleValue += order.grandTotal;
+      for (const item of items) {
+        totalMasterCases += item.quantityCases + item.freeCases;
+        totalFreeCases += item.freeCases;
+
+        const sku = this.getSkuById(item.skuId);
+        const unitsPerCase = sku?.unitsPerCase || 24;
+        const brand = sku?.brand || "Company A";
+
+        // Approximated weight per master case
+        let caseWeight = 10;
+        if (sku?.packSize?.includes("75")) caseWeight = 7.2;
+        else if (sku?.packSize?.includes("120")) caseWeight = 6.0;
+        else if (sku?.packSize?.includes("1 kg") || sku?.packSize?.includes("1kg")) caseWeight = 20.0;
+        else if (sku?.packSize?.includes("250")) caseWeight = 10.0;
+
+        const existing = pickMap.get(item.skuId);
+        if (existing) {
+          existing.paidCases += item.quantityCases;
+          existing.freeCases += item.freeCases;
+          existing.approxWeightKg += (item.quantityCases + item.freeCases) * caseWeight;
+        } else {
+          pickMap.set(item.skuId, {
+            skuId: item.skuId,
+            skuCode: item.skuCode || item.skuId,
+            skuName: item.skuName || sku?.name || item.skuId,
+            brand,
+            unitsPerCase,
+            paidCases: item.quantityCases,
+            freeCases: item.freeCases,
+            approxWeightKg: (item.quantityCases + item.freeCases) * caseWeight,
+          });
+        }
+      }
+    }
+
+    const pickList: VanPickItem[] = Array.from(pickMap.values()).map((p) => ({
+      ...p,
+      totalCases: p.paidCases + p.freeCases,
+      totalPacks: (p.paidCases + p.freeCases) * p.unitsPerCase,
+      approxWeightKg: Math.round(p.approxWeightKg * 10) / 10,
+    }));
+
+    const approxTotalWeightKg = pickList.reduce((acc, p) => acc + p.approxWeightKg, 0);
+
+    // 5. Build Stop Sequence
+    const stops: VanDeliveryStop[] = routeOrders.map((ro, index) => {
+      const ret = this.getRetailerById(ro.order.retailerId);
+      const isCredit = (ret?.creditLimit || 0) > 0 && !ro.order.creditHoldReason;
+      const orderTotalCases = ro.items.reduce((acc, it) => acc + it.quantityCases + it.freeCases, 0);
+      const orderFreeCases = ro.items.reduce((acc, it) => acc + it.freeCases, 0);
+
+      return {
+        stopNumber: index + 1,
+        orderId: ro.order.id,
+        orderStatus: ro.order.status,
+        retailerId: ro.order.retailerId,
+        retailerName: ro.order.retailerName || ret?.name || "Kirana Store",
+        ownerName: ret?.ownerName || ro.order.placedBy || "Shop Owner",
+        phone: ret?.phone || "9826000001",
+        address: ret?.address || "Jabalpur",
+        route: selectedRoute,
+        totalCases: orderTotalCases,
+        freeCases: orderFreeCases,
+        grandTotal: ro.order.grandTotal,
+        paymentMode: isCredit ? "CREDIT" : "CASH_ON_DELIVERY",
+        lines: ro.items.map((it) => ({
+          skuId: it.skuId,
+          skuName: it.skuName || it.skuId,
+          paidCases: it.quantityCases,
+          freeCases: it.freeCases,
+        })),
+      };
+    });
+
+    const manifest: VanRouteManifest = {
+      route: selectedRoute,
+      vanNumber,
+      driverName,
+      dispatchDate: new Date().toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      totalOrders: routeOrders.length,
+      totalMasterCases,
+      totalFreeCases,
+      totalWholesaleValue: Math.round(totalWholesaleValue * 100) / 100,
+      approxTotalWeightKg: Math.round(approxTotalWeightKg * 10) / 10,
+      pickList,
+      stops,
+    };
+
+    return {
+      availableRoutes,
+      selectedRoute,
+      manifest,
+    };
+  }
+
+  public getDormantRetailers(inactivityDays = 14): {
+    totalRetailers: number;
+    dormantCount: number;
+    dormantRetailers: DormantRetailerRecord[];
+  } {
+    const records: DormantRetailerRecord[] = [];
+    const now = Date.now();
+
+    for (const ret of this.retailers.values()) {
+      let latestDate: Date = ret.lastOrderAt || new Date(now - 25 * 24 * 60 * 60 * 1000);
+      let totalOrderedValue = 0;
+      let orderCount = 0;
+
+      for (const ord of this.orders.values()) {
+        if (ord.retailerId === ret.id) {
+          orderCount += 1;
+          totalOrderedValue += ord.grandTotal;
+          if (ord.createdAt > latestDate) {
+            latestDate = ord.createdAt;
+          }
+        }
+      }
+
+      const daysInactive = Math.max(1, Math.floor((now - latestDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+      if (daysInactive >= inactivityDays) {
+        const avgOrderValue =
+          orderCount > 0
+            ? Math.round(totalOrderedValue / orderCount)
+            : Math.round((ret.creditLimit || 30000) * 0.45);
+
+        const availableCredit = Math.max(0, ret.creditLimit - ret.currentBalance);
+
+        let churnRisk: "CRITICAL" | "HIGH" | "MODERATE" = "MODERATE";
+        if (daysInactive >= 21) churnRisk = "CRITICAL";
+        else if (daysInactive >= 14) churnRisk = "HIGH";
+
+        const promoTextHindi = `नमस्ते ${ret.ownerName} जी! Company A जबलपुर से। आपके दुकान '${ret.name}' पर पिछले ${daysInactive} दिनों से आर्डर नहीं लगा है। आज Parle-G बिस्कुट पर 10 पेटी पर 1 पेटी फ्री और डिटर्जेंट पर 3% अतिरिक्त छूट की विशेष स्कीम चालू है। आर्डर लगाने के लिए यहाँ क्लिक करें: http://localhost:3000/catalogue`;
+
+        const whatsappDeepLink = `https://wa.me/91${ret.phone}?text=${encodeURIComponent(promoTextHindi)}`;
+
+        records.push({
+          id: ret.id,
+          name: ret.name,
+          ownerName: ret.ownerName,
+          phone: ret.phone,
+          address: ret.address,
+          route: ret.route,
+          daysInactive,
+          lastOrderDate: latestDate,
+          avgOrderValue,
+          creditLimit: ret.creditLimit,
+          currentBalance: ret.currentBalance,
+          availableCredit,
+          churnRisk,
+          activePromoTextHindi: promoTextHindi,
+          whatsappDeepLink,
+        });
+      }
+    }
+
+    records.sort((a, b) => b.daysInactive - a.daysInactive);
+
+    return {
+      totalRetailers: this.retailers.size,
+      dormantCount: records.length,
+      dormantRetailers: records,
+    };
   }
 }
 
