@@ -132,6 +132,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - In-browser reactive cart state store with `localStorage` synchronization (`distributor_cart_v1`).
   - Implements scheme calculations (`calculateSchemePreview`), pack unit pricing, Ex-GST vs Incl-GST rounding.
   - Guards against ordering zero or negative quantities, and enforces live available stock ceilings.
+- **`src/lib/schemes/engine.ts`**:
+  - Pure function trade scheme and tax engine.
+  - Computes Free Goods (floor division), Slab Tier Cash Discounts pre-tax, and Rule 46 CGST/SGST 50/50 tax split with micro-epsilon half-up rounding.
+  - Produces complete invoice breakdowns (`gross`, `discounts`, `taxable`, `cgst`, `sgst`, `roundOff`, `grandTotal`).
 
 ---
 
@@ -185,8 +189,9 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 ---
 
 ### G. Test Suite (`src/__tests__/`)
-- **`src/__tests__/auth.test.ts`**: 12 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, and JWT signature verification.
+- **`src/__tests__/auth.test.ts`**: 13 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, JWT signature verification, and B2B kirana self-registration.
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
+- **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
 
 ---
 

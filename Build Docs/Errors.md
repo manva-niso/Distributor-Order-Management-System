@@ -23,6 +23,21 @@ This document records every error, build failure, test failure, runtime issue, a
 
 ## Log Entries
 
+### [ERR-005] IEEE 754 Floating-Point Imprecision in Financial Half-Up GST Rounding
+- **Date & Time:** 2026-11-03 20:01:00
+- **Module:** Module 3 - Pure Scheme & Pricing Calculation Engine
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  FAIL src/__tests__/schemes.test.ts > Slab Tier Cash Discount (Rule [A12])
+  AssertionError: expected 886.09 to be 886.1 // Object.is equality
+  - Expected: 886.1
+  + Received: 886.09
+  ```
+- **Root Cause Analysis:** Under IEEE 754 standard, `9845.5 * 0.09` evaluates to `886.0949999999999` in binary floating-point. When standard `Math.round((val + Number.EPSILON) * 100) / 100` was applied, the binary deficit caused `886.095` to round down to `886.09` instead of half-up to `886.10`.
+- **Resolution / Fix:** Updated `roundTo2Decimals` in `src/lib/schemes/engine.ts` with a micro-epsilon compensation bias `(value + 1e-6) * 100`, which correctly rounds exact half values (`.095`) upward as required by Indian GST tax invoicing standards.
+- **Prevention:** Always account for binary representation imprecision in financial half-up rounding functions.
+
 ### [ERR-004] Turbopack conflict: cacheComponents incompatible with dynamic route config
 - **Date & Time:** 2026-11-03 19:18:40
 - **Module:** Module 1 - Core Build

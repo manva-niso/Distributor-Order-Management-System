@@ -27,7 +27,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | :--- | :--- | :--- | :--- | :--- |
 | **Module 1** | Scaffolding, Database Schema & Auth (Login, OTP, Session) | Retailer, Desk, Salesman | ✅ Completed | App scaffold, Drizzle schema, OTP generation & verification, JWT cookies, Login UI |
 | **Module 2** | Retailer Catalogue, Pricing & Live Stock | Retailer, Salesman | ✅ Completed | Live catalog, search, brand filters, out-of-stock guards, pack/case pricing |
-| **Module 3** | Pure Scheme Calculation Engine | System / Cart | ⏳ Pending | Buy X Get Y free, slab tier discounts, GST calculation, unit tests |
+| **Module 3** | Pure Scheme Calculation Engine | System / Cart | ✅ Completed | Buy X Get Y free, slab tier discounts, GST calculation, unit tests |
 | **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ⏳ Pending | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
 | **Module 5** | Multi-Modal AI Order Intake & Disambiguation | Retailer, Desk, Salesman | ⏳ Pending | WhatsApp text paste, photo canvas compression, voice note recorder, rules + Gemini fallback, unit clarification |
 | **Module 6** | Desk Verification Queue, Line Editing & Concurrency | Order Desk Clerk | ⏳ Pending | OCC version check, inline line edits, alias auto-learning, credit hold approval |
@@ -140,3 +140,33 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Cart total aggregation and item addition/removal.
   - **Combined Suite:** Total 20/20 tests passing across all suites (`auth.test.ts` + `catalogue.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/catalogue` route compiled cleanly.
+
+---
+
+## Module 3: Pure Scheme & Pricing Calculation Engine
+
+### 1. Features Implemented
+- [x] **Pure Functional Scheme Engine (`src/lib/schemes/engine.ts`):**
+  - **Free Goods Scheme (`[A11]`):** `floor(orderedCases / buyQty) * getFreeQty`. Valued at ₹0.00 promotional supply. Delivered total = `orderedCases + freeCases`.
+  - **Slab Tier Cash Discount (`[A12]`):** Applies percentage discount pre-GST once minimum threshold cases are reached (e.g. 3% off on 5+ cases of Detergent).
+  - **Rule 46 CGST/SGST Half-Up Rounding (`[A2]`):** Intrastate Madhya Pradesh 50/50 tax split with IEEE 754 micro-epsilon compensation bias `(value + 1e-6) * 100 / 100`.
+  - **Non-Compounding Rule (`[A13]`):** Guarantees either free goods or slab discount is applied per SKU, strictly preventing double-discount compounding.
+  - **Composite Order Summary (`calculateOrderSummary`):** Aggregates line items into gross, discounts, taxable subtotal, CGST, SGST, unrounded total, round-off, and final payable amount.
+  - **Input Guards:** Clamps negative quantities to zero; gracefully handles empty cart baskets.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/schemes/engine.ts` - Core pure function pricing & scheme calculation engine
+  - `src/__tests__/schemes.test.ts` - 10 unit tests covering edge cases, rounding, and scheme mechanics
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/schemes.test.ts`
+  - 10/10 unit tests passing (14ms runtime) covering:
+    - Half-up rounding utility with binary floating-point precision verification.
+    - Buy 10 Get 1 free at 9, 10, and 25 cases.
+    - 3% slab tier activation at 4 and 5 cases.
+    - 5% GST bracket items (Tea leaf: 2.5% CGST + 2.5% SGST).
+    - Multi-item mixed composite cart invoice summary.
+    - Round-off discrepancy handling.
+    - Negative quantity clamping and empty array resiliency.
+  - **Total Repository Tests:** 31/31 unit tests passing across all 3 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`).
