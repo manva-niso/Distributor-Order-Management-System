@@ -51,10 +51,14 @@ async function dispatchSms(phone: string, otpCode: string): Promise<{ success: b
         }),
       });
 
-      if (!response.ok) {
-        console.error(`Fast2SMS failed with status: ${response.status}`);
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || (data && data.return === false)) {
+        console.error(`[Fast2SMS Error] Status: ${response.status}`, data);
         return { success: false, provider: "fast2sms" };
       }
+
+      console.log(`[Fast2SMS Success] SMS OTP sent to +91 ${phone}:`, data);
       return { success: true, provider: "fast2sms" };
     } catch (err) {
       console.error("Fast2SMS network dispatch error:", err);

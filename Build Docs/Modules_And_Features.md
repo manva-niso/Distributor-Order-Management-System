@@ -15,6 +15,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### Companion Documentation
 - [**`Overall_connections.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Overall_connections.md): Directory breakdown, file-by-file roles, and end-to-end data flow diagrams.
 - [**`Test_And_Run_Guide.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md): Operational guide for running & testing each part individually and collectively.
+- [**`Assumptions.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md): Comprehensive module-by-module assumption registry with permanent IDs (`[A1]` to `[A23]`).
 - [**`Errors.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Errors.md): Incident registry tracking root cause analyses and verified fixes.
 
 

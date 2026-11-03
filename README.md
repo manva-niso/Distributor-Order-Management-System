@@ -25,7 +25,8 @@ This repository contains the end-to-end B2B order management system engineered t
 │   ├── Modules_And_Features.md                   # Feature registry across all 9 core build modules
 │   ├── Errors.md                                 # Root cause incident log for all build/runtime issues
 │   ├── Overall_connections.md                    # Directory breakdown, file roles & end-to-end data flow
-│   └── Test_And_Run_Guide.md                     # Runbook for testing each part individually & collectively
+│   ├── Test_And_Run_Guide.md                     # Runbook for testing each part individually & collectively
+│   └── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A23]) by module
 ├── distributor-app/                              # Next.js App Router full-stack codebase
 │   ├── src/
 │   │   ├── app/                                  # App router pages & API route handlers
