@@ -57,22 +57,31 @@ This document tracks each Core Build Module step by step, its features, implemen
   - 10-digit Indian phone number entry with auto-formatting (`+91`).
   - 6-digit OTP input grid with auto-focus and resend countdown timer.
   - Linked business auto-detection hint.
+- [x] B2B Retailer Self-Onboarding & Registration (`/register`):
+  - Self-service onboarding for new kirana stores across 7 Jabalpur delivery beats.
+  - Automatic allocation of ₹25,000 provisional credit limit (`[A5]`).
+  - Auto-detection banner on login for unregistered numbers directing to registration.
+  - Duplicate phone number prevention (`HTTP 409 Conflict`).
 
 ### 2. Files Created / Modified
 - `distributor-app/`
   - `src/db/schema.ts` - Database tables & relations
+  - `src/db/store.ts` - In-memory and PostgreSQL persistent repository
   - `src/lib/auth/jwt.ts` - Signed JWT session utilities with `jose`
   - `src/lib/auth/otp.ts` - OTP generation, SMS provider interface, verification
   - `src/app/api/auth/send-otp/route.ts` - API endpoint to request OTP
   - `src/app/api/auth/verify-otp/route.ts` - API endpoint to verify OTP & issue cookie
+  - `src/app/api/auth/lookup-phone/route.ts` - Phone identity & credit lookup endpoint
+  - `src/app/api/auth/register/route.ts` - B2B Retailer onboarding & provisional credit allocation
   - `src/app/api/auth/me/route.ts` - Active session profile endpoint
   - `src/app/api/auth/logout/route.ts` - Session termination endpoint
   - `src/app/(auth)/login/page.tsx` - Login screen with OTP input & Hindi toggle
+  - `src/app/(auth)/register/page.tsx` - B2B Kirana registration page with beat routing
   - `src/middleware.ts` - Route protection & role enforcement
 
 ### 3. Verification & Tests
 - **Vitest Suite:** `src/__tests__/auth.test.ts`
-  - 12/12 unit tests passing (34ms runtime) covering:
+  - 13/13 unit tests passing covering:
     - 6-digit numeric cryptographic generation.
     - 10-digit Indian mobile number validation.
     - 30-second rate-limiting between re-sends.
@@ -81,6 +90,7 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Constant-time comparison preventing timing attacks.
     - Role detection and profile loading (`retailer`, `desk`, `salesman`).
     - Cryptographic JWT session signing & tamper-detection.
+    - New B2B kirana self-registration and ₹25,000 provisional credit limit allocation (`[A5]`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, all routes statically optimized or server-rendered dynamic.
 
 ---

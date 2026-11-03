@@ -142,6 +142,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `POST`: Validates phone + 6-digit code, issues signed JWT session cookie, and returns role-based redirect target (`/desk` or `/catalogue`).
 - **`src/app/api/auth/lookup-phone/route.ts`**:
   - `GET ?phone=...`: As a user types their mobile number on the login screen, this endpoint provides instant visual verification of their business name, route, and available credit limit.
+- **`src/app/api/auth/register/route.ts`**:
+  - `POST`: Self-onboards new kirana stores across 7 Jabalpur delivery routes, creates retailer and user accounts, allocates ₹25,000 provisional credit limit (`[A5]`), and issues signed session JWT.
 - **`src/app/api/auth/me/route.ts`**:
   - `GET`: Resolves the active session cookie and returns current user details and retailer credit ledger balances.
 - **`src/app/api/auth/logout/route.ts`**:
@@ -166,6 +168,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Auto-formatting phone input with linked store detection.
   - 1-click test role selector chips (Retailer, Desk Clerk, Salesman).
   - 6-digit OTP input grid with auto-focus progression, backspace recovery, and paste distribution.
+- **`src/app/(auth)/register/page.tsx`**:
+  - B2B Kirana registration form for new retail partners across Jabalpur.
+  - Fields for store name, owner name, mobile number, beat/route selection, and address.
+  - Automatic provisional credit assignment (₹25,000) and instant redirection to catalogue.
 - **`src/app/(portal)/catalogue/page.tsx` (Screen 2)**:
   - Header with retailer credit ledger summary (Limit ₹50k, ₹38k available).
   - Search bar + brand filter chips (`Brand A`, `Brand B`, `Brand C`, `Brand D`).

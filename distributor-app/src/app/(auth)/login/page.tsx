@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Store,
   Phone,
@@ -363,6 +364,30 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {/* Unregistered Phone Banner */}
+              {businessHint && !businessHint.found && phone.replace(/\D/g, "").slice(-10).length === 10 && (
+                <div className="bg-amber-50/90 border border-amber-200 rounded-lg p-3 flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-amber-900 uppercase">
+                      {lang === "hi" ? "अपरिचित मोबाइल नंबर" : "Unregistered Mobile Number"}
+                    </div>
+                    <div className="text-xs text-amber-800 mt-0.5">
+                      {lang === "hi"
+                        ? "यह नंबर किसी मौजूदा वितरक खाते से नहीं जुड़ा है।"
+                        : "This number is not yet linked to an authorized kirana account."}
+                    </div>
+                    <Link
+                      href={`/register?phone=${phone.replace(/\D/g, "").slice(-10)}`}
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-emerald-800 bg-white border border-emerald-300 rounded px-2.5 py-1.5 shadow-xs hover:bg-emerald-50"
+                    >
+                      <Store className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>{lang === "hi" ? "नई किराना दुकान पंजीकृत करें →" : "Register New Kirana Shop →"}</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* Primary Action Button (48px Touch Target) */}
               <button
                 type="submit"
@@ -488,6 +513,18 @@ export default function LoginPage() {
               <span>{successMsg}</span>
             </div>
           )}
+
+          {/* New Kirana Registration Link */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>{lang === "hi" ? "नया किराना स्टोर?" : "New Kirana Store?"}</span>
+            <Link
+              href="/register"
+              className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1"
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>{lang === "hi" ? "नई दुकान पंजीकृत करें" : "Register Store"}</span>
+            </Link>
+          </div>
         </div>
 
         {/* Security & Regulatory Footer Note */}

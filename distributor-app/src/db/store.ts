@@ -74,6 +74,11 @@ class MemoryStore {
     return this.retailers.get(id);
   }
 
+  public createRetailer(retailer: SeedRetailer): SeedRetailer {
+    this.retailers.set(retailer.id, retailer);
+    return retailer;
+  }
+
   public getAllRetailers(): SeedRetailer[] {
     return Array.from(this.retailers.values());
   }

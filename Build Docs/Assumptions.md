@@ -36,6 +36,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A24]** | Module 2: Catalogue | Search & Filter Logic | Case-insensitive instant multi-field match (name, brand, category, code); client state caches results. |
 | **[A25]** | Module 2: Catalogue | Client Cart Resiliency | Active draft cart item quantities persist in `localStorage` to survive network drops & page refreshes. |
 | **[A26]** | Module 2: Catalogue | Stockout Notification Telemetry | "Notify when available" registers an intent event in `audit_logs` without allowing checkout of zero-stock SKUs. |
+| **[A27]** | Module 1: Auth/Onboarding | Self-Registration & Route Assignment | Unregistered kirana stores self-onboard via `/register` with Shop, Owner, Beat & Address; auto-provisioned with provisional ₹25k credit limit. |
+| **[A28]** | Module 1: Auth/Onboarding | Single Phone Identity Constraint | Mobile numbers serve as primary entity keys; duplicate registrations with identical 10-digit phone numbers return HTTP 409 Conflict. |
 
 ---
 
@@ -74,6 +76,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A7]` Session Management via Signed JWT
 - **Context:** Stateless edge-compatible session management.
 - **Assumption:** Authentication state is maintained via an HTTP-Only, Lax SameSite, Secure cookie (`auth_token`) signed with an HS256 secret using `jose`. The token carries `{ userId, phone, role, retailerId, name }` and remains valid for 7 days unless explicitly cleared via `/api/auth/logout`.
+
+#### `[A27]` B2B Self-Registration & Route Assignment
+- **Context:** Kirana stores in Jabalpur seeking to join Company A's wholesale ordering network who are not pre-seeded in the initial 1,800 records.
+- **Assumption:** Unrecognized phone numbers visiting `/login` are detected via `/api/auth/lookup-phone` and guided to `/register`. The retailer provides their Shop Name, Owner Full Name, Mobile Number, Delivery Beat/Route (e.g. *Napier Town Route #4*, *Gorakhpur Route #1*), and Physical Address. Upon completion, the system allocates a sequential identifier (`RET-1800+`), provisions an initial provisional credit limit of ₹25,000 (per `[A5]`), mints a signed session cookie, and directs them immediately to `/catalogue`.
+
+#### `[A28]` Single Phone Identity Constraint
+- **Context:** B2B credit ledger integrity and salesman beat routing.
+- **Assumption:** A mobile number uniquely identifies a single trade account. If an existing registered phone number attempts to register again via `/register`, the API strictly rejects the request with HTTP 409 Conflict and prompts the user to log in via OTP, preventing duplicate credit allocation or overlapping route assignments.
 
 ---
 

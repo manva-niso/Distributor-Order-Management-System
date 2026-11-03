@@ -137,4 +137,33 @@ describe("Module 1 - Auth & OTP Verification Suite", () => {
       expect(decoded).toBeNull();
     });
   });
+
+  describe("B2B Retailer Onboarding & Registration (Assumption [A5])", () => {
+    it("provisions new kirana retailer with ₹25,000 provisional credit limit", () => {
+      const allInitial = dbStore.getAllRetailers();
+      const initialCount = allInitial.length;
+
+      const newRetailer = dbStore.createRetailer({
+        id: `RET-${1800 + initialCount + 1}`,
+        name: "Gupta Daily Needs",
+        ownerName: "Sunil Gupta",
+        phone: "9826099999",
+        address: "Shop 12, Main Road, Gorakhpur, Jabalpur",
+        route: "Gorakhpur Route #1",
+        creditLimit: 25000,
+        currentBalance: 0,
+        creditHold: false,
+      });
+
+      expect(newRetailer.id).toBe(`RET-${1800 + initialCount + 1}`);
+      expect(newRetailer.creditLimit).toBe(25000);
+      expect(newRetailer.currentBalance).toBe(0);
+      expect(newRetailer.creditHold).toBe(false);
+
+      const retrieved = dbStore.getRetailerByPhone("9826099999");
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.name).toBe("Gupta Daily Needs");
+      expect(retrieved?.route).toBe("Gorakhpur Route #1");
+    });
+  });
 });
