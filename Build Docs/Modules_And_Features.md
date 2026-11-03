@@ -28,7 +28,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 1** | Scaffolding, Database Schema & Auth (Login, OTP, Session) | Retailer, Desk, Salesman | ✅ Completed | App scaffold, Drizzle schema, OTP generation & verification, JWT cookies, Login UI |
 | **Module 2** | Retailer Catalogue, Pricing & Live Stock | Retailer, Salesman | ✅ Completed | Live catalog, search, brand filters, out-of-stock guards, pack/case pricing |
 | **Module 3** | Pure Scheme Calculation Engine | System / Cart | ✅ Completed | Buy X Get Y free, slab tier discounts, GST calculation, unit tests |
-| **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ⏳ Pending | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
+| **Module 4** | Cart, Ledger Credit Check & Order Placement | Retailer, Salesman | ✅ Completed | Cart summary, ledger headroom limit checks, order creation, atomic stock lock |
 | **Module 5** | Multi-Modal AI Order Intake & Disambiguation | Retailer, Desk, Salesman | ⏳ Pending | WhatsApp text paste, photo canvas compression, voice note recorder, rules + Gemini fallback, unit clarification |
 | **Module 6** | Desk Verification Queue, Line Editing & Concurrency | Order Desk Clerk | ⏳ Pending | OCC version check, inline line edits, alias auto-learning, credit hold approval |
 | **Module 7** | Tally XML Export & Batch Processing | Order Desk Clerk | ⏳ Pending | Tally ERP / Prime compliant XML batch download, exported status marking |
@@ -170,3 +170,50 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Round-off discrepancy handling.
     - Negative quantity clamping and empty array resiliency.
   - **Total Repository Tests:** 31/31 unit tests passing across all 3 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`).
+
+---
+
+## Module 4: Cart, Ledger Credit Check & Order Placement
+
+### 1. Features Implemented
+- [x] **Screen 5 UI (`src/app/(portal)/cart/page.tsx`):**
+  - **Live B2B Credit Headroom Meter (`[A14]`):** Visual progress bar displaying existing balance, current order addition, projected exposure, and available headroom.
+  - **Zero Dead Buttons Policy (`[A29]`):** Orders exceeding credit limits remain submittable, flagging an amber `CREDIT_HOLD` alert for Order Desk clearance rather than blocking merchant checkout.
+  - **Interactive Line Editing:** Quantity steppers, pack/case count conversion, scheme indicator cards (Free goods & slab discounts), and instant removal.
+  - **Commercial Tax Invoice Breakdown:** Itemized gross amount (Ex-GST), scheme savings, taxable value, CGST (50%), SGST (50%), round-off, and net payable.
+  - **Dispatch Cutoff Timer (`[A1]`):** 2:00 PM cutoff notice for next morning van milk-run delivery.
+  - **Zero-Friction Checkout:** Direct submission to `POST /api/orders/checkout`, clears draft cart, and transitions to order confirmation view.
+- [x] **Order Placement Backend API (`src/app/api/orders/checkout/route.ts`):**
+  - Validates authenticated session and retailer identity.
+  - Enforces physical warehouse stock bounds on both ordered master cases and promotional free goods cases (`[A30]`).
+  - Evaluates commercial invoice via pure calculation engine.
+  - Checks credit headroom: sets initial order status to `PLACED` or `CREDIT_HOLD`.
+  - Atomically deducts stock from `skus` store and records order in `orders` and `order_items` tables with initial `occ_version: 1`.
+  - Atomically increments retailer `currentBalance` and updates `lastOrderAt`.
+- [x] **Orders List & Tracking Screen (`src/app/(portal)/orders/page.tsx`):**
+  - Real-time status badges: `PLACED` (Green), `CREDIT_HOLD` (Amber), `VERIFIED` (Blue), `EXPORTED_TALLY` (Purple).
+  - Displays van delivery route assignment, timestamp, case tally, promotional free goods breakdown, and itemized invoice totals.
+  - Celebratory toast upon redirect from successful checkout (`?placed=ORD-...`).
+  - Accessible via mobile bottom navigation (`BottomNav`).
+- [x] **Orders Query API (`src/app/api/orders/route.ts`):**
+  - Scoped retrieval: Retailers fetch only their orders; desk clerks fetch all incoming beat orders.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/db/store.ts` - Added `createOrder`, `getOrderById`, `getOrdersByRetailerId`, `updateOrderStatus`, and `deductSkuStock`
+  - `src/app/api/orders/checkout/route.ts` - Order placement & credit validation API
+  - `src/app/api/orders/route.ts` - Order query API
+  - `src/app/(portal)/cart/page.tsx` - Screen 5 Cart & Credit Headroom review UI
+  - `src/app/(portal)/orders/page.tsx` - Orders history and status tracking UI
+  - `src/components/layout/BottomNav.tsx` - Enhanced with `activeTab` and default export
+  - `src/__tests__/orders.test.ts` - 4 unit tests covering order creation, credit holds, anti-backorder guards, and OCC versioning
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/orders.test.ts`
+  - 4/4 unit tests passing covering:
+    - Successful order placement within credit limit, free goods deduction, and ledger balance update.
+    - Automatic `CREDIT_HOLD` status flagging when projected balance exceeds credit limit (`[A14]`).
+    - Anti-backorder physical inventory protection (`[A9]`).
+    - OCC version increment and stale update conflict rejection (`[A19]`).
+  - **Total Repository Tests:** 35/35 tests passing across all 4 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/cart` and `/orders` compiled cleanly.

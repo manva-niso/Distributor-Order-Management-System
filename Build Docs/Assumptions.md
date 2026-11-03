@@ -38,6 +38,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A26]** | Module 2: Catalogue | Stockout Notification Telemetry | "Notify when available" registers an intent event in `audit_logs` without allowing checkout of zero-stock SKUs. |
 | **[A27]** | Module 1: Auth/Onboarding | Self-Registration & Route Assignment | Unregistered kirana stores self-onboard via `/register` with Shop, Owner, Beat & Address; auto-provisioned with provisional ₹25k credit limit. |
 | **[A28]** | Module 1: Auth/Onboarding | Single Phone Identity Constraint | Mobile numbers serve as primary entity keys; duplicate registrations with identical 10-digit phone numbers return HTTP 409 Conflict. |
+| **[A29]** | Module 4: Cart/Orders | B2B Order Status State Machine | Orders within headroom initiate as `PLACED`; orders exceeding credit headroom flag `CREDIT_HOLD` for clerk review (never dead buttons). |
+| **[A30]** | Module 4: Cart/Orders | Physical Promotional Stock Lock | Free promotional cases (`freeCases`) are deducted atomically alongside billed cases from warehouse stock to prevent stockout cuts. |
 
 ---
 
@@ -146,6 +148,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A15]` Atomic Stock Decrement & Concurrency
 - **Context:** High-concurrency ordering across 600 orders/day.
 - **Assumption:** Order commitment wraps stock decrement inside an atomic database transaction using row-level locking (`SELECT stock_cases FROM skus WHERE id = ? FOR UPDATE`). If available stock drops below requested quantity during checkout, the checkout is halted with an explicit inventory conflict notice.
+
+#### `[A29]` B2B Order Status State Machine
+- **Context:** Ensuring zero dead buttons while maintaining financial credit discipline.
+- **Assumption:** Checkout requests are never blocked by client-side disabled buttons due to credit limits. If projected balance exceeds credit limit, the submit action remains clickable and submits the order under `CREDIT_HOLD` status with the exceeded amount flagged. Order Desk clerks are notified to approve or adjust terms before van dispatch.
+
+#### `[A30]` Physical Promotional Stock Locking
+- **Context:** Delivery fulfillment on free goods trade schemes.
+- **Assumption:** Physical warehouse inventory must cover both ordered master cases and promotional free goods cases (`totalDeliveredCases = orderedCases + freeCases`). Free goods are deducted atomically from warehouse physical stock at checkout to ensure van pickers are never faced with inventory deficits at loading time.
 
 ---
 

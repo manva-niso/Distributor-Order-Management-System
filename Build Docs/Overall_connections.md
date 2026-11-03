@@ -156,6 +156,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `GET`: Returns active SKUs with real-time stock levels, pack specs, pricing, and applied trade schemes. Supports text search (`?q=`) and brand filters (`?brand=`).
 - **`src/app/api/catalogue/notify-restock/route.ts`**:
   - `POST`: Registers a notification request when a retailer attempts to order an out-of-stock SKU.
+- **`src/app/api/orders/checkout/route.ts`**:
+  - `POST`: Validates retailer session, computes invoice via scheme engine, enforces physical stock ceilings on ordered and promotional free goods cases (`[A30]`), checks credit exposure for `CREDIT_HOLD` vs `PLACED` status (`[A14]`), deducts warehouse inventory atomically, and updates retailer ledger balance.
+- **`src/app/api/orders/route.ts`**:
+  - `GET`: Returns past and active order records with route metadata and itemized breakdowns. Scoped to authenticated retailer or full beat for order desk.
 
 ---
 
@@ -182,6 +186,16 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - SKU product cards with stock status badge (Green/Amber/Red), Buy 10 Get 1 / 3% slab promotion banners, case/pack unit rates, and interactive quantity steppers.
   - Out-of-stock notification CTA for zero-inventory items.
   - Sticky bottom cart checkout drawer with real-time Ex-GST and Incl-GST totals.
+- **`src/app/(portal)/cart/page.tsx` (Screen 5)**:
+  - B2B Credit Headroom Meter displaying live existing balance, current order value, and projected exposure.
+  - Line-by-line case quantity steppers, pack unit rates, free goods tags, and slab discount chips.
+  - Itemized commercial tax invoice preview (Gross Ex-GST, Trade Savings, Taxable Value, CGST 50%, SGST 50%, Round-off, Grand Total).
+  - 2:00 PM dispatch cutoff notice for next morning van milk-run delivery (`[A1]`).
+  - Zero dead buttons: Over-limit orders place under `CREDIT_HOLD` for clerk review (`[A14]`, `[A29]`).
+- **`src/app/(portal)/orders/page.tsx`**:
+  - Real-time order tracking with status badges (`PLACED`, `CREDIT_HOLD`, `VERIFIED`, `EXPORTED_TALLY`).
+  - Itemized lines, case counts, free goods breakdown, and van route assignment.
+  - Celebratory confirmation banner on new order checkout.
 - **`src/components/layout/BottomNav.tsx`**:
   - Mobile bottom navigation bar with 48px touch targets for Catalogue, Quick Order AI, Cart, and Order History tabs.
   - Real-time badge counter linking to active cart items.
@@ -192,6 +206,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/auth.test.ts`**: 13 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, JWT signature verification, and B2B kirana self-registration.
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
 - **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
+- **`src/__tests__/orders.test.ts`**: 4 automated unit tests verifying order checkout under credit limit, automatic `CREDIT_HOLD` flagging on headroom breach (`[A14]`), anti-backorder warehouse stock protection (`[A9]`), and OCC conflict detection on status updates (`[A19]`).
 
 ---
 

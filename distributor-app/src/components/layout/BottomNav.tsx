@@ -8,9 +8,10 @@ import { Store, MessageSquare, ShoppingCart, Receipt } from "lucide-react";
 interface BottomNavProps {
   cartItemCount?: number;
   lang?: "en" | "hi";
+  activeTab?: "catalogue" | "quick-order" | "cart" | "orders";
 }
 
-export function BottomNav({ cartItemCount = 0, lang = "en" }: BottomNavProps) {
+export function BottomNav({ cartItemCount = 0, lang = "en", activeTab }: BottomNavProps) {
   const pathname = usePathname();
 
   const navItems = [
@@ -45,7 +46,9 @@ export function BottomNav({ cartItemCount = 0, lang = "en" }: BottomNavProps) {
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 shadow-md pb-[env(safe-area-inset-bottom,0px)]">
       <div className="max-w-md mx-auto flex items-center justify-around h-16 px-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.path || (item.path !== "/catalogue" && pathname.startsWith(item.path));
+          const isActive = activeTab
+            ? item.path === `/${activeTab}`
+            : pathname === item.path || (item.path !== "/catalogue" && pathname.startsWith(item.path));
           const Icon = item.icon;
 
           return (
@@ -74,3 +77,5 @@ export function BottomNav({ cartItemCount = 0, lang = "en" }: BottomNavProps) {
     </nav>
   );
 }
+
+export default BottomNav;
