@@ -2,7 +2,20 @@ import { SeedSku } from "@/db/seed-data";
 
 export type UnitType = "CASE" | "PACK" | "KG" | "UNIT" | "UNKNOWN";
 
-export type AmbiguityReason = "MISSING_UNIT" | "MULTIPLE_CANDIDATES" | "UNKNOWN_SKU" | null;
+export type AmbiguityReason =
+  | "MISSING_UNIT"
+  | "MULTIPLE_CANDIDATES"
+  | "UNKNOWN_SKU"
+  | "BROKEN_CASE"
+  | null;
+
+export interface BrokenCaseInfo {
+  requestedPacks: number;
+  caseCapacity: number;
+  fullCaseRoundUp: number;
+  loosePackPrice: number;
+  fullCasePrice: number;
+}
 
 export interface SkuCandidate {
   sku: SeedSku;
@@ -20,6 +33,7 @@ export interface ParsedLineItem {
   ambiguityReason: AmbiguityReason;
   candidates: SkuCandidate[];
   resolvedQtyCases: number;
+  brokenCaseInfo?: BrokenCaseInfo | null;
 }
 
 export interface ParseResult {

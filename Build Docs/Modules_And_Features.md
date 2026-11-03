@@ -280,8 +280,9 @@ This document tracks each Core Build Module step by step, its features, implemen
   - **Unit Extraction:** Maps wholesale units (*"peti"*, *"petee"*, *"case"*, *"dabba"*, *"पेटी"*, *"डिब्बा"*) to `CASE`, and retail packs (*"packet"*, *"pack"*, *"pkt"*, *"piece"*, *"पैकेट"*) to `PACK`.
   - **Noise Words Stripping:** Discards conversational pleasantries (*"bhaiya"*, *"chahiye"*, *"jaldi bhejo"*, *"kal subah"*, *"नमस्ते"*, *"भैया"*).
   - **Pack-to-Case Conversion:** Automatically computes wholesale case multiples when retail loose packs are specified (`[A35]`).
-- [x] **Strict Unit Disambiguation Guardrail (`[A16]`):**
+- [x] **Strict Unit Disambiguation Guardrail (`[A16]` & `[A36]`):**
   - If a message omits the unit (e.g., *"bhaiya 5 biscuit chhota"*), the system flags the line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"`.
+  - **Broken Master Case & Cut Pack Detection (`[A36]`):** Handles colloquial fractional requests (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*). Accurately extracts requested loose packs (`15`) and SKU (`Ghadi 1kg`), ignores product weights (`1kg`) and case capacity (`20`), flags `ambiguityReason: "BROKEN_CASE"`, and prompts merchant/clerk with 1-click resolution (Round Up to Full Case vs Request Loose Packs with Desk Approval).
   - The system **never guesses** between wholesale cases and loose packs.
 - [x] **Interactive Quick Order Screen (Screens 3 & 4) (`src/app/(portal)/quick-order/page.tsx`):**
   - Bilingual UI (English + Hindi toggle).
@@ -306,6 +307,6 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ### 3. Verification & Tests
 - **Vitest Suite:** `src/__tests__/text-parser.test.ts`
-  - 11/11 unit tests passing (19ms runtime).
-  - **Combined Suite:** Total 50/50 tests passing across all 6 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`).
+  - 14/14 unit tests passing (24ms runtime).
+  - **Combined Suite:** Total 53/53 tests passing across all 6 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 25/25 routes compiled cleanly.

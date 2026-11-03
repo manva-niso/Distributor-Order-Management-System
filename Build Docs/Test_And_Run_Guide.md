@@ -17,7 +17,7 @@ From the `distributor-app/` directory:
 | **Test Module 3 (Schemes) only** | `npx vitest run src/__tests__/schemes.test.ts` | Runs the 10 pure scheme engine and GST calculation tests. |
 | **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
 | **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
-| **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 11 multilingual text parser and ambiguity guardrail tests. |
+| **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 14 multilingual text parser, broken case, and ambiguity guardrail tests. |
 | **Run full production build** | `npm run build` | Compiles TypeScript, runs Turbopack, verifies static/dynamic routes. |
 | **Start local dev server** | `npm run dev` | Spins up live development server at `http://localhost:3000`. |
 | **Start local production server** | `npm run start` | Serves the optimized production build at `http://localhost:3000`. |

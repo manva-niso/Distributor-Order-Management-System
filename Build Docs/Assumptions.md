@@ -45,6 +45,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A33]** | Module 5: AI Capture | Pluggable Parser Strategy & ML Extensibility | Parser implements `OrderParserPipeline` adapter pattern so any custom ML microservice (Python/FastAPI) can drop-in replace rules without UI changes. |
 | **[A34]** | Module 5: AI Capture | Trilingual & Devanagari Numeral Normalization | Accepts Arabic digits (`0-9`), Devanagari numerals (`०-९`), and written words (`ek`, `paanch`, `दो`), stripping colloquial pleasantries before SKU matching. |
 | **[A35]** | Module 5: AI Capture | Pack-to-Case Ceiling Multiple Conversion | When retail loose packs are specified, engine calculates wholesale master cases using ceiling multiples of SKU pack configuration (`ceil(packs / unitsPerCase)`). |
+| **[A36]** | Module 5: AI Capture | Broken Master Case & Cut Pack Policy | Partial-case requests ("case of 20 mai se 15") trigger `BROKEN_CASE` guardrail with 2 options: Round Up to 1 Full Case (recommended) or Request Loose Packs with desk approval. |
 
 ---
 
@@ -204,6 +205,15 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A35]` Pack-to-Case Ceiling Multiple Conversion
 - **Context:** Wholesale distributors sell and pick strictly in full master cases, but kirana shopkeepers occasionally order by consumer packet count.
 - **Assumption:** When a shopkeeper orders in loose packets (e.g. *"120 packets Parle-G 75g"* with 96 packs/case), the system converts the quantity to whole master cases via ceiling division: `Math.max(1, Math.ceil(packs / unitsPerCase))`. The UI clearly displays both the requested packet quantity and the corresponding full case allocation to maintain warehouse logistics integrity.
+
+#### `[A36]` Broken Master Case & Cut Pack Policy
+- **Context:** Real-world colloquial orders where a shopkeeper attempts to crack open a sealed master carton (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*).
+- **Assumption:** Distributors dispatch and pick strictly by full sealed master cases (`[A8]`) to prevent loose inventory damage during van milk-runs. When an order requests a fractional case or explicitly asks for loose packs fewer than the case capacity (`qty < unitsPerCase` or colloquial *"X mai se Y dedo"*):
+  1. The system extracts the true requested packet count (`15`) and maps the product (`SKU-DT-1KG`), ignoring weight numbers (`1kg`) and case capacity numbers (`20`) from being erroneously consumed as order quantities.
+  2. The line is flagged with `isAmbiguous: true` and `ambiguityReason: "BROKEN_CASE"`.
+  3. The system presents the user with two clear options:
+     - **Option 1 (Recommended): Round Up to 1 Full Case (20 packs · ₹2,030.00)** at the wholesale dealer rate.
+     - **Option 2: Request 15 Loose Packs (₹1,522.50)** flagged for Order Desk clerk and salesman review/route splitting.
 
 ---
 

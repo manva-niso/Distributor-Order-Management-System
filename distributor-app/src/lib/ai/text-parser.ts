@@ -136,6 +136,8 @@ const NOISE_WORDS = [
   "bhejo",
   "bhej",
   "dena",
+  "dedo",
+  "de",
   "do",
   "likho",
   "order",
@@ -157,6 +159,16 @@ const NOISE_WORDS = [
   "ke",
   "ko",
   "se",
+  "me",
+  "mai",
+  "mein",
+  "of",
+  "in",
+  "from",
+  "for",
+  "to",
+  "at",
+  "with",
   "भैया",
   "भाई",
   "जी",
@@ -164,17 +176,23 @@ const NOISE_WORDS = [
   "भेज",
   "दो",
   "देना",
+  "देदो",
   "भेजो",
   "लिखो",
   "नमस्ते",
   "राम",
   "और",
+  "तथा",
   "वाला",
   "वाली",
   "वाले",
   "का",
   "की",
   "के",
+  "को",
+  "से",
+  "में",
+  "मे",
 ];
 
 /**
@@ -186,6 +204,77 @@ export function normalizeNumerals(text: string): string {
     normalized = normalized.replaceAll(dev, arab);
   }
   return normalized;
+}
+
+/**
+ * Fuses numeric weights with their units so they are treated as product attributes
+ * (e.g., "1 kg" -> "1kg", "75 g" -> "75g", "250 gm" -> "250g")
+ */
+export function normalizeWeights(text: string): string {
+  return text
+    .replace(/(\d+)\s*(kg|kilo|किलो)\b/gi, "$1kg")
+    .replace(/(\d+)\s*(g|gm|gram|ग्राम)\b/gi, "$1g")
+    .replace(/(\d+)\s*(ml|मिली)\b/gi, "$1ml")
+    .replace(/(\d+)\s*(ltr|liter|litre|लीटर)\b/gi, "$1ltr");
+}
+
+interface PartialCaseIntent {
+  requestedPacks: number;
+  caseCapacityMentioned: number | null;
+  cleanedUtterance: string;
+}
+
+/**
+ * Detects requests for loose packs from within a case (e.g. "case of 20 mai se 15 dedo", "15 out of 20")
+ */
+function detectPartialCaseIntent(text: string): PartialCaseIntent | null {
+  // Pattern 1: Hinglish/Hindi "... (case of 20)? mai se 15 (dedo|chahiye)?"
+  const hindiMatch = text.match(
+    /(?:case|peti|box|कार्टन|पेटी)?\s*(?:of|ki|ka)?\s*(\d+)?\s*(?:mai\s*se|me\s*se|mein\s*se|में\s*से|मे\s*से)\s*(\d+|[a-zA-Z\u0900-\u097F]+)/i
+  );
+  if (hindiMatch) {
+    const rawCap = hindiMatch[1] ? parseInt(hindiMatch[1]) : null;
+    const rawQty = hindiMatch[2];
+    let qty: number | null = null;
+    if (/^\d+$/.test(rawQty)) {
+      qty = parseInt(rawQty);
+    } else if (WORD_NUMBERS[rawQty.toLowerCase()] !== undefined) {
+      qty = WORD_NUMBERS[rawQty.toLowerCase()];
+    }
+
+    if (qty !== null && qty > 0) {
+      const cleaned = text.replace(hindiMatch[0], " ").trim();
+      return {
+        requestedPacks: qty,
+        caseCapacityMentioned: rawCap,
+        cleanedUtterance: cleaned,
+      };
+    }
+  }
+
+  // Pattern 2: English "15 out of 20" or "15 from case of 20"
+  const englishMatch = text.match(/(\d+|[a-zA-Z]+)\s*(?:out\s*of|from)\s*(?:case\s*of\s*)?(\d+)/i);
+  if (englishMatch) {
+    const rawQty = englishMatch[1];
+    const rawCap = parseInt(englishMatch[2]);
+    let qty: number | null = null;
+    if (/^\d+$/.test(rawQty)) {
+      qty = parseInt(rawQty);
+    } else if (WORD_NUMBERS[rawQty.toLowerCase()] !== undefined) {
+      qty = WORD_NUMBERS[rawQty.toLowerCase()];
+    }
+
+    if (qty !== null && qty > 0) {
+      const cleaned = text.replace(englishMatch[0], " ").trim();
+      return {
+        requestedPacks: qty,
+        caseCapacityMentioned: rawCap,
+        cleanedUtterance: cleaned,
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -312,7 +401,8 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
 
     // Pack size / weight matching (+0.3)
     for (const token of cleanTokens) {
-      if (skuPackSize.includes(token) || skuName.includes(token)) {
+      const isNumericOnly = /^\d+$/.test(token);
+      if (!isNumericOnly && (skuPackSize.includes(token) || skuName.includes(token))) {
         score += 0.25;
       }
       // Specific size hints (e.g., "chhota" for 75g biscuits)
@@ -320,7 +410,7 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
         score += 0.35;
       }
       if ((token === "1kg" || token === "1 kilo" || token === "1kilo") && sku.packSize.includes("1 kg")) {
-        score += 0.3;
+        score += 0.35;
       }
       if (token === "cake" && sku.name.includes("Cake")) {
         score += 0.35;
@@ -347,24 +437,51 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
  * Main Pure Deterministic Parsing Function for a single line utterance
  */
 export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): ParsedLineItem {
-  const normalized = normalizeNumerals(rawUtterance.trim());
-  const rawTokens = normalized.split(/\s+/).filter((t) => t.length > 0);
+  const normalizedNumerals = normalizeNumerals(rawUtterance.trim());
 
-  // 1. Extract Quantity
-  const { qty, remainingTokens: tokensAfterQty } = extractQuantity(rawTokens);
+  // 1. Check for Partial / Broken Case Intent (e.g. "case of 20 mai se 15 dedo", "15 out of 20")
+  const partialIntent = detectPartialCaseIntent(normalizedNumerals);
 
-  // 2. Extract Unit
-  const { unit, remainingTokens: tokensAfterUnit } = extractUnit(tokensAfterQty);
+  let rawTokens: string[];
+  let qty: number | null = null;
+  let unit: UnitType = "UNKNOWN";
 
-  // 3. Match SKU from catalog
-  const { matched, candidates } = matchSku(tokensAfterUnit, skus);
+  if (partialIntent) {
+    qty = partialIntent.requestedPacks;
+    unit = "PACK";
+    const cleanedWithWeights = normalizeWeights(partialIntent.cleanedUtterance);
+    rawTokens = cleanedWithWeights.split(/\s+/).filter((t) => t.length > 0);
+  } else {
+    const textWithWeights = normalizeWeights(normalizedNumerals);
+    rawTokens = textWithWeights.split(/\s+/).filter((t) => t.length > 0);
+    const qtyResult = extractQuantity(rawTokens);
+    qty = qtyResult.qty;
+    const unitResult = extractUnit(qtyResult.remainingTokens);
+    unit = unitResult.unit;
+    rawTokens = unitResult.remainingTokens;
+  }
 
-  // 4. Ambiguity Guardrail (Rule [A16])
-  // If unit is missing, the system MUST NOT guess between cases and loose packs
+  // 2. Match SKU from catalog
+  const { matched, candidates } = matchSku(rawTokens, skus);
+
+  // 3. Ambiguity & Broken Case Guardrail (Rules [A16] & [A36])
   let isAmbiguous = false;
   let ambiguityReason: AmbiguityReason = null;
+  let brokenCaseInfo: import("./types").BrokenCaseInfo | null = null;
 
-  if (unit === "UNKNOWN") {
+  // Broken master case detection:
+  // Triggered when explicitly requesting a partial case ("mai se X") OR ordering fewer packs than a full case
+  if (matched && unit === "PACK" && qty !== null && qty > 0 && (partialIntent !== null || qty < matched.unitsPerCase)) {
+    isAmbiguous = true;
+    ambiguityReason = "BROKEN_CASE";
+    brokenCaseInfo = {
+      requestedPacks: qty,
+      caseCapacity: matched.unitsPerCase,
+      fullCaseRoundUp: Math.max(1, Math.ceil(qty / matched.unitsPerCase)),
+      loosePackPrice: matched.packPrice,
+      fullCasePrice: matched.dealerPrice,
+    };
+  } else if (unit === "UNKNOWN") {
     isAmbiguous = true;
     ambiguityReason = "MISSING_UNIT";
   } else if (!matched && candidates.length > 1 && Math.abs(candidates[0].score - candidates[1].score) < 0.15) {
@@ -400,6 +517,7 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     ambiguityReason,
     candidates,
     resolvedQtyCases,
+    brokenCaseInfo,
   };
 }
 

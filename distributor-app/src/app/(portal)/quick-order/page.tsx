@@ -95,6 +95,26 @@ export default function QuickOrderPage() {
     );
   };
 
+  // Resolve Broken Master Case (Rule [A36]: Round Up to Full Case vs Request Cut Pack)
+  const resolveBrokenCase = (lineId: string, action: "ROUND_UP" | "KEEP_LOOSE") => {
+    if (!parsedLines) return;
+    setParsedLines((prev) =>
+      prev!.map((line) => {
+        if (line.id !== lineId) return line;
+
+        const roundUpCases = line.brokenCaseInfo?.fullCaseRoundUp || 1;
+        return {
+          ...line,
+          extractedUnit: action === "ROUND_UP" ? "CASE" : "PACK",
+          isAmbiguous: false,
+          ambiguityReason: null,
+          resolvedQtyCases: roundUpCases,
+          confidence: 0.98,
+        };
+      })
+    );
+  };
+
   // Adjust resolved quantity
   const updateLineQty = (lineId: string, delta: number) => {
     if (!parsedLines) return;
@@ -242,6 +262,15 @@ export default function QuickOrderPage() {
               >
                 Template 3: Unit Ambiguity Test
               </button>
+              <button
+                type="button"
+                onClick={() =>
+                  loadTemplate("detergent powder of 1 kg case of 20 mai se 15 dedo")
+                }
+                className="px-2.5 py-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 rounded-md font-medium transition-colors"
+              >
+                Template 4: Cut Pack (15 out of 20)
+              </button>
             </div>
           </div>
 
@@ -379,6 +408,49 @@ export default function QuickOrderPage() {
                             </span>
                             <span className="text-[10px] text-slate-500">
                               ₹{((line.extractedQty || 1) * sku.packPrice).toFixed(2)} retail value
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* BROKEN MASTER CASE GUARDRAIL CARD (Rule [A36]: Partial Case / Cut Pack) */}
+                    {line.isAmbiguous && line.ambiguityReason === "BROKEN_CASE" && sku && (
+                      <div className="bg-amber-100/70 border border-amber-300 rounded-lg p-3 text-xs text-amber-950 space-y-2">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                          <AlertTriangle className="w-4 h-4 text-amber-700" />
+                          <span>
+                            {lang === "hi"
+                              ? "खुली पेटी / कट पैक आर्डर (Broken Master Case Request):"
+                              : "Partial / Broken Case Request (कट पैक):"}
+                          </span>
+                        </div>
+                        <p className="text-slate-700 text-[11px] leading-relaxed">
+                          Customer requested <strong>{line.brokenCaseInfo?.requestedPacks} loose packs</strong> out of a sealed <strong>Case of {line.brokenCaseInfo?.caseCapacity}</strong>. Distributors pick and dispatch by full master cases.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => resolveBrokenCase(line.id, "ROUND_UP")}
+                            className="p-2.5 bg-emerald-700 text-white rounded-lg text-left hover:bg-emerald-800 transition-colors shadow-xs cursor-pointer"
+                          >
+                            <span className="font-bold block text-xs">
+                              {line.brokenCaseInfo?.fullCaseRoundUp} Full Sealed Case ({line.brokenCaseInfo?.caseCapacity} packs)
+                            </span>
+                            <span className="text-[10px] text-emerald-100 block">
+                              ₹{line.brokenCaseInfo?.fullCasePrice.toFixed(2)} • Wholesale Dealer Rate (Recommended)
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => resolveBrokenCase(line.id, "KEEP_LOOSE")}
+                            className="p-2.5 bg-white border border-amber-400 text-amber-900 rounded-lg text-left hover:bg-amber-50 transition-colors shadow-xs cursor-pointer"
+                          >
+                            <span className="font-bold block text-xs">
+                              {line.brokenCaseInfo?.requestedPacks} Loose Packs (Cut Pack)
+                            </span>
+                            <span className="text-[10px] text-slate-500 block">
+                              ₹{((line.brokenCaseInfo?.requestedPacks || 0) * (line.brokenCaseInfo?.loosePackPrice || 0)).toFixed(2)} • Subject to Desk Approval
                             </span>
                           </button>
                         </div>

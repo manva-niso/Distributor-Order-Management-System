@@ -116,6 +116,53 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
     });
   });
 
+  describe("Broken Case & Partial Case Request Detection (Rule [A36])", () => {
+    it("handles colloquial cut-pack request 'detergent powder of 1 kg case of 20 mai se 15 dedo'", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("detergent powder of 1 kg case of 20 mai se 15 dedo", skus);
+
+      expect(line.extractedQty).toBe(15);
+      expect(line.extractedUnit).toBe("PACK");
+      expect(line.matchedSku).not.toBeNull();
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.matchedSku?.brand).toBe("Ghadi");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("BROKEN_CASE");
+      expect(line.brokenCaseInfo).toBeDefined();
+      expect(line.brokenCaseInfo?.requestedPacks).toBe(15);
+      expect(line.brokenCaseInfo?.caseCapacity).toBe(20);
+      expect(line.brokenCaseInfo?.fullCaseRoundUp).toBe(1);
+      expect(line.brokenCaseInfo?.fullCasePrice).toBe(2030);
+      expect(line.brokenCaseInfo?.loosePackPrice).toBe(101.5);
+    });
+
+    it("handles English partial case '15 out of 20 pack detergent powder 1kg'", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("15 out of 20 pack detergent powder 1kg", skus);
+
+      expect(line.extractedQty).toBe(15);
+      expect(line.extractedUnit).toBe("PACK");
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("BROKEN_CASE");
+      expect(line.brokenCaseInfo?.requestedPacks).toBe(15);
+    });
+
+    it("flags broken case when loose packet quantity is less than full case capacity", () => {
+      const skus = dbStore.getAllSkus();
+      // SKU-DT-1KG capacity is 20. Retailer orders 10 packets.
+      const line = parseSingleUtterance("10 packet detergent powder 1kg", skus);
+
+      expect(line.extractedQty).toBe(10);
+      expect(line.extractedUnit).toBe("PACK");
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("BROKEN_CASE");
+      expect(line.brokenCaseInfo?.requestedPacks).toBe(10);
+      expect(line.brokenCaseInfo?.caseCapacity).toBe(20);
+    });
+  });
+
   describe("Pipeline Interface & Deterministic Parser", () => {
     it("runs full DeterministicTextParserPipeline on multi-line text", async () => {
       const text = `bhaiya 5 peti biscuit chhota
