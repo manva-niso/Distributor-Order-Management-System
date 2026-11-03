@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-primary-container":"#9ffdd3","tertiary-fixed-dim":"#ffb4ab","outline-variant":"#bdc9c1","on-primary-fixed-variant":"#00513a","on-tertiary-fixed":"#410002","primary-fixed":"#97f5cc","inverse-on-surface":"#eef0ff","secondary-container":"#fe932c","on-secondary-fixed":"#2f1500","background":"#faf8ff","primary-container":"#047857","on-surface":"#131b2e","surface-container-highest":"#dae2fd","secondary-fixed-dim":"#ffb77d","on-surface-variant":"#3e4943","surface-container-low":"#f2f3ff","inverse-surface":"#283044","tertiary-container":"#cf1b1e","on-secondary-fixed-variant":"#6e3900","on-tertiary-container":"#ffe4e0","surface-bright":"#faf8ff","surface":"#faf8ff","error-container":"#ffdad6","tertiary-fixed":"#ffdad6","surface-container":"#eaedff","on-error":"#ffffff","on-primary":"#ffffff","inverse-primary":"#7bd8b1","surface-tint":"#006c4e","tertiary":"#a7000f","on-tertiary-fixed-variant":"#93000b","on-background":"#131b2e","error":"#ba1a1a","on-secondary":"#ffffff","on-primary-fixed":"#002115","secondary":"#904d00","surface-container-high":"#e2e7ff","on-error-container":"#93000a","secondary-fixed":"#ffdcc3","primary-fixed-dim":"#7bd8b1","surface-container-lowest":"#ffffff","on-secondary-container":"#663500","on-tertiary":"#ffffff","outline":"#6e7a73","surface-dim":"#d2d9f4","surface-variant":"#dae2fd","primary":"#005d42"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"margin-desktop":"2rem","space-lg":"1rem","space-sm":"0.5rem","space-md":"0.75rem","space-xs":"0.25rem","gutter":"1rem","gutter-desktop":"1.5rem","margin":"1rem","space-xl":"1.5rem"},"fontFamily":{"numeral-md":["Inter"],"numeral-lg":["Inter"],"label-md":["Inter"],"label-sm":["Inter"],"label-lg":["Inter"],"body-sm":["Inter"],"headline-lg-mobile":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"body-lg":["Inter"],"headline-lg":["Inter"],"headline-sm":["Inter"]},"fontSize":{"numeral-md":["16px",{"lineHeight":"20px","fontWeight":"700"}],"numeral-lg":["24px",{"lineHeight":"28px","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"headline-lg-mobile":["22px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-md":["20px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-lg":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-sm":["16px",{"lineHeight":"22px","fontWeight":"600"}]}}}}</script></head><body class="bg-surface text-on-surface font-body-md"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 w-full px-gutter-desktop flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-lg shrink-0"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-md font-bold">A</div><div class="flex flex-col"><span class="font-label-lg text-on-surface leading-tight">Company A</span><span class="font-label-sm text-outline tracking-wider uppercase">Jabalpur Wholesale</span></div></div><div class="h-8 w-px bg-outline-variant/40 hidden md:block"></div><button class="hidden sm:flex items-center gap-space-sm px-space-md py-space-xs rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors" type="button"><span class="material-symbols-outlined text-primary text-[20px]">store</span><div class="flex flex-col text-left"><span class="font-label-sm text-outline">Select Store / दुकान</span><span class="font-label-md text-on-surface font-bold">Sharma Kirana</span></div><span class="material-symbols-outlined text-outline text-[18px]">expand_more</span></button></div><div class="flex-1 max-w-xl mx-space-md hidden lg:block"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-space-md text-outline text-[20px]">search</span><input class="w-full h-10 pl-10 pr-space-md rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-sm focus:outline-none focus:ring-1 focus:ring-primary shadow-[0_1px_4px_rgba(0,0,0,0.02)]" placeholder="Search SKU, Brand, or scan barcode / नाम या बारकोड खोजें..." type="text"/></div></div><div class="flex items-center gap-space-lg"><nav class="flex items-center gap-space-xs bg-surface-container-lowest p-space-xs rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.02)]" data-active-classes="bg-primary-container text-on-primary font-label-lg rounded-lg"><a class="px-space-md py-space-xs rounded-lg text-on-surface-variant hover:text-on-surface transition-colors font-label-lg" data-path="catalogue" href="#">Catalogue</a><a aria-current="page" class="px-space-md py-space-xs transition-colors bg-primary-container text-on-primary font-label-lg rounded-lg" data-path="quick-ai-order" href="#">Quick AI Order</a></nav><div class="hidden md:flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-lowest shadow-[0_1px_4px_rgba(0,0,0,0.02)]"><span class="material-symbols-outlined text-primary text-[18px]">account_balance_wallet</span><div class="flex flex-col text-left"><span class="font-label-sm text-outline">Credit / बहीखाता</span><span class="font-numeral-md text-on-surface">₹42,500</span></div></div><button class="flex items-center gap-space-sm px-space-md py-space-xs rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors shadow-[0_1px_4px_rgba(0,0,0,0.02)]" type="button"><div class="relative flex items-center"><span class="material-symbols-outlined text-on-surface text-[22px]">shopping_bag</span><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-container text-on-primary font-label-sm flex items-center justify-center text-[10px]">4</span></div><div class="hidden sm:flex flex-col text-left"><span class="font-label-sm text-outline">Cart / ट्रॉली</span><span class="font-numeral-md text-primary font-bold">₹8,920</span></div></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface"><div class="flex flex-col w-full">
+<div class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-8">
+<!-- Top Context & Ledger Glance -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-fixed text-on-primary-fixed uppercase tracking-wider">
+            AI Order Desk
+          </span>
+<span class="text-body-sm font-body-sm text-outline">• जबलपुर होलसेल डिपो</span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight mt-1">
+          Quick Order Capture
+        </h1>
+<p class="text-body-md font-body-md text-on-surface-variant">
+          Parchi photo, WhatsApp chat, or bol kar order draft karein — AI reads and verifies rates instantly.
+        </p>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-lowest p-2 rounded-xl shadow-sm self-start sm:self-auto">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">storefront</span>
+</div>
+<div class="flex flex-col pr-3">
+<span class="text-label-sm font-label-sm text-outline">Active Account / खाता</span>
+<span class="text-body-md font-body-md text-on-surface font-semibold">Sharma Kirana • Code: JBP-409</span>
+</div>
+</div>
+</div>
+<!-- Unified Multi-Modal Input Hub (ChatGPT / Minimalist Prompt style) -->
+<section class="flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden transition-all duration-200 focus-within:shadow-md">
+<!-- Input Mode Pills / Hints -->
+<div class="flex flex-wrap items-center justify-between px-5 pt-4 pb-2 bg-surface-container-low text-on-surface-variant text-label-md font-label-md">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>Paste informal WhatsApp text, upload written bill photo, or speak</span>
+</div>
+<div class="flex items-center gap-3 text-outline">
+<span>Hindi / Hinglish / English supported</span>
+</div>
+</div>
+<!-- Textarea Container -->
+<div class="relative px-5 pt-4 pb-3">
+<textarea class="w-full bg-transparent resize-none text-body-lg font-body-lg text-on-surface placeholder:text-outline focus:outline-none leading-relaxed" id="orderInput" placeholder="Type or paste order here... Example: 'Bhaiya 5 peti biscuit chhota, 2 peti washing powder 1 kilo, chai patti 250 wala 1 peti'" rows="4">Bhaiya 5 peti biscuit chhota, 2 peti washing powder 1 kilo, chai patti 250 wala 1 peti</textarea>
+</div>
+<!-- Attached File / Audio State Preview (Dynamic mock representation) -->
+<div class="px-5 pb-3 flex flex-wrap items-center gap-2" id="mediaChipBar">
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg text-label-md font-label-md text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">receipt_long</span>
+<span>parchi_note_23may.jpg (Uploaded)</span>
+<button class="text-outline hover:text-error ml-1 flex items-center" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<div class="flex items-center gap-2 bg-primary-fixed/40 px-3 py-1.5 rounded-lg text-label-md font-label-md text-primary">
+<span class="material-symbols-outlined text-[18px]">graphic_eq</span>
+<span>Voice: 14s transcribed</span>
+<button class="text-outline hover:text-error ml-1 flex items-center" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- Unified Toolbar & Action Trigger -->
+<div class="px-5 py-3.5 bg-surface-container-lowest flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+<!-- Input helpers -->
+<div class="flex flex-wrap items-center gap-2">
+<label class="cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors text-on-surface text-label-md font-label-md">
+<span class="material-symbols-outlined text-[18px] text-primary">attach_file</span>
+<span>Paper Slip / Photo</span>
+<input accept="image/*" class="hidden" type="file"/>
+</label>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors text-on-surface text-label-md font-label-md" id="voiceBtn" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">mic</span>
+<span>Voice Note / बोलें</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors text-on-surface text-label-md font-label-md" id="pasteBtn" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">content_paste</span>
+<span>Paste WhatsApp</span>
+</button>
+<button class="text-outline hover:text-on-surface px-2 py-2 text-label-sm font-label-sm" id="clearBtn" type="button">
+            Clear All
+          </button>
+</div>
+<!-- Primary Generation CTA -->
+<button class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg shadow-sm transition-all active:scale-[0.99]" id="analyzeBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">magic_button</span>
+<span>Analyze & Verify Order</span>
+</button>
+</div>
+</section>
+<!-- Parsed Order Confirmation Workspace -->
+<div class="flex flex-col gap-6">
+<!-- Section Header with Stats -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+<h2 class="text-headline-md font-headline-md text-on-surface">
+            Parsed Order Confirmation
+          </h2>
+<span class="text-label-md font-label-md bg-surface-container px-2 py-0.5 rounded-full text-on-surface-variant">
+            3 SKUs Extracted
+          </span>
+</div>
+<div class="text-body-sm font-body-sm text-outline">
+          Matched from Depot Inventory & Trade Pricing
+        </div>
+</div>
+<!-- Smart Clarification Notice (Clean Banner) -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px] shrink-0 mt-0.5">info</span>
+<div class="flex-1 text-body-md font-body-md">
+<span class="font-semibold text-on-surface">Unit Discrepancy Auto-Handled:</span>
+<span class="text-on-surface-variant">"Biscuit chhota" was mapped to Parle-G 75g Case Pack (96 packs/case). Rates are wholesale master tier rates. Verify case quantities below before adding to cart.</span>
+</div>
+<button class="text-outline hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Parsed Items List / Table Cards -->
+<div class="flex flex-col gap-3">
+<!-- ITEM 1: High Confidence + Trade Scheme -->
+<article class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5">
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 rounded-xl bg-surface-container-low shrink-0 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A clean product shot of wholesale cartons of Parle-G 75g glucose biscuits neatly stacked inside an Indian wholesale warehouse, bright natural daylight, crisp packaging texture, emerald and warm gold brand highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1wmRYwuV98EcsfirxCFKyCWsexFsdfSom3KdvaTYRvSYX1x3XLx5W320I5yPScd_1UeUPQrjTyhOIcZr1nLDCOVe5v0UZ06iefygByUZ5kyVAtDY375HeqOI9up5tVX50TPhcPYudN_Kb3o9-2hArRpi86Zwf5feUdGT35XJTEEYJtZO9qFH_SH8lncClbdOWaOCNImpT9x_jl_mUh9PH7EyVCOnB80KFdxL95w"/>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">
+                  Parle Glucose Biscuit 75g
+                </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-fixed/50 text-on-primary-fixed-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                  High Confidence Match (98%)
+                </span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant flex flex-wrap items-center gap-3">
+<span>Original prompt: <span class="italic text-on-surface font-medium">"5 peti biscuit chhota"</span></span>
+<span>•</span>
+<span>Wholesale Pack: 1 Case = 96 Packs</span>
+<span>•</span>
+<span>HSN: 19053100</span>
+</div>
+<!-- Scheme Alert Pill -->
+<div class="mt-1 inline-flex items-center gap-2 bg-secondary-fixed/50 px-2.5 py-1 rounded-lg text-label-md font-label-md text-on-secondary-fixed self-start">
+<span class="material-symbols-outlined text-[16px] text-secondary">redeem</span>
+<span>Scheme: Add 5 more cases for 1 Free Case! (+₹777 benefit)</span>
+</div>
+</div>
+</div>
+<!-- Quantity, Price & Subtotal -->
+<div class="flex flex-wrap items-center justify-between md:justify-end gap-6 md:gap-8 pt-3 md:pt-0 border-t md:border-none border-surface-container-high">
+<div class="flex flex-col md:items-end">
+<span class="text-label-sm font-label-sm text-outline">Rate per Case (Peti)</span>
+<span class="text-body-md font-body-md text-on-surface font-semibold">₹777.60 <span class="text-body-sm font-body-sm font-normal text-outline">excl. GST</span></span>
+<span class="text-label-sm font-label-sm text-outline-variant">₹917.57 incl. 18% GST</span>
+</div>
+<!-- Stepper Controller -->
+<div class="flex items-center bg-surface-container-low rounded-xl p-1 shadow-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<div class="px-4 flex flex-col items-center">
+<span class="text-numeral-md font-numeral-md text-on-surface leading-tight">5</span>
+<span class="text-label-sm font-label-sm text-outline">Peti / Cases</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<!-- Row Total -->
+<div class="flex flex-col md:items-end min-w-[110px]">
+<span class="text-label-sm font-label-sm text-outline">Item Subtotal</span>
+<span class="text-numeral-md font-numeral-md text-on-surface font-bold">₹3,888.00</span>
+<span class="text-label-sm font-label-sm text-primary font-medium">₹4,587.84 Total</span>
+</div>
+</div>
+</article>
+<!-- ITEM 2: Matched + Tiered Discount -->
+<article class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5">
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 rounded-xl bg-surface-container-low shrink-0 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Modern Indian commercial detergent powder pack 1 kilogram blue and white polybag packaging on clean warehouse metal shelving, sharp retail illumination, high visual clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0xOINgcUowpA7pTIFy7XYe4dg6KF6YmnGbgySzi0I_7RnnhZXt01BUCENAxLxSFQvcyXNKIk94ecIhwmQu7ZrNx5-avAWh4P4egYZwxAC6_WaVY95UDZkSqLWhSQ27v5PPcgOueXH4XRFt6WTIl-9ugIKO4H1IGLRlO4JL13ux7a3QlJ3Ewn90ULdipFkvlBm70kIs-PvY8OjyznuxrdqRrqR2jPMgZ2ETm48nQ"/>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">
+                  Wheel Active 2-in-1 Detergent Powder 1kg
+                </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-fixed/50 text-on-primary-fixed-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                  Matched
+                </span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant flex flex-wrap items-center gap-3">
+<span>Original prompt: <span class="italic text-on-surface font-medium">"2 peti washing powder 1 kilo"</span></span>
+<span>•</span>
+<span>Wholesale Pack: 1 Case = 24 Packs</span>
+<span>•</span>
+<span>Depot Batch: JBP-D88</span>
+</div>
+<!-- Discount Incentive -->
+<div class="mt-1 inline-flex items-center gap-2 bg-surface-container px-2.5 py-1 rounded-lg text-label-md font-label-md text-on-surface self-start">
+<span class="material-symbols-outlined text-[16px] text-primary">percent</span>
+<span>Quantity Tier: Add 3 more cases to unlock extra 3% margin discount</span>
+</div>
+</div>
+</div>
+<!-- Quantity, Price & Subtotal -->
+<div class="flex flex-wrap items-center justify-between md:justify-end gap-6 md:gap-8 pt-3 md:pt-0 border-t md:border-none border-surface-container-high">
+<div class="flex flex-col md:items-end">
+<span class="text-label-sm font-label-sm text-outline">Rate per Case (Peti)</span>
+<span class="text-body-md font-body-md text-on-surface font-semibold">₹2,030.00 <span class="text-body-sm font-body-sm font-normal text-outline">excl. GST</span></span>
+<span class="text-label-sm font-label-sm text-outline-variant">₹2,395.40 incl. 18% GST</span>
+</div>
+<!-- Stepper Controller -->
+<div class="flex items-center bg-surface-container-low rounded-xl p-1 shadow-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<div class="px-4 flex flex-col items-center">
+<span class="text-numeral-md font-numeral-md text-on-surface leading-tight">2</span>
+<span class="text-label-sm font-label-sm text-outline">Peti / Cases</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<!-- Row Total -->
+<div class="flex flex-col md:items-end min-w-[110px]">
+<span class="text-label-sm font-label-sm text-outline">Item Subtotal</span>
+<span class="text-numeral-md font-numeral-md text-on-surface font-bold">₹4,060.00</span>
+<span class="text-label-sm font-label-sm text-primary font-medium">₹4,790.80 Total</span>
+</div>
+</div>
+</article>
+<!-- ITEM 3: Out of Stock with Instant Substitution -->
+<article class="bg-surface-container-lowest/80 rounded-2xl p-5 shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-5">
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 rounded-xl bg-error-container/40 shrink-0 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover opacity-75" data-alt="Pack of Indian CTC red label tea 250 grams in a red cardboard carton placed beside warehouse storage bins, soft industrial ambient lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-leWAHzsPo5sPTkm8OLeZr_nvt3hVQ9cTT2p_2ITer1L4Q_vRSKE6tsyTbl4hxQkAws2CCoWLfqAVZnx3j-xhr98SElHHK08TayLcbtKecid4l2Kh0rdvtk7uZ0dtwDbdbYSosQmISO8qrbbfRRHr4N4-M8W0PbT_abNEeZxbSzKE55B56BhTFgDK3E6z0gLtGaNNn3pNb34QYs6Mi1fDiZZDJbkCIGvSo7IdtA"/>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">
+                  Brooke Bond Red Label Tea 250g
+                </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-error-container text-on-error-container">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                  Out of Stock (Depot 0 cs)
+                </span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant flex flex-wrap items-center gap-3">
+<span>Original prompt: <span class="italic text-on-surface font-medium">"chai patti 250 wala 1 peti"</span></span>
+<span>•</span>
+<span>Requested: 1 Case (40 pcs)</span>
+</div>
+<!-- Recommendation / Substitute Pill -->
+<div class="mt-1 flex flex-wrap items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline">Warehouse Alternative:</span>
+<button class="inline-flex items-center gap-1.5 bg-primary-fixed/60 hover:bg-primary-fixed px-3 py-1 rounded-lg text-label-md font-label-md text-on-primary-fixed-variant transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">swap_horiz</span>
+<span>Swap with Wagh Bakri 250g (16 cases ready @ ₹3,120/cs)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Actions for Unavailable Item -->
+<div class="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-none border-surface-container-high">
+<button class="flex items-center gap-1 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-outline hover:text-error text-label-md font-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+<span>Remove</span>
+</button>
+<button class="flex items-center gap-1 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface text-label-md font-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">notifications</span>
+<span>Notify Arrival</span>
+</button>
+</div>
+</article>
+</div>
+</div>
+<!-- Ledger & Financial Summary Matrix -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- Dispatch & Delivery Note -->
+<div class="lg:col-span-6 flex flex-col gap-4 bg-surface-container-lowest p-6 rounded-2xl shadow-sm">
+<h3 class="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">local_shipping</span>
+          Dispatch Schedule & Delivery Terms
+        </h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-body-sm font-body-sm">
+<div class="bg-surface-container-low p-3.5 rounded-xl">
+<span class="text-label-sm font-label-sm text-outline block">Delivery Vehicle</span>
+<span class="font-semibold text-on-surface mt-0.5 block">Depot Route Truck #4</span>
+<span class="text-primary text-label-sm font-label-sm mt-1 block">Expected Today, 4:30 PM</span>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded-xl">
+<span class="text-label-sm font-label-sm text-outline block">Settlement Method</span>
+<span class="font-semibold text-on-surface mt-0.5 block">Wholesale Credit Ledger</span>
+<span class="text-on-surface-variant text-label-sm font-label-sm mt-1 block">Available Credit: ₹42,500</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl text-body-sm font-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-outline text-[20px]">verified_user</span>
+<span>Zero breakage guarantee. All cases sealed with manufacturer security tape.</span>
+</div>
+</div>
+<!-- Financial Totaling & Add to Cart Summary -->
+<div class="lg:col-span-6 flex flex-col bg-surface-container-lowest p-6 rounded-2xl shadow-sm gap-4">
+<div class="flex items-center justify-between">
+<span class="text-headline-sm font-headline-sm text-on-surface">Order Financial Breakdown</span>
+<span class="text-label-sm font-label-sm text-outline">B2B Standard GST Invoice</span>
+</div>
+<!-- Price line items -->
+<div class="flex flex-col gap-2.5 pt-2">
+<div class="flex justify-between items-center text-body-md font-body-md">
+<span class="text-on-surface-variant">Subtotal (2 Active SKUs, 7 Peti)</span>
+<span class="text-on-surface font-semibold">₹7,948.00</span>
+</div>
+<div class="flex justify-between items-center text-body-md font-body-md">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span>GST (Central CGST 9% + State SGST 9%)</span>
+<span class="material-symbols-outlined text-[14px] text-outline cursor-help" title="Applicable per item HSN categories">help_outline</span>
+</div>
+<span class="text-on-surface font-semibold">₹1,430.64</span>
+</div>
+<div class="flex justify-between items-center text-body-md font-body-md">
+<span class="text-primary font-medium">Wholesale Volume Rebate</span>
+<span class="text-primary font-semibold">- ₹0.00</span>
+</div>
+<div class="flex justify-between items-center text-body-md font-body-md">
+<span class="text-on-surface-variant">Depot Loading & Freight</span>
+<span class="text-on-surface font-semibold text-primary">FREE (Route #4)</span>
+</div>
+</div>
+<!-- Grand Total Divider Area -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center justify-between mt-2">
+<div>
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider block">Total Amount Payable</span>
+<span class="text-numeral-lg font-numeral-lg text-primary font-bold">₹9,378.64</span>
+<span class="text-label-sm font-label-sm text-outline-variant block">Rupees Nine Thousand Three Hundred Seventy-Eight only</span>
+</div>
+<div class="text-right">
+<span class="text-label-sm font-label-sm bg-primary-fixed text-on-primary-fixed px-2.5 py-1 rounded-full font-bold">
+              7 Peti Verified
+            </span>
+</div>
+</div>
+<!-- Master CTA Button -->
+<button class="w-full py-4 px-6 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg shadow-md transition-all flex items-center justify-center gap-3 active:scale-[0.99] mt-1" id="confirmOrderBtn" type="button">
+<span class="material-symbols-outlined text-[24px]">shopping_cart_checkout</span>
+<span>Confirm & Add to Cart / ऑर्डर पक्का करें</span>
+</button>
+<p class="text-center text-label-sm font-label-sm text-outline">
+          Adding to cart reserves depot inventory for 120 minutes without immediate debit.
+        </p>
+</div>
+</div>
+<!-- Visual Aid / Easy Quick Prompts for Kirana Retailer -->
+<div class="bg-surface-container-low p-5 rounded-2xl flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">tips_and_updates</span>
+          Try Sample Orders / झटपट आर्डर के उदाहरण:
+        </span>
+<span class="text-label-sm font-label-sm text-outline">Click any example to autofill input</span>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="sample-chip text-left px-3 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-body-sm font-body-sm text-on-surface shadow-sm transition-colors" data-sample="5 peti Parle-G 75g, 2 peti Surf Excel 1kg, 1 peti Tata Tea 250g" type="button">
+          "5 peti Parle-G 75g, 2 peti Surf Excel 1kg, 1 peti Tata Tea 250g"
+        </button>
+<button class="sample-chip text-left px-3 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-body-sm font-body-sm text-on-surface shadow-sm transition-colors" data-sample="Fortune Mustard oil 1 litre 10 peti, Sugar M-30 50kg 2 bori" type="button">
+          "Fortune Mustard oil 1 litre 10 peti, Sugar M-30 50kg 2 bori"
+        </button>
+<button class="sample-chip text-left px-3 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-body-sm font-body-sm text-on-surface shadow-sm transition-colors" data-sample="Colgate Strong Dental paste 100g 3 carton, Dettol soap 75g 2 peti" type="button">
+          "Colgate Strong Dental paste 100g 3 carton, Dettol soap 75g 2 peti"
+        </button>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Behavior -->
+<script>
+    (function() {
+      const orderInput = document.getElementById('orderInput');
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const voiceBtn = document.getElementById('voiceBtn');
+      const pasteBtn = document.getElementById('pasteBtn');
+      const sampleChips = document.querySelectorAll('.sample-chip');
+      const confirmOrderBtn = document.getElementById('confirmOrderBtn');
+
+      // Autofill from example chips
+      sampleChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const text = chip.getAttribute('data-sample');
+          if (text && orderInput) {
+            orderInput.value = text;
+            orderInput.focus();
+          }
+        });
+      });
+
+      // Clear input
+      if (clearBtn && orderInput) {
+        clearBtn.addEventListener('click', () => {
+          orderInput.value = '';
+          orderInput.focus();
+        });
+      }
+
+      // Voice trigger simulation
+      if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+          const original = voiceBtn.innerHTML;
+          voiceBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] text-error animate-pulse">radio_button_checked</span><span class="text-error font-semibold">Listening... बोलिए</span>';
+          setTimeout(() => {
+            voiceBtn.innerHTML = original;
+            if (orderInput && !orderInput.value) {
+              orderInput.value = "Bhaiya 10 peti Maggi noodles chhota, 5 peti Lifebuoy sabun";
+            }
+          }, 2400);
+        });
+      }
+
+      // Paste from clipboard simulation
+      if (pasteBtn && orderInput) {
+        pasteBtn.addEventListener('click', async () => {
+          try {
+            if (navigator.clipboard) {
+              const text = await navigator.clipboard.readText();
+              if (text) {
+                orderInput.value = (orderInput.value ? orderInput.value + '\n' : '') + text;
+                return;
+              }
+            }
+          } catch(e) {
+            // fallback
+          }
+          orderInput.value = "Kal ke liye: 4 peti Rin soap 250g, 2 peti Aashirvaad Atta 10kg";
+        });
+      }
+
+      // Analyze Button interaction feedback
+      if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', () => {
+          const originalContent = analyzeBtn.innerHTML;
+          analyzeBtn.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-spin">refresh</span><span>Parsing Depot SKUs...</span>';
+          analyzeBtn.disabled = true;
+          
+          setTimeout(() => {
+            analyzeBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check</span><span>Matched & Refreshed!</span>';
+            setTimeout(() => {
+              analyzeBtn.innerHTML = originalContent;
+              analyzeBtn.disabled = false;
+            }, 1200);
+          }, 900);
+        });
+      }
+
+      // Confirm and add to cart CTA
+      if (confirmOrderBtn) {
+        confirmOrderBtn.addEventListener('click', () => {
+          const original = confirmOrderBtn.innerHTML;
+          confirmOrderBtn.innerHTML = '<span class="material-symbols-outlined text-[22px]">check_circle</span><span>Order Added to Cart (₹9,378.64)</span>';
+          confirmOrderBtn.classList.remove('bg-primary-container');
+          confirmOrderBtn.classList.add('bg-primary');
+          
+          setTimeout(() => {
+            confirmOrderBtn.innerHTML = original;
+            confirmOrderBtn.classList.add('bg-primary-container');
+            confirmOrderBtn.classList.remove('bg-primary');
+          }, 2500);
+        });
+      }
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest mt-space-xl"><div class="w-full px-gutter-desktop py-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-md text-outline font-label-sm"><div class="flex items-center gap-space-md"><span class="font-label-md text-on-surface font-semibold">Company A Jabalpur</span><span>•</span><span>B2B Wholesale Ordering Desk</span><span>•</span><span>Helpline: 1800-266-0000</span></div><div class="flex items-center gap-space-lg"><span class="text-primary font-label-md flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Direct Jabalpur Warehouse Live</span><span>© 2024 Company A. All rights reserved.</span></div></div></footer></body></html>
