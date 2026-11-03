@@ -21,6 +21,10 @@ import {
   Building2,
   Phone,
   Filter,
+  Download,
+  Copy,
+  Check,
+  FileCode,
 } from "lucide-react";
 
 interface DeskOrder {
@@ -71,6 +75,20 @@ export default function OrderDeskPage() {
   const [selectedHoldOrder, setSelectedHoldOrder] = useState<DeskOrder | null>(null);
   const [releaseNote, setReleaseNote] = useState("Customer promised cash payment on van delivery");
   const [releasing, setReleasing] = useState(false);
+
+  // Tally Export Modal State (Module 7)
+  const [showTallyModal, setShowTallyModal] = useState(false);
+  const [loadingTallyPreview, setLoadingTallyPreview] = useState(false);
+  const [tallyPreview, setTallyPreview] = useState<{
+    count: number;
+    orders: Array<{ id: string; retailerName: string; route?: string; grandTotal: number; itemsCount: number }>;
+    xmlPreview: string;
+    fullXml: string;
+    isValidXml: boolean;
+  } | null>(null);
+  const [tallyExporting, setTallyExporting] = useState(false);
+  const [copiedTallyXml, setCopiedTallyXml] = useState(false);
+  const [tallySuccessBanner, setTallySuccessBanner] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -130,6 +148,68 @@ export default function OrderDeskPage() {
       alert("Network error releasing credit hold.");
     } finally {
       setReleasing(false);
+    }
+  };
+
+  const handleOpenTallyModal = async () => {
+    setShowTallyModal(true);
+    setLoadingTallyPreview(true);
+    setCopiedTallyXml(false);
+    try {
+      const res = await fetch("/api/tally/preview");
+      const data = await res.json();
+      if (data.success) {
+        setTallyPreview(data);
+      } else {
+        alert(data.error || "Failed to load Tally preview.");
+      }
+    } catch {
+      alert("Network error fetching Tally export preview.");
+    } finally {
+      setLoadingTallyPreview(false);
+    }
+  };
+
+  const handleCopyTallyXml = () => {
+    if (!tallyPreview?.fullXml) return;
+    navigator.clipboard.writeText(tallyPreview.fullXml);
+    setCopiedTallyXml(true);
+    setTimeout(() => setCopiedTallyXml(false), 2500);
+  };
+
+  const handleDownloadTallyXml = async () => {
+    setTallyExporting(true);
+    try {
+      const res = await fetch("/api/tally/export?download=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exportAllVerified: true }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to export Tally batch.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      a.download = `tally-export-${today}.xml`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      setTallySuccessBanner(`Successfully exported ${tallyPreview?.count || "batch"} orders to Tally XML!`);
+      setShowTallyModal(false);
+      fetchOrders();
+    } catch {
+      alert("Network error executing Tally export download.");
+    } finally {
+      setTallyExporting(false);
     }
   };
 
@@ -555,18 +635,23 @@ export default function OrderDeskPage() {
           )}
         </div>
 
-        {/* 6. BATCH ACTIONS BAR (For Module 7 Tally Export Integration) */}
+        {/* 6. BATCH ACTIONS BAR (Module 7 Tally Export Integration) */}
         <div className="bg-slate-900 text-white rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-              <FileText className="w-5 h-5 text-white" />
+              <FileCode className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="text-sm font-bold leading-tight">
-                Tally ERP 9 / Prime Batch Export Ready
-              </h4>
-              <p className="text-xs text-slate-400">
-                {stats?.verifiedCount ?? 0} confirmed orders pending Tally XML transmission.
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold leading-tight">
+                  Tally ERP 9 / Prime Batch Export Ready
+                </h4>
+                <span className="text-[10px] font-mono uppercase bg-emerald-900/80 text-emerald-300 border border-emerald-700 px-1.5 py-0.2 rounded">
+                  Rule [A21]
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {stats?.verifiedCount ?? 0} confirmed orders ready for double-entry XML voucher generation.
               </p>
             </div>
           </div>
@@ -574,18 +659,194 @@ export default function OrderDeskPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                alert(`Exporting ${stats?.verifiedCount ?? 0} confirmed orders to Tally XML (Module 7).`);
-              }}
+              onClick={handleOpenTallyModal}
               disabled={(stats?.verifiedCount ?? 0) === 0}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-2"
             >
-              <span>Download Tally XML Batch ({stats?.verifiedCount ?? 0})</span>
+              <FileCode className="w-3.5 h-3.5" />
+              <span>Preview & Export Tally XML ({stats?.verifiedCount ?? 0})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </main>
+
+      {/* SUCCESS NOTIFICATION TOAST */}
+      {tallySuccessBanner && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-900 text-emerald-100 border border-emerald-700 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="text-xs">
+            <p className="font-bold text-white">{tallySuccessBanner}</p>
+            <p className="text-[11px] text-emerald-300">
+              Import file into Tally via: Alt+O → Import → Transactions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTallySuccessBanner(null)}
+            className="text-emerald-400 hover:text-white font-bold ml-2 text-sm leading-none"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* TALLY EXPORT MODAL (MODULE 7) */}
+      {showTallyModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-2xl w-full p-5 space-y-4 text-slate-900 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <FileCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Tally ERP 9 / TallyPrime Batch Export
+                    </h3>
+                    <span className="text-[10px] uppercase font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                      Sales Vouchers
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Generates balanced XML with Actual vs Billed Qty schemes & 50/50 MP GST ledgers.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTallyModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg leading-none cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {loadingTallyPreview ? (
+              <div className="py-12 text-center text-slate-500 text-xs">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-700 mb-2" />
+                Constructing Tally XML envelope and ledger allocations...
+              </div>
+            ) : !tallyPreview || tallyPreview.orders.length === 0 ? (
+              <div className="py-8 text-center text-slate-500 text-xs space-y-2">
+                <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto" />
+                <p className="font-bold text-slate-700">No Confirmed Orders to Export</p>
+                <p className="text-[11px]">
+                  Orders must be reviewed and marked Confirmed (VERIFIED) before generating Tally vouchers.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1">
+                {/* Orders to be exported summary */}
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
+                    Orders Included in this Batch ({tallyPreview.orders.length})
+                  </span>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                    {tallyPreview.orders.map((ord) => (
+                      <div
+                        key={ord.id}
+                        className="flex items-center justify-between text-xs bg-white border border-slate-200 px-2.5 py-1.5 rounded"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-900">{ord.id}</span>
+                          <span className="text-slate-600 truncate max-w-[200px]">{ord.retailerName}</span>
+                          <span className="text-[10px] text-slate-400">({ord.route || "General Beat"})</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] text-slate-500">{ord.itemsCount} items</span>
+                          <span className="font-mono font-bold text-slate-900">
+                            ₹{Math.round(ord.grandTotal).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Accounting Specs Badge Strip */}
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded p-2">
+                    <span className="font-bold text-emerald-900 block">Double-Entry Rules</span>
+                    <span className="text-emerald-700 text-[10px]">Debit Party (+) / Credit Sales & GST (-)</span>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded p-2">
+                    <span className="font-bold text-purple-900 block">Trade Schemes [A11]</span>
+                    <span className="text-purple-700 text-[10px]">ActualQty vs BilledQty (Zero phantom sales)</span>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                    <span className="font-bold text-blue-900 block">MP Intra-State GST</span>
+                    <span className="text-blue-700 text-[10px]">50/50 Output CGST + Output SGST</span>
+                  </div>
+                </div>
+
+                {/* XML Preview Window */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                      XML Payload Preview ({tallyPreview.isValidXml ? "Valid XML ✓" : "Invalid XML ⚠️"})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyTallyXml}
+                      className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedTallyXml ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Raw XML</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <pre className="bg-slate-950 text-emerald-400 p-3 rounded-lg text-[10px] font-mono leading-tight max-h-40 overflow-y-auto whitespace-pre selection:bg-emerald-800 selection:text-white">
+                    {tallyPreview.xmlPreview}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <span className="text-[11px] text-slate-500">
+                Exports will update orders to <strong>Exported (Tally)</strong>.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTallyModal(false)}
+                  className="px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadTallyXml}
+                  disabled={tallyExporting || !tallyPreview || tallyPreview.orders.length === 0}
+                  className="px-4 py-2 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {tallyExporting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Exporting Batch...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Tally XML Batch</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 7. CREDIT HOLD RELEASE MODAL */}
       {selectedHoldOrder && (

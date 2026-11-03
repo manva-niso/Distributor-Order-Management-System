@@ -360,3 +360,40 @@ This document tracks each Core Build Module step by step, its features, implemen
   - 8/8 unit tests passing (23ms runtime).
   - **Combined Suite:** Total 61/61 tests passing across all 7 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 28/28 routes compiled cleanly.
+
+---
+
+## Module 7: Tally ERP 9 / TallyPrime XML Batch Export Engine
+
+### 1. Features Implemented
+- [x] **Standard Tally XML Voucher Builder (`src/lib/tally/xml-builder.ts`):**
+  - **Standard Envelope Architecture (`[A21]`):** Generates compliant `<ENVELOPE><HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER><BODY><IMPORTDATA><REQUESTDATA>` XML payloads compatible with Tally ERP 9 and TallyPrime.
+  - **Actual vs Billed Quantity Formatting (`[A11]`, `[A39]`):** Encodes FMCG promotional free goods natively via `<ACTUALQTY> 11 case</ACTUALQTY>` and `<BILLEDQTY> 10 case</BILLEDQTY>`, billing only paid cases while decrementing warehouse inventory for free promotional cases.
+  - **Double-Entry Accounting Sign Conventions (`[A40]`):** Party ledger (Sundry Debtors) is deemed positive (Debit), while inventory allocations, Output CGST, Output SGST, and round-offs are deemed negative (Credit), guaranteeing exact zero-sum balance.
+  - **Rule 46 Intra-State MP GST Ledgers (`[A2]`):** 50/50 tax split ledgers (`Output CGST` and `Output SGST`).
+  - **XML Escaping & Structural Validation:** Escapes reserved XML characters (`&`, `<`, `>`, `"`, `'`) and validates envelope, request, and `<VOUCHER>` tag completeness via `validateTallyXml`.
+- [x] **Backend API Routes (`src/app/api/tally/`):**
+  - `GET /api/tally/preview`: Gathers all confirmed (`VERIFIED`) orders waiting for export and returns batch count, order summaries, XML preview string, and validity diagnostics.
+  - `POST /api/tally/export`: Generates Tally XML payload, sets HTTP headers for direct file download (`Content-Disposition: attachment; filename="tally-export-YYYYMMDD.xml"`), and transitions exported orders to status `EXPORTED_TALLY` with `tallyExportedAt` timestamp.
+- [x] **Interactive Desk Operations Export Modal (`/desk`):**
+  - Live count indicator on top metrics strip and bottom batch command bar.
+  - Interactive modal displaying confirmed orders in the queue.
+  - Dark-mode syntax-highlighted XML preview window.
+  - 1-click **"Copy Raw XML"** button with copied feedback.
+  - 1-click **"Download Tally XML Batch"** triggering instant file download in browser.
+  - Real-time queue table refresh updating order status badges to purple **Exported (Tally)**.
+  - Success toast banner with operational Tally shortcut guide (`Alt+O → Import → Transactions`).
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/tally/xml-builder.ts` - Tally XML voucher engine, double-entry ledgers, scheme quantities, and validator
+  - `src/app/api/tally/preview/route.ts` - Tally batch preview API
+  - `src/app/api/tally/export/route.ts` - Tally XML streaming batch export API
+  - `src/app/desk/page.tsx` - Interactive Tally preview/download modal & status badge updates
+  - `src/__tests__/tally.test.ts` - 8 unit tests covering XML escaping, dates, voucher nodes, free schemes, double-entry balancing, batch envelopes, and status transitions
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/tally.test.ts`
+  - 8/8 unit tests passing (16ms runtime).
+  - **Combined Suite:** Total 69/69 tests passing across all 8 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`, `tally.test.ts`).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 30/30 routes compiled cleanly.

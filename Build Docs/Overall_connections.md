@@ -146,6 +146,12 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Normalizes Devanagari numerals (`०-९`), translates number words across English, Hinglish, and Hindi (`[A34]`), strips conversational pleasantries, matches SKUs with scoring heuristics, enforces the unit disambiguation guardrail (`[A16]`), and calculates case multiples for loose packets (`[A35]`).
 - **`src/lib/ai/pipeline.ts`**:
   - Strategy provider factory. Supports `rules` (default deterministic engine) and `custom_ml` (`CustomMlApiAdapter`), with zero-downtime graceful fallback (`[A17]`, `[A33]`).
+- **`src/lib/tally/xml-builder.ts`**:
+  - Tally ERP 9 / TallyPrime compliant XML batch export engine (`[A21]`).
+  - Generates `<ENVELOPE><HEADER><BODY><IMPORTDATA><TALLYMESSAGE><VOUCHER>` payloads.
+  - Implements FMCG Actual vs Billed scheme quantities (`<ACTUALQTY> 11 case</ACTUALQTY>` vs `<BILLEDQTY> 10 case</BILLEDQTY>`) (`[A11]`, `[A39]`).
+  - Enforces double-entry sign conventions: Debtor debit (+), Sales goods credit (-), Output CGST (-), Output SGST (-), Round Off (-) (`[A40]`).
+  - Structural XML validator (`validateTallyXml`) and XML character escaping (`escapeXml`).
 
 ---
 
@@ -189,6 +195,10 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - `POST`: 1-click clearance endpoint for credit-held orders; captures authorization notes, stamps clerk identity, transitions status to `VERIFIED`, and increments `occVersion` (`[A37]`).
 - **`src/app/api/desk/stats/route.ts`**:
   - `GET`: Returns high-level operational counts (today's orders, needs review, credit holds, confirmed, total wholesale value).
+- **`src/app/api/tally/preview/route.ts`**:
+  - `GET`: Gathers all confirmed (`VERIFIED`) orders pending export, generates live XML payload snippet, and checks structural validity.
+- **`src/app/api/tally/export/route.ts`**:
+  - `POST`: Generates Tally XML batch, streams downloadable `.xml` file (`tally-export-YYYYMMDD.xml`), and transitions exported orders to `EXPORTED_TALLY` with `tallyExportedAt` timestamp.
 
 ---
 
@@ -258,6 +268,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/excel-import.test.ts`**: 4 automated unit tests verifying Excel template generation, workbook buffer extraction, column synonym tolerance, and dynamic in-memory catalog replacement.
 - **`src/__tests__/text-parser.test.ts`**: 14 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), cut-pack / broken case detection (`[A36]`), and pipeline strategy switching.
 - **`src/__tests__/desk.test.ts`**: 8 automated unit tests verifying desk queue queries, summary metrics, line item editing with live scheme recalculation (`[A38]`), OCC concurrency collision detection (`[A19]`), credit hold release authorization (`[A37]`), and retailer alias auto-learning (`[A20]`).
+- **`src/__tests__/tally.test.ts`**: 8 automated unit tests verifying XML escaping, Tally date formatting, single voucher nodes, Buy 10 Get 1 free scheme Actual vs Billed quantities (`[A39]`), double-entry balance (`[A40]`), batch envelope wrappers, XML structure validation, and `EXPORTED_TALLY` status transitions.
 
 ---
 

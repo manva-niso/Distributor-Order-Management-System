@@ -48,6 +48,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A36]** | Module 5: AI Capture | Broken Master Case & Cut Pack Policy | Partial-case requests ("case of 20 mai se 15") trigger `BROKEN_CASE` guardrail with 2 options: Round Up to 1 Full Case (recommended) or Request Loose Packs with desk approval. |
 | **[A37]** | Module 6: Order Desk | Credit Hold Release Authorization Protocol | Over-limit orders can be approved exclusively by desk clerks (`role: 'desk'`) with mandatory audit notes; stamped onto record with atomic OCC increment. |
 | **[A38]** | Module 6: Order Desk | Live Authoritative Invoice Recalculation | Line edits on desk terminal run authoritative recalculation through pure scheme engine, ensuring free goods, slab discounts, and 50/50 GST splits remain mathematically exact. |
+| **[A39]** | Module 7: Tally Export | Actual vs Billed Quantities for Schemes | FMCG trade schemes formatted via native Tally `<ACTUALQTY>` vs `<BILLEDQTY>`, billing only paid cases while decrementing warehouse inventory for free cases. |
+| **[A40]** | Module 7: Tally Export | Double-Entry Signs & Zero-Sum Balancing | Debits represented as positive (Party Ledger) and Credits as negative (Sales, CGST, SGST, Round Off); strictly balances to 0.00. |
 
 ---
 
@@ -243,13 +245,28 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A21]` Tally ERP 9 / Prime XML Voucher Format
 - **Context:** Eliminating 6 order-entry re-typing staff.
-- **Assumption:** Exported XML adheres to standard Tally `<ENVELOPE><BODY><DATA><TALLYMESSAGE>` Sales Voucher specifications, mapping:
+- **Assumption:** Exported XML adheres to standard Tally `<ENVELOPE><BODY><IMPORTDATA><TALLYMESSAGE><VOUCHER>` Sales Voucher specifications, mapping:
   - Buyer Ledger: Retailer Trade Name (e.g. `Sharma Kirana Store`)
   - Item Name: Exact SKU Stock Item Name in Tally
   - Billed Quantity: Master Cases
   - Rate: Dealer Price per Case
   - Free Quantity: Billed in separate free goods ledger or zero-rate entry
   - Tax Ledgers: Output CGST + Output SGST
+
+#### `[A39]` Actual vs Billed Quantities for Promotional Schemes
+- **Context:** Standard Indian FMCG accounting practices in Tally ERP 9 and TallyPrime for promotional free goods (e.g., Buy 10 Cases of Biscuits, Get 1 Case Free).
+- **Assumption:** Rather than generating phantom zero-rate ledger lines or separate discounts, the XML generator populates Tally's native `<ACTUALQTY>` and `<BILLEDQTY>` fields on the stock item node:
+  - `<ACTUALQTY> 11 case</ACTUALQTY>`
+  - `<BILLEDQTY> 10 case</BILLEDQTY>`
+  The line `<AMOUNT>` is calculated strictly against billed cases (`10 * unitDealerPrice`), debiting the debtor only for paid cases while allowing Tally's inventory module to deduct the full 11 cases from physical warehouse godown stock.
+
+#### `[A40]` Double-Entry Accounting Sign Conventions & Micro-Cent Round-Off
+- **Context:** Enforcing mathematical validity upon importing XML into TallyPrime without prompting "Voucher totals do not match" warnings.
+- **Assumption:** Tally XML adheres to strict algebraic sign conventions:
+  - **Debits (Receivables):** Stored as positive numbers (`<ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>`, `<AMOUNT>+10520.00</AMOUNT>`).
+  - **Credits (Sales Revenue & Taxes):** Stored as negative numbers (`<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>`, `<AMOUNT>-8915.25</AMOUNT>`).
+  - Intra-state tax lines (`Output CGST`, `Output SGST`) are split 50/50 per Rule `[A2]` and formatted with negative amounts.
+  - Any fractional difference between the grand total and the sum of taxable amount + GST is balanced through an explicit `<LEDGERNAME>Round Off</LEDGERNAME>` line. The algebraic sum of all ledgers strictly equals zero.
 
 ---
 
