@@ -12,6 +12,12 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Validation:** Zod schemas for all client & server payloads
 - **Testing:** Vitest test suite
 
+### Companion Documentation
+- [**`Overall_connections.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Overall_connections.md): Directory breakdown, file-by-file roles, and end-to-end data flow diagrams.
+- [**`Test_And_Run_Guide.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md): Operational guide for running & testing each part individually and collectively.
+- [**`Errors.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Errors.md): Incident registry tracking root cause analyses and verified fixes.
+
+
 ---
 
 ## Module Index & Roadmap
