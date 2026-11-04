@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore, StoredOrderItem } from "@/db/store";
+import { syncOrderStatusToNeon } from "@/db/neon-sync";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 import { z } from "zod";
 
@@ -113,6 +114,9 @@ export async function PATCH(
     // 2. Handle Rejection / Cancellation
     if (action === "REJECT") {
       const result = dbStore.updateOrderStatus(id, "CANCELLED", expectedOccVersion);
+      syncOrderStatusToNeon(id, "CANCELLED", result.order?.occVersion || expectedOccVersion + 1).catch((err) =>
+        console.warn("Neon status sync warning:", err)
+      );
       return NextResponse.json({
         success: true,
         order: result.order,
@@ -204,6 +208,11 @@ export async function PATCH(
       updateResult.order.holdReleasedBy = authorizedBy || "Sunil Clerk";
       updateResult.order.holdReleaseNote = approvalNote || "Hold approved by office desk";
     }
+
+    // Sync status to Neon PostgreSQL
+    syncOrderStatusToNeon(id, nextStatus, updateResult.order?.occVersion || expectedOccVersion + 1).catch((err) =>
+      console.warn("Neon status sync warning:", err)
+    );
 
     // 4. Retailer Alias Auto-Learning (Rule [A20])
     // Whenever an office clerk corrects or associates a phrase with an SKU, persist it permanently

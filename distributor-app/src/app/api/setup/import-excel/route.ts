@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseWorkbookBuffer } from "@/lib/excel/importer";
 import { dbStore } from "@/db/store";
+import { syncDatasetToNeon } from "@/db/neon-sync";
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,11 +73,25 @@ export async function POST(request: NextRequest) {
       dbStore.importRetailers(parseResult.retailers, mode);
     }
 
+    // Synchronize newly imported catalog to Neon PostgreSQL
+    let dbSyncMsg = "";
+    try {
+      const syncRes = await syncDatasetToNeon({
+        skus: dbStore.getAllSkus(),
+        retailers: dbStore.getAllRetailers(),
+        users: dbStore.getAllUsers(),
+        wipeFirst: mode === "replace",
+      });
+      if (syncRes.synced) dbSyncMsg = " " + syncRes.message;
+    } catch (syncErr) {
+      console.warn("Neon sync warning during excel import:", syncErr);
+    }
+
     const stats = dbStore.getStoreStats();
 
     return NextResponse.json({
       success: true,
-      message: `Successfully imported ${parseResult.skus.length} SKU(s) and ${parseResult.retailers.length} Retailer account(s)!`,
+      message: `Successfully imported ${parseResult.skus.length} SKU(s) and ${parseResult.retailers.length} Retailer account(s)!${dbSyncMsg}`,
       summary: parseResult.summary,
       stats,
       warnings: parseResult.errors,

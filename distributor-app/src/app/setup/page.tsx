@@ -66,6 +66,13 @@ export default function SetupPage() {
   const [lang, setLang] = useState<Language>("en");
   const [activeTab, setActiveTab] = useState<"upload" | "presets" | "browse">("upload");
   const [stats, setStats] = useState<StoreStats | null>(null);
+  const [dbInfo, setDbInfo] = useState<{
+    configured: boolean;
+    connected: boolean;
+    skusCount: number;
+    retailersCount: number;
+    ordersCount: number;
+  } | null>(null);
   const [skus, setSkus] = useState<SkuSummary[]>([]);
   const [retailers, setRetailers] = useState<RetailerSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +127,9 @@ export default function SetupPage() {
         setStats(data.stats);
         setSkus(data.skus || []);
         setRetailers(data.retailers || []);
+        if (data.database) {
+          setDbInfo(data.database);
+        }
       }
     } catch (err) {
       console.error("Failed to load setup status:", err);
@@ -183,6 +193,8 @@ export default function SetupPage() {
 
   const handleLoadPreset = async (presetKey: string) => {
     setLoading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
     try {
       const res = await fetch("/api/setup/load-preset", {
         method: "POST",
@@ -191,8 +203,10 @@ export default function SetupPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setUploadSuccess(`Applied '${presetKey}' preset successfully!`);
+        setUploadSuccess(data.message);
         await loadStatus();
+      } else {
+        setUploadError(data.error || "Failed to apply preset.");
       }
     } catch {
       setUploadError("Failed to apply preset.");
@@ -298,6 +312,54 @@ export default function SetupPage() {
             <div className="text-xl font-bold font-mono text-slate-900 mt-1">
               ₹{(stats?.totalWholesaleValue || 0).toLocaleString("en-IN")}
             </div>
+          </div>
+        </div>
+
+        {/* Neon PostgreSQL Live Database Status Strip */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                dbInfo?.connected
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900">
+                  {lang === "hi" ? "नियॉन पोस्टग्रेएसक्यूएल डेटाबेस" : "Neon PostgreSQL Cloud Database"}
+                </span>
+                {dbInfo?.connected ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {lang === "hi" ? "लाइव कनेक्टेड" : "Live Synced"}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                    In-Memory Mode
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {dbInfo?.connected
+                  ? `Database rows: ${dbInfo.skusCount} SKUs, ${dbInfo.retailersCount} Retailers, ${dbInfo.ordersCount} Orders stored in PostgreSQL.`
+                  : "Database running in local in-memory store. Connect DATABASE_URL in .env.local to persist."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleLoadPreset("master")}
+              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>{lang === "hi" ? "मास्टर डेटाबेस लोड करें" : "Sync Master Database"}</span>
+            </button>
           </div>
         </div>
 
@@ -512,40 +574,77 @@ export default function SetupPage() {
                 </p>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-3 pt-2">
-                {/* Preset 1: Company A Jabalpur Full FMCG */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                {/* Preset 1: Full Master Enterprise Database (36 SKUs) */}
+                <div className="border-2 border-emerald-600 rounded-xl p-4 bg-emerald-50/50 flex flex-col justify-between space-y-3 relative shadow-xs">
                   <div>
-                    <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
-                      Source of Truth
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase bg-emerald-700 text-white px-2 py-0.5 rounded shadow-2xs">
+                        🌟 Master Database
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800">
+                        36 SKUs
+                      </span>
+                    </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">
-                      Company A Master FMCG
+                      Master Wholesale FMCG
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      12 SKUs across Parle-G, Good Day, Marie, Ghadi, Surf Excel, Wagh Bakri, Tata Tea, Dettol, Fortune Oil + 6 Kiranas on Jabalpur delivery beats.
+                      Complete authentic catalog across all 7 categories (Parle, Britannia, Tata Tea, Fortune Oil & 15L Tin, Ghadi, Surf, Dettol, Maggi, Vim) + 8 Kiranas on Jabalpur beats. Persists directly to Neon PostgreSQL.
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleLoadPreset("default")}
-                    className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                    onClick={() => handleLoadPreset("master")}
+                    className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-xs"
                   >
-                    Load Company A Preset
+                    Load Master Database (36 SKUs)
                   </button>
                 </div>
 
-                {/* Preset 2: Packaged Foods & Grocery */}
+                {/* Preset 2: Company A Jabalpur Core FMCG (12 SKUs) */}
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
                   <div>
-                    <span className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      Food & Staples
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase bg-slate-200 text-slate-800 px-2 py-0.5 rounded">
+                        Core Baseline
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-600">
+                        12 SKUs
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 mt-2">
+                      Company A Core FMCG
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1">
+                      12 high-velocity baseline SKUs (Parle-G, Good Day, Marie, Ghadi 1kg & cake, Surf Excel, Wagh Bakri, Tata Tea Gold, Dettol, Fortune Oil) + 8 Kirana accounts. Persists to Neon PostgreSQL.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleLoadPreset("company_a")}
+                    className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    Load Company A Core
+                  </button>
+                </div>
+
+                {/* Preset 3: Packaged Foods & Grocery */}
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                        Food & Staples
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700">
+                        19 SKUs
+                      </span>
+                    </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">
                       Grocery & Packaged Foods
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Biscuits, Tea leaves, Refined Edible Oil, and Noodles with Buy 10 Get 1 free and 4% slab tier discounts.
+                      Biscuits, Teas, Coffees, Edible Oils, Ghee, Maggi noodles, and Spices with Buy 10 Get 1 free and 4% slab tier discounts. Persists to Neon PostgreSQL.
                     </p>
                   </div>
                   <button
@@ -557,17 +656,22 @@ export default function SetupPage() {
                   </button>
                 </div>
 
-                {/* Preset 3: Home Care & Cleaning */}
+                {/* Preset 4: Home Care & Cleaning */}
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
                   <div>
-                    <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
-                      Hygiene
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                        Hygiene
+                      </span>
+                      <span className="text-[10px] font-bold text-purple-700">
+                        17 SKUs
+                      </span>
+                    </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">
                       Home Care & Detergents
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Ghadi, Surf Excel, Laundry cakes, and Dettol soaps with slab discounts and 18% standard GST brackets.
+                      Ghadi, Surf Excel, Wheel, Laundry cakes, Vim Bar, Harpic, and Dettol soaps with slab discounts and 18% standard GST brackets. Persists to Neon PostgreSQL.
                     </p>
                   </div>
                   <button

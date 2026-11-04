@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbStore, StoredOrder, StoredOrderItem } from "@/db/store";
+import { syncSingleOrderToNeon } from "@/db/neon-sync";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 
@@ -193,6 +194,11 @@ export async function POST(request: NextRequest) {
 
     // 9. Persist Order and update Retailer ledger
     dbStore.createOrder(orderRecord, orderItemRecords);
+
+    // Sync to Neon PostgreSQL asynchronously
+    syncSingleOrderToNeon(orderRecord, orderItemRecords).catch((err) =>
+      console.warn("Neon order sync warning:", err)
+    );
 
     return NextResponse.json(
       {

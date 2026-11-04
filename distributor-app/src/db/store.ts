@@ -6,6 +6,18 @@ import {
   SeedUser,
   SeedSku,
 } from "./seed-data";
+import {
+  MASTER_CATALOG_SKUS,
+  MASTER_RETAILERS,
+  MASTER_USERS,
+} from "./master-data";
+
+const LEGACY_CODE_MAP: Record<string, string> = {
+  "SKU-BS-075": "SKU-BS-PG075",
+  "SKU-DT-1KG": "SKU-DT-GH1KG",
+  "SKU-FD-MG70": "SKU-FD-MG070",
+  "SKU-TE-WBR250": "SKU-TE-WB250",
+};
 
 export interface StoredOtp {
   id: string;
@@ -188,6 +200,30 @@ class MemoryStore {
       this.users.set(u.id, { ...u });
     }
     for (const s of SEED_SKUS) {
+      this.skus.set(s.id, { ...s });
+    }
+
+    if (includeDefaultOrders) {
+      this.seedDefaultOrders();
+    }
+  }
+
+  public loadMasterCatalog(includeDefaultOrders: boolean = true) {
+    this.users.clear();
+    this.retailers.clear();
+    this.skus.clear();
+    this.otps.clear();
+    this.orders.clear();
+    this.orderItems.clear();
+    this.aliases.clear();
+
+    for (const r of MASTER_RETAILERS) {
+      this.retailers.set(r.id, { ...r });
+    }
+    for (const u of MASTER_USERS) {
+      this.users.set(u.id, { ...u });
+    }
+    for (const s of MASTER_CATALOG_SKUS) {
       this.skus.set(s.id, { ...s });
     }
 
@@ -417,6 +453,10 @@ class MemoryStore {
     return this.users.get(id);
   }
 
+  public getAllUsers(): SeedUser[] {
+    return Array.from(this.users.values());
+  }
+
   public createUser(user: SeedUser): SeedUser {
     this.users.set(user.id, user);
     return user;
@@ -449,11 +489,23 @@ class MemoryStore {
   }
 
   public getSkuById(id: string): SeedSku | undefined {
-    return this.skus.get(id);
+    const direct = this.skus.get(id);
+    if (direct) return direct;
+    const legacy = LEGACY_CODE_MAP[id];
+    if (legacy) return this.skus.get(legacy);
+    return undefined;
   }
 
   public getSkuByCode(code: string): SeedSku | undefined {
-    return Array.from(this.skus.values()).find((s) => s.code === code);
+    const direct = Array.from(this.skus.values()).find((s) => s.code === code);
+    if (direct) return direct;
+    const legacy = LEGACY_CODE_MAP[code];
+    if (legacy) return Array.from(this.skus.values()).find((s) => s.code === legacy);
+    return undefined;
+  }
+
+  public getAllOrderItemsMap(): Map<string, StoredOrderItem[]> {
+    return this.orderItems;
   }
 
   // --- Batch Import & Master Data Operations ---

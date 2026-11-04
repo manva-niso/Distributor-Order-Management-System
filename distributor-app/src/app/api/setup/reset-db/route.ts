@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/db/store";
 import { getNeonSql } from "@/db/neon";
+import { syncDatasetToNeon } from "@/db/neon-sync";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
       const sql = getNeonSql();
       if (sql) {
         try {
-          await sql`TRUNCATE TABLE orders, order_items, captures, capture_lines, retailer_aliases, retailers, skus CASCADE;`;
+          await sql`TRUNCATE TABLE order_items, orders, captures, capture_lines, retailer_aliases, skus, retailers, users CASCADE;`;
         } catch (neonErr) {
           console.warn("Neon truncate warning:", neonErr);
         }
@@ -41,10 +42,20 @@ export async function POST(req: NextRequest) {
     } else if (mode === "clean_slate") {
       // Pristine clean slate: 0 orders, baseline catalog & retailer balances
       dbStore.reset(false);
+
+      // Sync to Neon
+      const syncRes = await syncDatasetToNeon({
+        skus: dbStore.getAllSkus(),
+        retailers: dbStore.getAllRetailers(),
+        users: dbStore.getAllUsers(),
+        wipeFirst: true,
+      });
+
       return NextResponse.json({
         success: true,
         mode: "clean_slate",
-        message: "Database wiped to pristine clean slate (0 orders, baseline stock & credit limits restored).",
+        message: `Database wiped to pristine clean slate (0 orders, baseline stock & credit limits restored). ${syncRes.message}`,
+        databaseSynced: syncRes.synced,
         stats: {
           totalSkus: dbStore.getAllSkus().length,
           totalRetailers: dbStore.getAllRetailers().length,
@@ -52,12 +63,24 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
-      // Factory demo state with the 3 sample Jabalpur orders
+      // Factory demo state with sample Jabalpur orders
       dbStore.reset(true);
+
+      // Sync to Neon
+      const syncRes = await syncDatasetToNeon({
+        skus: dbStore.getAllSkus(),
+        retailers: dbStore.getAllRetailers(),
+        users: dbStore.getAllUsers(),
+        orders: dbStore.getAllOrders(),
+        orderItemsMap: dbStore.getAllOrderItemsMap(),
+        wipeFirst: true,
+      });
+
       return NextResponse.json({
         success: true,
         mode: "factory_demo",
-        message: "Database reset to factory Jabalpur demo state (sample orders, stock & credit).",
+        message: `Database reset to factory Jabalpur demo state (sample orders, stock & credit). ${syncRes.message}`,
+        databaseSynced: syncRes.synced,
         stats: {
           totalSkus: dbStore.getAllSkus().length,
           totalRetailers: dbStore.getAllRetailers().length,
