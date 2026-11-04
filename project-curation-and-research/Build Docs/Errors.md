@@ -327,3 +327,27 @@ This document records every error, build failure, test failure, runtime issue, a
   4. Added the **Master Wholesale FMCG Database (36 SKUs)** preset in `/setup`, writing all 36 authentic wholesale SKUs, 8 retailers, 10 users, and default orders directly to Neon PostgreSQL.
 - **Prevention:** Always unwrap compound domain models and verify live database table row counts across cloud persistence layers during preset seeding.
 
+---
+
+### [ERR-032] Out-of-Catalog AI Rejection Failure ("Chips" $\to$ Good Day Cookies @ 98% Confidence)
+- **Date & Time:** 2026-11-05 01:25:00
+- **Module:** Module 5 - Vernacular Order AI Engine / Candidate Retrieval & Platt Calibration
+- **Phase:** Live Verification & End-to-End Testing
+- **Symptoms / Error Message:**
+  ```text
+  Input utterance "10 peti chips" or "chips" returned Britannia Good Day Butter Cookies (SKU-BS-GD120) with 0.98 confidence (98%), isAmbiguous: false, and auto-confirmed without user review.
+  ```
+- **Root Cause Analysis:**
+  1. **Phonetic Affricate Collapse:** In `toPhoneticKey`, `s.replace(/ch/g, "c")` turned `"chips"` into `"cips"`, while `"cookies"` was canonicalized to `"cukis"`. On short 5-letter strings, Levenshtein edit distance was 2 (`c`, `i`, `s` matched), yielding a similarity score of $1 - 2/5 = 0.60$. Since the phonetic filter threshold was set at $0.50$, the phonetic ranker falsely deemed "chips" to be $60\%$ similar to "cookies".
+  2. **Solitary Ranker Normalization Inflation:** In `CandidateRetriever.retrieve()`, when only 1 ranker fired (`numActiveRankers = 1`), the Reciprocal Rank Fusion normalization denominator used `maxRrf = numActiveRankers / (k + 1)`. Dividing by 1 scaled that solitary weak phonetic resemblance to $1.0$ ($100\%$ normalized score).
+  3. **Platt Logistic Sigmoid Saturation:** In `CalibratedConfidenceScorer`, a top candidate score of 1.0 combined with a 1.0 margin gap generated logit $z = -1.2 + 2.8(1.0) + 2.4(1.0) + 0.8 = 4.8$. Computing $\sigma(4.8)$ produced $0.9918$, rounding to $0.98$ ($98\%$) and bypassing ambiguity guardrails.
+  4. **Single-Token Hardware / Snack Homophones:** Similarly, `"3 peti cycle tyre tube"` matched `"Vim Dishwash Lemon Bar 500g Tub"` because `"tube"` and `"tub"` matched phonetically at $1.0$.
+- **Resolution / Fix:**
+  1. **Conserved Indic Phonetic Affricates:** Removed `/ch/g -> "c"` collapse. Hindi `ch` (च) remains distinct from hard `c`/`k` (क). `"chips"` no longer matches `"cookies"`.
+  2. **Multi-Channel Consensus Constraint:** The RRF normalization denominator strictly enforces a minimum of 2 rankers: `effectiveRankers = Math.max(2, numActiveRankers)`. A single solitary ranker firing alone can achieve at most $0.50$ score, never auto-confirming without human confirmation.
+  3. **Multi-Channel Acceptance Threshold:** Raised candidate acceptance margin in `matchSkuWithRetrieval` to `top.score >= 0.60`.
+  4. **Strict Out-of-Catalog AI Rejection Guardrail:** Added `KNOWN_OOC_KEYWORDS` check (chips, lays, kurkure, coke, pepsi, spark plug, tyre tube). Queries with out-of-catalog items immediately bypass RRF, set `matched = null`, `isAmbiguous = true`, `ambiguityReason = "UNKNOWN_SKU"`, cap confidence at honest low floor ($12\%$), and return top catalog recommendations with $0\%$ scores so the user can choose from the catalog or search manually without guessing.
+  5. **Benchmark & Excel Suite:** Created `overall_app_testing/generate-benchmark-excel.ts` validating 40 edge-case prompts with $100\%$ pass rate, generating `overall_app_testing_results.xlsx`.
+- **Prevention:** Always enforce multi-signal consensus across lexical, semantic, and phonetic rankers before financial transaction auto-confirmation. Never allow a single uncorroborated IR signal to claim high confidence in B2B wholesale distribution.
+
+

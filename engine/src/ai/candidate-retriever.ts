@@ -46,7 +46,7 @@ export function toPhoneticKey(input: string): string {
   s = s.replace(/bh/g, "b");
   s = s.replace(/dh/g, "d");
   s = s.replace(/th/g, "t");
-  s = s.replace(/ch/g, "c");
+  s = s.replace(/chh/g, "ch");
   s = s.replace(/sh/g, "s");
   s = s.replace(/ee+/g, "i");
   s = s.replace(/oo+/g, "u");
@@ -134,14 +134,23 @@ export class CandidateRetriever {
   }
 
   /**
-   * Ranker A: Lexical Trigram Matching
+   * Ranker A: Lexical Trigram Matching (with Hindi/Hinglish category synonym support)
    */
   private rankByTrigram(queryText: string): { sku: SeedSku; rawScore: number }[] {
+    const cleanTokens = queryText.toLowerCase().split(/\s+/).filter((t) => t.length > 0);
+    const synonyms = cleanTokens.flatMap((t) => CATEGORY_SYNONYMS[t] || []);
+
     const scores = this.catalog.map((sku) => {
       const nameScore = computeTrigramSimilarity(queryText, sku.name);
       const brandScore = computeTrigramSimilarity(queryText, sku.brand);
       const catScore = computeTrigramSimilarity(queryText, sku.category);
-      const rawScore = Math.max(nameScore, brandScore * 0.9, catScore * 0.8);
+      let synScore = 0;
+      for (const syn of synonyms) {
+        const sName = computeTrigramSimilarity(syn, sku.name);
+        const sCat = computeTrigramSimilarity(syn, sku.category);
+        synScore = Math.max(synScore, sName, sCat * 0.9);
+      }
+      const rawScore = Math.max(nameScore, brandScore * 0.9, catScore * 0.8, synScore * 0.85);
       return { sku, rawScore };
     });
 
@@ -213,19 +222,19 @@ export class CandidateRetriever {
         ...sku.name.toLowerCase().split(/[\s,]+/),
       ].filter((w) => w.length > 2);
 
-      let totalPhoneticScore = 0;
+      let bestMatch = 0;
 
       for (const qToken of cleanTokens) {
-        let bestMatch = 0;
-        for (const sWord of skuWords) {
-          const dist = phoneticDistance(qToken, sWord);
-          if (dist > bestMatch) bestMatch = dist;
+        // Only attempt phonetic match if token has substantial length (>= 4 chars)
+        if (qToken.length >= 4) {
+          for (const sWord of skuWords) {
+            const dist = phoneticDistance(qToken, sWord);
+            if (dist > bestMatch) bestMatch = dist;
+          }
         }
-        totalPhoneticScore += bestMatch;
       }
 
-      const avgScore = cleanTokens.length > 0 ? totalPhoneticScore / cleanTokens.length : 0;
-      return { sku, rawScore: avgScore };
+      return { sku, rawScore: bestMatch };
     });
 
     return scores.sort((a, b) => b.rawScore - a.rawScore);
@@ -260,15 +269,27 @@ export class CandidateRetriever {
 
     const phoneticMap = new Map<string, number>();
     phoneticRanked
-      .filter((item) => item.rawScore >= 0.50)
+      .filter((item) => item.rawScore >= 0.75)
       .forEach((item, idx) => phoneticMap.set(item.sku.code, idx + 1));
 
-    // Maximum possible RRF score based on the number of rankers that found matches:
     const numActiveRankers =
       (trigramMap.size > 0 ? 1 : 0) +
       (keywordMap.size > 0 ? 1 : 0) +
       (phoneticMap.size > 0 ? 1 : 0);
-    const maxRrf = Math.max(1, numActiveRankers) / (this.k + 1);
+
+    // If no ranker found any match, return top catalog items with zero scores
+    if (numActiveRankers === 0) {
+      return this.catalog.slice(0, topK).map((sku) => ({
+        sku,
+        score: 0.0,
+        rrfScore: 0.0,
+        ranks: { trigramRank: 999, keywordRank: 999, phoneticRank: 999 },
+      }));
+    }
+
+    // Effective ranker count prevents a single weak ranker from claiming 100% confidence
+    const effectiveRankers = Math.max(2, numActiveRankers);
+    const maxRrf = effectiveRankers / (this.k + 1);
 
     const candidates: RankedCandidate[] = this.catalog.map((sku) => {
       const rTrigram = trigramMap.get(sku.code);
@@ -295,8 +316,8 @@ export class CandidateRetriever {
       };
     });
 
-    // Sort descending by RRF score
-    candidates.sort((a, b) => b.score - a.score);
+    // Sort descending by raw rrfScore first (prevents rounding ties), then by score
+    candidates.sort((a, b) => b.rrfScore - a.rrfScore || b.score - a.score);
 
     return candidates.slice(0, topK);
   }

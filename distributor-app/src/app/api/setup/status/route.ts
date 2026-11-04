@@ -47,9 +47,9 @@ export async function GET() {
         neonInfo = {
           configured: true,
           connected: true,
-          skusCount: skuRes[0]?.count ?? 0,
-          retailersCount: retRes[0]?.count ?? 0,
-          ordersCount: ordRes[0]?.count ?? 0,
+          skusCount: Number((skuRes as any[])[0]?.count ?? 0),
+          retailersCount: Number((retRes as any[])[0]?.count ?? 0),
+          ordersCount: Number((ordRes as any[])[0]?.count ?? 0),
         };
       }
     } catch (neonErr) {

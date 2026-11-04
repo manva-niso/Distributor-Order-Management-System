@@ -7,9 +7,11 @@
     "dev": "npm --prefix distributor-app run dev",
     "build": "npm --prefix distributor-app run build",
     "start": "npm --prefix distributor-app run start",
-    "test": "npm run test:app && npm run test:engine && npm run test:catalogue",
+    "test": "npm run test:app && npm run test:engine && npm run test:testing",
     "test:app": "npm --prefix distributor-app run test",
     "test:engine": "npm --prefix engine run test",
-    "test:catalogue": "npm --prefix engine exec -- vitest run ../project-curation-and-research/catalogue/__tests__/realistic-orders.test.ts --root ../"
+    "test:testing": "npm --prefix engine exec -- vitest run ../project-curation-and-research/overall_app_testing/__tests__/realistic-orders.test.ts --root ../",
+    "test:catalogue": "npm run test:testing",
+    "test:benchmark-excel": "npm --prefix distributor-app exec -- tsx project-curation-and-research/overall_app_testing/generate-benchmark-excel.ts"
   }
 }

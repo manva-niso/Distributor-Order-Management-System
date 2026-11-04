@@ -212,11 +212,48 @@ The Engine doesn't just recognize product names; it also computes the complex wh
 
 ---
 
-## 8. Summary: How the Engine Solves the Real-World Problems
+---
+
+## 8. Why Did the Computer Think "Chips" Were Butter Cookies at 98% Accuracy, and How Did We Fix It?
+
+### The Real-Life Problem
+A shopkeeper typed:
+> *"10 peti chips"*
+
+Our distributor sells biscuits, soaps, cooking oils, detergents, and tea. We **do not sell potato chips**.
+
+Instead of saying *"Sorry, we don't sell chips"*, the computer confidently replied:
+> *"Great! You ordered 10 cases of Britannia Good Day Butter Cookies! We are 98% confident!"*
+
+Obviously, if a truck arrives at a village shop with ₹13,000 worth of sweet butter cookies when the shopkeeper wanted salty potato chips, the shopkeeper will be furious and reject the delivery.
+
+### Why Did This Happen? (In Simple Terms)
+1. **The Pronunciation Trap:** To understand Indian accents and spelling mistakes (like *biskut* instead of *biscuit*), the computer converts words into sound codes. But the computer was programmed to turn the sound *"ch"* into the letter *"c"*.
+   - So `"chips"` was heard as `"cips"`.
+   - Meanwhile, `"cookies"` was heard as `"cukis"`.
+   - The computer compared `"cips"` and `"cukis"`. They both start with *c*, both have an *i*, and both end with *s*. The computer thought: *"Hey, chips sounds 60% like cookies!"*
+2. **The "Only One Witness" Trap:** The computer had three detectives working for it:
+   - Detective 1 (Spelling): *"Zero match. Chips is not in our catalog."*
+   - Detective 2 (Meaning / Category): *"Zero match. Chips is not soap, tea, or oil."*
+   - Detective 3 (Sound): *"Wait, chips sounds a tiny bit like cookies!"*
+   Because Detectives 1 and 2 said nothing, the computer asked ONLY Detective 3. And because Detective 3 was the only one who spoke up, the computer treated Detective 3's wild guess as **100% agreement**!
+3. **The Overconfident Multiplier:** The computer had a math formula designed to add extra points if the customer gave a number (10) and a packaging box (*peti*). Because 10 and *peti* were clear, it pushed the confidence score all the way to **98%**!
+
+### How We Fixed It (The New Golden Rule)
+1. **Separated Sound Sounds:** The sound *"ch"* (च as in *chai* or *chips*) is no longer confused with the hard *"k"* sound (क as in *cookies*). Chips is chips; cookies is cookies.
+2. **The "Two Witnesses" Rule:** The computer is no longer allowed to confirm an order based on a solitary guess. At least **two independent signals** (like spelling AND category meaning) must agree before the computer is allowed to confirm. If only one detective has a faint guess, the score is capped at 50% and flagged for human review.
+3. **The Honest "I Don't Have It" Guardrail:** If someone asks for items not in our catalog (like *chips*, *kurkure*, *cold drinks*, *bicycle tyres*, or *spark plugs*), the computer immediately stops and says:
+   > *"Confidence: 12% (Unknown Item). We do not carry 'chips'. Did you mean to browse our biscuit, detergent, or edible oil catalog?"*
+   It honestly reports 12% certainty and asks the customer to choose, rather than making a wild, expensive guess.
+
+---
+
+## 9. Summary: How the Engine Solves the Real-World Problems
 
 | Real-World Problem | How the Engine Handles It | Business Outcome |
 | :--- | :--- | :--- |
 | **"pila wala 5 peti"** | Translates vernacular alias to Parle-G 75g (`SKU-BS-075`). | Instant match, zero manual searching. |
+| **"10 peti chips"** | Recognizes item is out of catalog; drops confidence to 12% and flags `UNKNOWN_SKU`. | **Zero hallucination.** Never sends wrong goods. |
 | **"2 dabba tel"** | Flags polysemic unit; asks user if they mean a 15L tin or a master case. | Eliminates ₹350 return cost on wrong shipment. |
 | **"case mai se 15 dedo"** | Detects broken case; offers loose-pack rate vs full-case wholesale discount. | Protects distributor margins, prevents damaged packs. |
 | **"५ पेटी बिस्कुट"** | Translates Devanagari numerals and Hindi script. | Works for vernacular shopkeepers who don't know English. |

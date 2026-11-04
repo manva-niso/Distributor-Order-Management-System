@@ -25,7 +25,7 @@ export async function syncDatasetToNeon(params: {
   skus: SeedSku[];
   retailers: SeedRetailer[];
   users: SeedUser[];
-  orders?: StoredOrder[];
+  orders?: StoredOrder[] | Array<{ order: StoredOrder; items: StoredOrderItem[] }>;
   orderItemsMap?: Map<string, StoredOrderItem[]> | Record<string, StoredOrderItem[]>;
   wipeFirst?: boolean;
 }): Promise<SyncResult> {

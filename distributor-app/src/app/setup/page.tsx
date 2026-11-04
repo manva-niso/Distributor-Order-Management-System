@@ -242,12 +242,15 @@ export default function SetupPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setShowResetModal(true)}
-              className="h-8 px-2.5 text-xs font-bold rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Reset Database to Clean Slate"
+              onClick={() => {
+                setResetChoice("absolute_zero");
+                setShowResetModal(true);
+              }}
+              className="h-8 px-3 text-xs font-bold rounded-md border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Master Delete (Wipe Everything to 0 Records)"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{lang === "hi" ? "क्लीन स्लेट" : "Clean Slate"}</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === "hi" ? "मास्टर डिलीट (सब मिटाएं)" : "Master Delete (Wipe All)"}</span>
             </button>
 
             <button
@@ -836,13 +839,25 @@ export default function SetupPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setResetChoice("clean_slate");
+                  setResetChoice("absolute_zero");
                   setShowResetModal(true);
                 }}
                 className="px-4 py-2 text-xs font-bold rounded-lg bg-red-700 hover:bg-red-800 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === "hi" ? "मास्टर डिलीट (सब मिटाएं 0)" : "Master Delete (Wipe All to 0)"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setResetChoice("clean_slate");
+                  setShowResetModal(true);
+                }}
+                className="px-3 py-2 text-xs font-bold rounded-lg border border-red-300 bg-white hover:bg-red-50 text-red-700 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{lang === "hi" ? "क्लीन स्लेट रीसेट" : "Wipe to Clean Slate"}</span>
+                <span>{lang === "hi" ? "केवल ऑर्डर्स रीसेट" : "Wipe Orders Only"}</span>
               </button>
             </div>
           </div>

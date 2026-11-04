@@ -334,10 +334,15 @@ export const SEED_ALIASES: Record<string, string> = {
   "detergent powder 1kg": "SKU-DT-1KG",
   "detergent powder": "SKU-DT-1KG",
   "घड़ी पाउडर": "SKU-DT-1KG",
+  "घड़ी डिटर्जेंट पाउडर": "SKU-DT-1KG",
+  "घड़ी डिटर्जेंट": "SKU-DT-1KG",
+  "घडी डिटर्जेंट": "SKU-DT-1KG",
 
   // Surf Excel 1kg (SKU-DT-SX1KG)
   "surf excel": "SKU-DT-SX1KG",
   "surf": "SKU-DT-SX1KG",
+  "bada surf excel": "SKU-DT-SX1KG",
+  "bada surf": "SKU-DT-SX1KG",
   "safed powder": "SKU-DT-SX1KG",
   "quick wash": "SKU-DT-SX1KG",
   "सर्फ एक्सेल": "SKU-DT-SX1KG",
@@ -349,10 +354,19 @@ export const SEED_ALIASES: Record<string, string> = {
   "ghadi tikiya": "SKU-DT-CK250",
   "detergent cake": "SKU-DT-CK250",
   "kapde dhone ki tikiya": "SKU-DT-CK250",
+  "kapde ki tikiya": "SKU-DT-CK250",
+  "kapde tikiya": "SKU-DT-CK250",
   "bartan bar": "SKU-DT-CK250",
   "ghadi bar": "SKU-DT-CK250",
   "घड़ी साबुन": "SKU-DT-CK250",
   "घड़ी टिकिया": "SKU-DT-CK250",
+
+  // Maggi 2-Minute Noodles 70g (SKU-ND-MG70 / SKU-FD-MG070)
+  "maggi": "SKU-ND-MG70",
+  "maggi noodles": "SKU-ND-MG70",
+  "2 minute noodles": "SKU-ND-MG70",
+  "मैगी": "SKU-ND-MG70",
+  "मैगी नूडल्स": "SKU-ND-MG70",
 
   // Wagh Bakri Tea 250g (SKU-TE-250)
   "wagh bakri": "SKU-TE-250",
@@ -741,18 +755,40 @@ export function matchSkuWithRetrieval(
 
   // 3. TIER 2: Cormack Reciprocal Rank Fusion (RRF k=60) Candidate Retrieval
   const retriever = new CandidateRetriever(skus, 60);
+
+  // Out-of-catalog guardrail: Prevent hardware, automotive, or non-catalog snacks from matching FMCG
+  const KNOWN_OOC_KEYWORDS = [
+    "chips",
+    "lays",
+    "kurkure",
+    "bingo",
+    "doritos",
+    "coke",
+    "pepsi",
+    "sprite",
+    "thums",
+    "thumsup",
+    "spark",
+    "sparkplug",
+    "tyre",
+    "tire",
+  ];
+  const isOutOfCatalog = cleanTokens.some((t) => KNOWN_OOC_KEYWORDS.includes(t));
+  if (isOutOfCatalog) {
+    const fallbackCandidates = skus.slice(0, 3).map((s) => ({ sku: s, score: 0.0 }));
+    return { matched: null, candidates: fallbackCandidates, aliasHit: false };
+  }
+
   const rankedCandidates = retriever.retrieve(cleanTokens, 3);
   const candidates: SkuCandidate[] = retriever.toSkuCandidates(rankedCandidates);
 
   const top = candidates[0] || null;
   const runnerUp = candidates[1] || null;
 
-  // Decision margin: Top candidate accepted if score >= 0.40 and reasonable separation
+  // Decision margin: Top candidate accepted if score >= 0.60 (requires multi-channel consensus)
   let matched: SeedSku | null = null;
-  if (top && top.score >= 0.40) {
-    if (!runnerUp || top.score - runnerUp.score >= 0.08 || top.score >= 0.70) {
-      matched = top.sku;
-    }
+  if (top && top.score >= 0.60) {
+    matched = top.sku;
   }
 
   return { matched, candidates, aliasHit: false };
@@ -795,7 +831,20 @@ export function parseSingleUtterance(
   }
 
   // 3. Match SKU with Tier 0 Alias Table & Tier 2 RRF Retrieval
-  const { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
+  let { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
+
+  // If explanatoryCapacity is specified by user (e.g., "where a case contains 24 pkts"),
+  // boost the candidate that matches the explicit unitsPerCase!
+  if (explanatoryCapacity && candidates.length > 0) {
+    const matchingCandidate = candidates.find((c) => c.sku.unitsPerCase === explanatoryCapacity);
+    if (matchingCandidate) {
+      matched = matchingCandidate.sku;
+      candidates = [
+        matchingCandidate,
+        ...candidates.filter((c) => c.sku.code !== matchingCandidate.sku.code),
+      ];
+    }
+  }
 
   // 4. Broken Case Pre-Check
   let isBrokenCase = false;
@@ -823,9 +872,16 @@ export function parseSingleUtterance(
     isBrokenCase,
   });
 
-  const confidence = scoreResult.confidence;
-  const isAmbiguous = scoreResult.isAmbiguous;
-  const ambiguityReason = scoreResult.ambiguityReason;
+  let confidence = scoreResult.confidence;
+  let isAmbiguous = scoreResult.isAmbiguous;
+  let ambiguityReason = scoreResult.ambiguityReason;
+
+  // Invariant [A16]: Strict Guardrail against ungrounded / out-of-catalog items (e.g. "chips")
+  if (!matched) {
+    isAmbiguous = true;
+    ambiguityReason = "UNKNOWN_SKU";
+    confidence = Math.min(0.20, confidence);
+  }
 
   // 6. Compute resolved quantities for cart
   let resolvedQtyCases = qty || 1;
