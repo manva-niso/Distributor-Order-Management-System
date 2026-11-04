@@ -474,21 +474,27 @@ export default function QuickOrderPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    loadTemplate("bhaiya 5 biscuit chhota jaldi bhejo\n2 ghadi powder")
-                  }
-                  className="px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-md font-medium transition-colors cursor-pointer"
+                  onClick={() => loadTemplate("10 peti chips")}
+                  className="px-2.5 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded-md font-bold transition-colors cursor-pointer"
+                  title="Test out-of-catalog rejection (never biscuits!)"
                 >
-                  Template 3: Unit Ambiguity Test
+                  🚫 Chips (Out of Catalog)
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    loadTemplate("detergent powder of 1 kg case of 20 mai se 15 dedo")
-                  }
-                  className="px-2.5 py-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 rounded-md font-medium transition-colors cursor-pointer"
+                  onClick={() => loadTemplate("5 dabba amul ghee")}
+                  className="px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-md font-bold transition-colors cursor-pointer"
+                  title="Test packaging disambiguation"
                 >
-                  Template 4: Cut Pack (15 out of 20)
+                  ⚖️ Ghee (1L vs 500ml)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => loadTemplate("40 packet maggi")}
+                  className="px-2.5 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-md font-bold transition-colors cursor-pointer"
+                  title="Test broken-case cut pack (40 < 96 units/case)"
+                >
+                  📦 Maggi (Cut-Pack)
                 </button>
               </div>
             </div>

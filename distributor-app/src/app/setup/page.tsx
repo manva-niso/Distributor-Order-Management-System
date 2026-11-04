@@ -23,6 +23,7 @@ import {
   Search,
   RotateCcw,
   Trash2,
+  Building2,
 } from "lucide-react";
 
 type Language = "en" | "hi";
@@ -264,11 +265,11 @@ export default function SetupPage() {
               <span>{lang === "en" ? "हिंदी" : "English"}</span>
             </button>
             <Link
-              href="/catalogue"
-              className="h-8 px-3 text-xs font-bold rounded-md bg-emerald-700 text-white hover:bg-emerald-800 shadow-xs flex items-center gap-1.5 transition-colors"
+              href="/desk"
+              className="h-8 px-3 text-xs font-bold rounded-md bg-emerald-800 text-white hover:bg-emerald-900 shadow-xs flex items-center gap-1.5 transition-colors"
             >
-              <span>{lang === "hi" ? "कैटलॉग" : "Open App"}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <Building2 className="w-3.5 h-3.5 text-amber-300" />
+              <span>{lang === "hi" ? "आर्डर डेस्क" : "Order Desk"}</span>
             </Link>
           </div>
         </div>

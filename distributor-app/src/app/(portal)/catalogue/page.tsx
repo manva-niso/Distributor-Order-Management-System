@@ -19,6 +19,7 @@ import {
   MessageSquare,
   LogOut,
   RefreshCw,
+  Building2,
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
@@ -64,6 +65,7 @@ export default function CataloguePage() {
 
   // State
   const [lang, setLang] = useState<"en" | "hi">("en");
+  const [userRole, setUserRole] = useState<string>("retailer");
   const [retailer, setRetailer] = useState<RetailerHeader | null>(null);
   const [skus, setSkus] = useState<SeedSku[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,16 +92,8 @@ export default function CataloguePage() {
         if (data.success) {
           setSkus(data.skus || []);
           setRetailer(data.retailer || null);
-          // Pre-populate Sharma Kirana initial demo cart (10 biscuit, 4 detergent) if fresh
-          if (Object.keys(cartMap).length === 0) {
-            const initialMap: Record<string, DraftCartItem> = {
-              "SKU-BS-075": { cases: 10, packs: 0 },
-              "SKU-DT-1KG": { cases: 4, packs: 0 },
-            };
-            setCartMap(initialMap);
-            try {
-              localStorage.setItem("isolabs_draft_cart", JSON.stringify(initialMap));
-            } catch {}
+          if (data.userRole) {
+            setUserRole(data.userRole);
           }
         }
       })
@@ -187,6 +181,22 @@ export default function CataloguePage() {
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 pb-36 font-sans antialiased">
       {/* Top Fixed Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+        {userRole === "desk" && (
+          <div className="bg-emerald-950 text-white px-4 py-2 border-b border-emerald-900">
+            <div className="max-w-md mx-auto flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Building2 className="w-3.5 h-3.5 text-amber-300" />
+                <span>Order Desk View (Managing Catalog)</span>
+              </div>
+              <Link
+                href="/desk"
+                className="px-2.5 py-1 bg-white text-emerald-950 text-[11px] font-bold rounded shadow-xs hover:bg-slate-100"
+              >
+                ← Back to Desk
+              </Link>
+            </div>
+          </div>
+        )}
         {/* Row 1: Brand, Account & Language */}
         <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -611,8 +621,8 @@ export default function CataloguePage() {
           })}
       </main>
 
-      {/* Sticky Bottom Cart Bar (Appears when items are selected) */}
-      {(totals.totalCases > 0 || totals.totalPacks > 0) && (
+      {/* Sticky Bottom Cart Bar (Appears when items are selected for retailers/salesmen) */}
+      {userRole !== "desk" && (totals.totalCases > 0 || totals.totalPacks > 0) && (
         <aside className="fixed bottom-16 inset-x-0 z-40 bg-slate-900 text-white p-3 shadow-xl">
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <div className="flex flex-col min-w-0">
@@ -647,8 +657,20 @@ export default function CataloguePage() {
         </aside>
       )}
 
-      {/* Bottom PWA Navigation Bar */}
-      <BottomNav cartItemCount={totals.totalCases + (totals.totalPacks > 0 ? 1 : 0)} lang={lang} />
+      {/* Bottom Navigation */}
+      {userRole !== "desk" ? (
+        <BottomNav cartItemCount={totals.totalCases + (totals.totalPacks > 0 ? 1 : 0)} lang={lang} />
+      ) : (
+        <div className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 py-3 text-center shadow-md">
+          <Link
+            href="/desk"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-emerald-900"
+          >
+            <Building2 className="w-4 h-4 text-amber-300" />
+            <span>← Return to Order Desk Terminal</span>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

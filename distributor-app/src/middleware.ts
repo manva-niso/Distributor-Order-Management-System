@@ -34,10 +34,16 @@ export async function middleware(request: NextRequest) {
 
   // 3. STRICT SEAT ISOLATION ("Whatever seat you are in, you must remain in that seat"):
   // Seat A: Desk Operator (role === 'desk')
-  // - Authorized seats: /desk and /setup
-  // - If desk clerk attempts to visit the customer buyer portal (/catalogue, /quick-order, /cart, /orders),
+  // - Authorized seats: /desk, /setup, and /catalogue (for viewing, filling & managing wholesale catalog)
+  // - If desk clerk attempts to enter customer buyer checkout routes (/quick-order, /cart, /orders),
   //   keep them strictly in their Order Desk workstation seat.
-  if (isPortalRoute && session?.role === "desk") {
+  const isCustomerBuyerRoute =
+    pathname.startsWith("/cart") ||
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/quick-order") ||
+    pathname.startsWith("/capture");
+
+  if (isCustomerBuyerRoute && session?.role === "desk") {
     return NextResponse.redirect(new URL("/desk", request.url));
   }
 
