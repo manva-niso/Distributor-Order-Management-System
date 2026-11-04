@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import WalkthroughGuide from "@/components/walkthrough/WalkthroughGuide";
 
 export const metadata: Metadata = {
   title: "Company A Jabalpur • Wholesale B2B Portal",
@@ -16,7 +17,10 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">{children}</body>
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+        <WalkthroughGuide />
+        {children}
+      </body>
     </html>
   );
 }

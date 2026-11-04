@@ -84,9 +84,9 @@ export default function SetupPage() {
   // Master Reset database state
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [resetChoice, setResetChoice] = useState<"clean_slate" | "factory_demo">("clean_slate");
+  const [resetChoice, setResetChoice] = useState<"clean_slate" | "factory_demo" | "absolute_zero">("clean_slate");
 
-  const handleResetDatabase = async (mode: "clean_slate" | "factory_demo") => {
+  const handleResetDatabase = async (mode: "clean_slate" | "factory_demo" | "absolute_zero") => {
     setResetting(true);
     setUploadError(null);
     setUploadSuccess(null);
@@ -788,6 +788,31 @@ export default function SetupPage() {
             </div>
 
             <div className="space-y-2.5">
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  resetChoice === "absolute_zero"
+                    ? "border-red-600 bg-red-50 ring-2 ring-red-600/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="resetChoice"
+                  checked={resetChoice === "absolute_zero"}
+                  onChange={() => setResetChoice("absolute_zero")}
+                  className="mt-1 text-red-600 focus:ring-red-500"
+                />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block flex items-center gap-1.5">
+                    <span>Absolute Zero (Wipe Everything)</span>
+                    <span className="px-1.5 py-0.2 bg-red-100 text-red-700 text-[10px] rounded font-mono font-bold">0 SKUs / 0 Orders</span>
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    Deletes all SKUs, Retailers, and Orders to a completely blank slate. Ready to test onboarding from scratch.
+                  </span>
+                </div>
+              </label>
+
               <label
                 className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                   resetChoice === "clean_slate"

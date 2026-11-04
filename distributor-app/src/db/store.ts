@@ -153,6 +153,25 @@ class MemoryStore {
     this.reset();
   }
 
+  public resetToAbsoluteZero() {
+    this.users.clear();
+    this.retailers.clear();
+    this.skus.clear();
+    this.otps.clear();
+    this.orders.clear();
+    this.orderItems.clear();
+    this.aliases.clear();
+
+    // Keep desk clerk account so desk/setup is accessible
+    this.users.set("USR-DESK-1", {
+      id: "USR-DESK-1",
+      phone: "9826000099",
+      name: "Amit Jain (Order Desk)",
+      role: "desk",
+      active: true,
+    });
+  }
+
   public reset(includeDefaultOrders: boolean = true) {
     this.users.clear();
     this.retailers.clear();
