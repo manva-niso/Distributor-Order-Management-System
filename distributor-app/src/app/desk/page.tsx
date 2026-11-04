@@ -38,7 +38,6 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import DeskQuickIngestModal from "@/components/desk/DeskQuickIngestModal";
 import AddProductModal from "@/components/desk/AddProductModal";
 import { SeedSku } from "@/db/seed-data";
 
@@ -174,8 +173,7 @@ export default function OrderDeskPage() {
   const [showCleanSlateModal, setShowCleanSlateModal] = useState(false);
   const [resettingDb, setResettingDb] = useState(false);
 
-  // In-Desk Quick Ingest Modal State
-  const [showQuickIngestModal, setShowQuickIngestModal] = useState(false);
+
 
   const handleCleanSlateReset = async (mode: "clean_slate" | "factory_demo") => {
     setResettingDb(true);
@@ -425,15 +423,7 @@ export default function OrderDeskPage() {
               <span>Catalog & Excel Hub</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => setShowQuickIngestModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-800 text-white hover:bg-emerald-900 shadow-xs transition-colors cursor-pointer"
-              title="Capture WhatsApp order text or voice note directly into Desk"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>+ Quick Ingest</span>
-            </button>
+
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block" />
 
@@ -705,7 +695,7 @@ export default function OrderDeskPage() {
                   <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
                   <h3 className="text-sm font-bold text-slate-900">All Clear! No orders in this queue.</h3>
                   <p className="text-xs text-slate-500">
-                    Switch filters or capture new orders via Quick Ingest.
+                    No pending orders for this filter. Switch tabs to view other queues.
                   </p>
                 </div>
               ) : (
@@ -1900,15 +1890,7 @@ export default function OrderDeskPage() {
         </div>
       )}
 
-      {/* Desk Order Quick Ingest Modal */}
-      <DeskQuickIngestModal
-        isOpen={showQuickIngestModal}
-        onClose={() => setShowQuickIngestModal(false)}
-        onOrderCreated={async () => {
-          await fetchOrders();
-          await fetchCatalogue();
-        }}
-      />
+
 
       {/* Desk Add Product Modal */}
       <AddProductModal
