@@ -306,3 +306,24 @@ This document records every error, build failure, test failure, runtime issue, a
 - **Resolution / Fix:** Updated factory switch to explicitly route `"cascade"` and `"adaptive"` to `cascadedOrderParser`, while maintaining `"rules"` and default as `deterministicTextParser` for pure backwards compatibility.
 - **Prevention:** Maintain explicit enum branches for new pipelines without altering the default return of existing baseline tests.
 
+---
+
+### [ERR-031] Neon PostgreSQL Preset Synchronization Bypass & Order Object Nesting Type Mismatch
+- **Date & Time:** 2026-11-05 00:20:00
+- **Module:** Module 9 - Master Data Setup & Cloud Database Synchronization
+- **Phase:** Database Integration / Neon Sync
+- **Symptoms / Error Message:**
+  ```text
+  Loading preset appeared to update the in-memory UI, but PostgreSQL database tables ('skus', 'retailers', 'orders') remained empty (0 rows).
+  When syncing orders: TypeError: Cannot read properties of undefined (reading 'toString') at syncDatasetToNeon.
+  ```
+- **Root Cause Analysis:**
+  1. `/api/setup/load-preset` and `/api/setup/reset-db` only mutated `dbStore` (the in-memory singleton) and never executed write queries against Neon PostgreSQL.
+  2. `dbStore.getAllOrders()` returns `Array<{ order: StoredOrder; items: StoredOrderItem[] }>`, whereas `neon-sync.ts` expected `StoredOrder[]`. Accessing `ord.subtotal` directly on the container object yielded `undefined`, throwing `Cannot read properties of undefined (reading 'toString')`.
+- **Resolution / Fix:**
+  1. Created `distributor-app/src/db/neon-sync.ts` providing `syncDatasetToNeon`, `syncSingleOrderToNeon`, and `syncOrderStatusToNeon`.
+  2. Integrated `syncDatasetToNeon` into `/api/setup/load-preset`, `/api/setup/reset-db`, and `/api/setup/import-excel`.
+  3. Added bulletproof `toNumStr` helper with fallback and unwrapped `(entry as any).order ?? entry` so both object layouts are handled cleanly.
+  4. Added the **Master Wholesale FMCG Database (36 SKUs)** preset in `/setup`, writing all 36 authentic wholesale SKUs, 8 retailers, 10 users, and default orders directly to Neon PostgreSQL.
+- **Prevention:** Always unwrap compound domain models and verify live database table row counts across cloud persistence layers during preset seeding.
+
