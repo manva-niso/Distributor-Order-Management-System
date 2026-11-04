@@ -293,6 +293,12 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Fully decoupled standalone package with zero framework dependencies on Next.js.
   - Can be tested, benchmarked, and evolved in an isolated sandbox (`cd engine; npm test`).
   - Contains full pure deterministic parser, scheme calculations, and unit tests (39/39 passing).
+- [x] **Reciprocal Rank Fusion (Cormack RRF $k=60$) Candidate Retrieval (`candidate-retriever.ts`):**
+  - Combines 3 independent ranking channels without fragile scale normalization:
+    1. **Ranker A (Lexical Trigrams):** Character 3-gram Dice similarity over product names, brands, and categories.
+    2. **Ranker B (Keywords & Attributes):** Direct and synonym-expanded token overlap (`sabun` $\to$ soap/cake, `powder` $\to$ detergent, pack size weights).
+    3. **Ranker C (Phonetic Transliteration):** Token-level Indic phonetic key normalization (collapsing aspirated consonants `gh` $\to$ `g`, `bh` $\to$ `b`, `ph` $\to$ `f`, `ee` $\to$ `i`) and Levenshtein distance.
+  - Computes scale-free fusion score $RRF(d) = \sum \frac{1}{60 + r_m(d)}$ normalized between $0.0$ and $1.0$.
 - [x] **Pluggable Architecture & Strategy Pattern (`src/lib/ai/types.ts`, `src/lib/ai/pipeline.ts`):**
   - Defined strict `OrderParserPipeline` interface (`parseText(rawText, context): Promise<ParseResult>`).
   - Decoupled parser so an external machine learning pipeline (Python / FastAPI / PyTorch / spaCy) can drop-in replace it via environment variable `ORDER_PARSER_PROVIDER="custom_ml"` and `CUSTOM_ML_API_URL` without frontend modifications (`[A33]`).
@@ -334,20 +340,24 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ### 2. Files Created / Modified
 - `engine/`
-  - `src/ai/text-parser.ts` - Decoupled pure text parser with Jabalpur vernacular, Tier 0 aliases, and "dabba" guardrail
+  - `src/ai/candidate-retriever.ts` - Cormack RRF ($k=60$) combining Lexical Trigrams, Keywords & Attribute Synonyms, and Phonetic Transliteration
+  - `src/ai/text-parser.ts` - Decoupled pure text parser with Jabalpur vernacular, Tier 0 aliases, RRF candidate retriever, and "dabba" guardrail
   - `src/ai/types.ts` - Enhanced `UnitType` (`DABBA`) and `AmbiguityReason` (`AMBIGUOUS_UNIT`)
+  - `src/__tests__/candidate-retriever.test.ts` - 11 unit tests verifying RRF algorithm, trigrams, and phonetic normalization
   - `src/__tests__/text-parser.test.ts` - 26 comprehensive unit tests covering dialects, fractions, dabba guardrails, and dynamic aliases
 - `distributor-app/`
+  - `src/lib/ai/candidate-retriever.ts` - Synchronized candidate retriever
   - `src/lib/ai/text-parser.ts` - Synchronized app parser
   - `src/lib/ai/types.ts` - Synchronized types
   - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card and multi-modal upload triggers
+  - `src/__tests__/candidate-retriever.test.ts` - 11 unit tests in distributor-app
   - `src/__tests__/text-parser.test.ts` - 26 unit tests in distributor-app
 
 ### 3. Verification & Tests
-- **Engine Vitest Suite:** `engine/src/__tests__/text-parser.test.ts` + `schemes.test.ts`
-  - **39/39 unit tests passing** (502ms runtime).
+- **Engine Vitest Suite:** `engine/src/__tests__/*.test.ts`
+  - **50/50 unit tests passing** (444ms runtime across schemes, text parser, and candidate retriever).
 - **Distributor App Vitest Suite:** `distributor-app/src/__tests__/*.test.ts`
-  - **92/92 unit tests passing** across all 10 test suites.
+  - **103/103 unit tests passing** across all 11 test suites.
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors.
 
 ---

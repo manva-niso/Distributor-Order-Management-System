@@ -10,6 +10,7 @@ import {
   ParserContext,
   BrokenCaseInfo,
 } from "./types";
+import { CandidateRetriever } from "./candidate-retriever";
 
 // Hindi Devanagari digit translation map
 export const DEVANAGARI_DIGITS: Record<string, string> = {
@@ -598,35 +599,8 @@ function extractUnit(tokens: string[]): { unit: UnitType; remainingTokens: strin
 }
 
 /**
- * Trigram character similarity between two lowercase strings
- */
-function characterTrigramSimilarity(a: string, b: string): number {
-  if (a === b) return 1.0;
-  if (a.length < 3 || b.length < 3) {
-    return a.includes(b) || b.includes(a) ? 0.6 : 0.0;
-  }
-
-  const getTrigrams = (str: string) => {
-    const set = new Set<string>();
-    for (let i = 0; i <= str.length - 3; i++) {
-      set.add(str.substring(i, i + 3));
-    }
-    return set;
-  };
-
-  const triA = getTrigrams(a);
-  const triB = getTrigrams(b);
-  let intersection = 0;
-  for (const tri of triA) {
-    if (triB.has(tri)) intersection++;
-  }
-
-  return (2 * intersection) / (triA.size + triB.size);
-}
-
-/**
  * Tier 0 & Tier 2: Candidate Retrieval & Matching
- * Combines exact alias lookup with lexical trigram and token matching
+ * Combines exact alias lookup with Cormack RRF (Reciprocal Rank Fusion k=60)
  */
 export function matchSkuWithRetrieval(
   queryTokens: string[],
@@ -641,7 +615,7 @@ export function matchSkuWithRetrieval(
     );
   };
 
-  // 1. TIER 0: Exact or N-Gram Merchant Alias Lookup on Pre-Filtered Tokens (Preserves phrases like "pila wala")
+  // 1. TIER 0: Exact or N-Gram Merchant Alias Lookup on Pre-Filtered Tokens
   const rawCleaned = queryTokens
     .map((t) => t.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, ""))
     .filter((t) => t.length > 0);
@@ -703,79 +677,23 @@ export function matchSkuWithRetrieval(
     }
   }
 
-  // 3. TIER 2: Candidate Retrieval & Scoring
-  const candidates: SkuCandidate[] = [];
-
-  for (const sku of skus) {
-    let score = 0;
-    const skuName = sku.name.toLowerCase();
-    const skuBrand = sku.brand.toLowerCase();
-    const skuCategory = sku.category.toLowerCase();
-    const skuPackSize = sku.packSize.toLowerCase();
-
-    // Brand matching (High priority: +0.40)
-    for (const token of cleanTokens) {
-      if (skuBrand === token) {
-        score += 0.45;
-        break;
-      } else if (skuBrand.includes(token) || token.includes(skuBrand)) {
-        score += 0.35;
-        break;
-      }
-    }
-
-    // Category / Product type matching (+0.35 to +0.50)
-    for (const token of cleanTokens) {
-      if (["biscuit", "biskut", "viscut", "बिस्कुट", "बिस्किट", "cookies", "cookie"].includes(token)) {
-        if (skuCategory === "biscuits") score += 0.45;
-      } else if (["detergent", "powder", "surf", "washing", "डिटर्जेंट", "पाउडर"].includes(token)) {
-        if (skuCategory === "detergent") score += 0.45;
-      } else if (["chai", "tea", "patti", "chay", "चाय", "चायपत्ती"].includes(token)) {
-        if (skuCategory === "tea") score += 0.50;
-      } else if (["soap", "saboon", "sabun", "साबुन"].includes(token)) {
-        if (skuCategory === "personal care" || skuCategory === "detergent") score += 0.45;
-      } else if (["oil", "tel", "refined", "तेल"].includes(token)) {
-        if (skuCategory === "cooking oil") score += 0.50;
-      }
-    }
-
-    // Pack size / weight matching (+0.30)
-    for (const token of cleanTokens) {
-      const isNumericOnly = /^\d+$/.test(token);
-      if (!isNumericOnly && (skuPackSize.includes(token) || skuName.includes(token))) {
-        score += 0.25;
-      }
-      if (["chhota", "chota", "छोटा"].includes(token) && sku.code === "SKU-BS-075") {
-        score += 0.35;
-      }
-    }
-
-    // Trigram character similarity between query and SKU name
-    const trigramSim = characterTrigramSimilarity(queryPhrase, skuName);
-    if (trigramSim > 0.3) {
-      score += trigramSim * 0.35;
-    }
-
-    if (score > 0.20) {
-      candidates.push({
-        sku,
-        score: Math.min(1.0, Math.round(score * 100) / 100),
-      });
-    }
-  }
-
-  // Sort descending by candidate score
-  candidates.sort((a, b) => b.score - a.score);
+  // 3. TIER 2: Cormack Reciprocal Rank Fusion (RRF k=60) Candidate Retrieval
+  const retriever = new CandidateRetriever(skus, 60);
+  const rankedCandidates = retriever.retrieve(cleanTokens, 3);
+  const candidates: SkuCandidate[] = retriever.toSkuCandidates(rankedCandidates);
 
   const top = candidates[0] || null;
+  const runnerUp = candidates[1] || null;
 
-  // Assign top candidate if score reaches threshold
+  // Decision margin: Top candidate accepted if score >= 0.40 and reasonable separation
   let matched: SeedSku | null = null;
-  if (top && top.score >= 0.35) {
-    matched = top.sku;
+  if (top && top.score >= 0.40) {
+    if (!runnerUp || top.score - runnerUp.score >= 0.08 || top.score >= 0.70) {
+      matched = top.sku;
+    }
   }
 
-  return { matched, candidates: candidates.slice(0, 3), aliasHit: false };
+  return { matched, candidates, aliasHit: false };
 }
 
 /**
@@ -814,7 +732,7 @@ export function parseSingleUtterance(
     rawTokens = unitResult.remainingTokens;
   }
 
-  // 3. Match SKU with Tier 0 Alias Table & Tier 2 Retrieval
+  // 3. Match SKU with Tier 0 Alias Table & Tier 2 RRF Retrieval
   const { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
 
   // 4. Ambiguity & Broken Case Guardrails (Rules [A16] & [A36])
