@@ -393,8 +393,57 @@ This document tracks each Core Build Module step by step, its features, implemen
   - **67/67 unit tests passing** (schemes, text parser, candidate retriever, calibrated scorer, gemini chooser, cascaded parser).
 - **Distributor App Vitest Suite:** `distributor-app/src/__tests__/*.test.ts`
   - **121/121 unit tests passing** across all 14 test suites.
-- **Combined Automated Verification:** **188/188 passing unit tests** across the entire codebase.
+- **Realistic FMCG Benchmark Suite:** `catalogue/__tests__/realistic-orders.test.ts`
+  - **9/9 scenarios passing** (WhatsApp texts, voice call transcripts, broken cases, Dabba polysemy, Devanagari script, 10-line mega orders).
+- **Combined Automated Verification:** **197/197 passing unit tests** across the entire codebase.
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors.
+
+---
+
+## Realistic FMCG Catalogue & WhatsApp Order Benchmark (`catalogue/`)
+
+### 1. Features Implemented
+- [x] **Authentic 36-SKU Wholesale Catalog (`catalogue/catalog-data.ts`, `catalogue/catalog-data.json`):**
+  - Modeled after genuine high-turnover FMCG wholesale operations in Jabalpur, Madhya Pradesh across 7 primary categories:
+    1. *Biscuits & Confectionery* (Parle-G 75g/250g, Good Day Butter, Marie Gold, Oreo, Dark Fantasy)
+    2. *Tea, Coffee & Beverages* (Tata Tea Gold 500g, Tata Agni, Wagh Bakri 250g, Red Label, Nescafe)
+    3. *Edible Oils & Ghee* (Fortune Sunflower 1L/15L Tin, Fortune Kachi Ghani Mustard 1L, Mahakosh Soya 1L, Amul Ghee 1L)
+    4. *Laundry & Detergents* (Ghadi Powder 1kg/500g, Ghadi Cake, Surf Excel 1kg, Wheel Active 1kg, Rin Bar)
+    5. *Personal Care & Toilet Soaps* (Dettol 125g/75g, Lifebuoy 100g, Lux Rose 100g, Colgate 100g, Clinic Plus 80ml)
+    6. *Packaged Foods & Spices* (Maggi 70g/140g, YiPPee 65g, Tata Salt 1kg, Everest Garam Masala 100g)
+    7. *Home Care & Cleaning* (Vim Bar 500g, Good Knight Refill 45ml, Harpic 500ml)
+  - Detailed packaging hierarchies: Single retail packs, inner display boxes (12-24 units), wholesale master corrugated cartons (peti of 16-96 units), and 15L industrial tins.
+  - Realistic wholesale financials: MRP, pack price, case dealer price ex-tax, HSN codes, and 50/50 intra-state GST rates (5%, 12%, 18%).
+  - Genuine manufacturer trade schemes: Buy 10 Get 1 Free, multi-tier slab percentage discounts, and flat cash rebates per case.
+  - Extensive vernacular aliases & dialect nicknames (`aliases`) in Hinglish and Devanagari script for every SKU.
+- [x] **Intelligent WhatsApp Header & Footer Courtesy Filter:**
+  - Automatically isolates and filters non-product conversational filler lines from raw WhatsApp texts and call transcripts (e.g., *"bhaiya sharma store se order likho"*, *"sethji namaste"*, *"kal subah tak delivery karwa dena urgent hai"*, *"bas itna hi likhiye baaki kal dekhenge"*).
+  - Guarantees carts are populated strictly with ordered products, with zero bogus header/footer lines.
+- [x] **Realistic WhatsApp Order Scenario Dataset (`catalogue/datasets/realistic-orders.ts`, `.json`):**
+  - 9 comprehensive scenarios testing daily Kirana wholesale ordering patterns:
+    - Daily WhatsApp texts with mixed Hinglish, aliases, and courtesies
+    - The "Dabba" polysemic dilemma (15L oil tin vs 24-pack biscuit box)
+    - Broken case / cut pack requests with explanatory clauses
+    - Vernacular fractional weights (*aadha*, *derh*, *do darjan*)
+    - Pure Devanagari Hindi orders with Devanagari numerals
+    - Spoken phone call / audio note speech-to-text transcriptions with conversational interruptions
+    - Missing packaging units triggering disambiguation cards
+    - Out-of-catalog hardware/construction items safely rejected
+    - 10-line mega wholesale orders covering all major FMCG categories
+- [x] **Automated Vitest Benchmark Suite (`catalogue/__tests__/realistic-orders.test.ts`):**
+  - Validates 100% of scenarios against the 5-Tier Adaptive Cascaded Engine.
+
+### 2. Files Created
+- `catalogue/types.ts` - FMCG catalog TypeScript contracts
+- `catalogue/catalog-data.ts` - 36 authentic wholesale SKUs
+- `catalogue/catalog-data.json` - Standalone JSON catalog export
+- `catalogue/index.ts` - Catalog query service and `buildCatalogAliasMap()`
+- `catalogue/datasets/realistic-orders.ts` - 9 realistic Kirana WhatsApp/call scenarios
+- `catalogue/datasets/realistic-orders.json` - Standalone JSON scenario export
+- `catalogue/__tests__/realistic-orders.test.ts` - Automated test suite (9/9 passed)
+- `catalogue/README.md` - Technical specification & packaging documentation
+
+---
 
 ---
 

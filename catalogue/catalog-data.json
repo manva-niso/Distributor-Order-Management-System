@@ -1,0 +1,1199 @@
+[
+  {
+    "id": "SKU-BS-PG075",
+    "code": "SKU-BS-PG075",
+    "name": "Parle-G Glucose Biscuit 75g",
+    "brand": "Parle",
+    "manufacturer": "Parle Products Pvt. Ltd.",
+    "category": "Biscuits & Confectionery",
+    "packSize": "75g",
+    "packaging": {
+      "unitsPerInnerBox": 24,
+      "unitsPerCase": 96,
+      "masterCaseWeightKg": 7.2,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 96,
+    "mrp": 10,
+    "packPrice": 8.1,
+    "dealerPrice": 777.6,
+    "stockCases": 340,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 10,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "pila wala",
+      "peela wala",
+      "pila biscuit",
+      "chhota biscuit",
+      "parle pila",
+      "parle g 75g",
+      "glucose packet",
+      "chhota glucose",
+      "पीला वाला",
+      "छोटा बिस्कुट",
+      "पारले जी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BS-PG250",
+    "code": "SKU-BS-PG250",
+    "name": "Parle-G Glucose Biscuit 250g Family Pack",
+    "brand": "Parle",
+    "manufacturer": "Parle Products Pvt. Ltd.",
+    "category": "Biscuits & Confectionery",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 36,
+      "masterCaseWeightKg": 9
+    },
+    "unitsPerCase": 36,
+    "mrp": 30,
+    "packPrice": 25,
+    "dealerPrice": 900,
+    "stockCases": 140,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 4,
+      "discountPct": 5
+    },
+    "aliases": [
+      "bada parle",
+      "bada parle g",
+      "parle 250g",
+      "family pack parle",
+      "bada peela",
+      "बड़ा पारले जी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BS-GD120",
+    "code": "SKU-BS-GD120",
+    "name": "Britannia Good Day Butter Cookies 120g",
+    "brand": "Britannia",
+    "manufacturer": "Britannia Industries Ltd.",
+    "category": "Biscuits & Confectionery",
+    "packSize": "120g",
+    "packaging": {
+      "unitsPerInnerBox": 12,
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 5.76,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 48,
+    "mrp": 35,
+    "packPrice": 28,
+    "dealerPrice": 1344,
+    "stockCases": 160,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 4,
+      "discountPct": 5
+    },
+    "aliases": [
+      "good day",
+      "gudday",
+      "butter biscuit",
+      "good day butter",
+      "gudde",
+      "गुड डे",
+      "मक्खन बिस्कुट"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BS-MG250",
+    "code": "SKU-BS-MG250",
+    "name": "Britannia Marie Gold Tea Biscuit 250g",
+    "brand": "Britannia",
+    "manufacturer": "Britannia Industries Ltd.",
+    "category": "Biscuits & Confectionery",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 36,
+      "masterCaseWeightKg": 9
+    },
+    "unitsPerCase": 36,
+    "mrp": 45,
+    "packPrice": 36,
+    "dealerPrice": 1296,
+    "stockCases": 95,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "FLAT_REBATE",
+    "schemeDetail": {
+      "flatPerCase": 30,
+      "minCasesForRebate": 3
+    },
+    "aliases": [
+      "marie",
+      "meri gold",
+      "marie gold",
+      "chai biscuit",
+      "patla biscuit",
+      "मारी गोल्ड",
+      "मेरी गोल्ड"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BS-OR120",
+    "code": "SKU-BS-OR120",
+    "name": "Cadbury Oreo Vanilla Cream Biscuits 120g",
+    "brand": "Cadbury",
+    "manufacturer": "Mondelez India Foods Pvt. Ltd.",
+    "category": "Biscuits & Confectionery",
+    "packSize": "120g",
+    "packaging": {
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 5.76
+    },
+    "unitsPerCase": 48,
+    "mrp": 35,
+    "packPrice": 29,
+    "dealerPrice": 1392,
+    "stockCases": 110,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "oreo",
+      "orio",
+      "kala biscuit",
+      "black biscuit",
+      "oreo cream",
+      "ओरियो"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BS-DF075",
+    "code": "SKU-BS-DF075",
+    "name": "Sunfeast Dark Fantasy Choco Fills 75g",
+    "brand": "Sunfeast",
+    "manufacturer": "ITC Limited",
+    "category": "Biscuits & Confectionery",
+    "packSize": "75g",
+    "packaging": {
+      "unitsPerCase": 36,
+      "masterCaseWeightKg": 2.7
+    },
+    "unitsPerCase": 36,
+    "mrp": 40,
+    "packPrice": 33,
+    "dealerPrice": 1188,
+    "stockCases": 70,
+    "hsnCode": "19053100",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "dark fantasy",
+      "choco fills",
+      "chocolate biscuit",
+      "itc fantasy",
+      "डार्क फैंटेसी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-TE-TT500",
+    "code": "SKU-TE-TT500",
+    "name": "Tata Tea Gold Premium Black Tea 500g",
+    "brand": "Tata",
+    "manufacturer": "Tata Consumer Products Ltd.",
+    "category": "Tea, Coffee & Beverages",
+    "packSize": "500g",
+    "packaging": {
+      "unitsPerCase": 24,
+      "masterCaseWeightKg": 12
+    },
+    "unitsPerCase": 24,
+    "mrp": 320,
+    "packPrice": 270,
+    "dealerPrice": 6480,
+    "stockCases": 42,
+    "hsnCode": "09024020",
+    "gstRate": 5,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 3,
+      "discountPct": 4
+    },
+    "aliases": [
+      "shakti chai",
+      "tata tea gold",
+      "tata gold",
+      "gold patti",
+      "kadak patti",
+      "shakti patti",
+      "टाटा गोल्ड",
+      "शक्ति चाय"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-TE-AG250",
+    "code": "SKU-TE-AG250",
+    "name": "Tata Tea Agni Dust Tea 250g",
+    "brand": "Tata",
+    "manufacturer": "Tata Consumer Products Ltd.",
+    "category": "Tea, Coffee & Beverages",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 12
+    },
+    "unitsPerCase": 48,
+    "mrp": 90,
+    "packPrice": 76,
+    "dealerPrice": 3648,
+    "stockCases": 85,
+    "hsnCode": "09024020",
+    "gstRate": 5,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 12,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "agni chai",
+      "tata agni",
+      "sasta tata",
+      "agni 250g",
+      "लाल चाय",
+      "अग्नि चाय"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-TE-WB250",
+    "code": "SKU-TE-WB250",
+    "name": "Wagh Bakri Premium Leaf Tea 250g",
+    "brand": "Wagh Bakri",
+    "manufacturer": "Gujarat Tea Processors & Packers Ltd.",
+    "category": "Tea, Coffee & Beverages",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 36,
+      "masterCaseWeightKg": 9
+    },
+    "unitsPerCase": 36,
+    "mrp": 160,
+    "packPrice": 135,
+    "dealerPrice": 4860,
+    "stockCases": 28,
+    "hsnCode": "09024020",
+    "gstRate": 5,
+    "schemeType": "FLAT_REBATE",
+    "schemeDetail": {
+      "flatPerCase": 25,
+      "minCasesForRebate": 2
+    },
+    "aliases": [
+      "wagh bakri",
+      "bakri chai",
+      "wb tea",
+      "bagh bakri",
+      "वाघ बकरी",
+      "बकरी चाय"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-TE-RL250",
+    "code": "SKU-TE-RL250",
+    "name": "Brooke Bond Red Label Tea 250g",
+    "brand": "Red Label",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Tea, Coffee & Beverages",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 40,
+      "masterCaseWeightKg": 10
+    },
+    "unitsPerCase": 40,
+    "mrp": 150,
+    "packPrice": 128,
+    "dealerPrice": 5120,
+    "stockCases": 55,
+    "hsnCode": "09024020",
+    "gstRate": 5,
+    "schemeType": "NONE",
+    "aliases": [
+      "red label",
+      "red lebal",
+      "brooke bond",
+      "swad apnepan ka",
+      "रेड लेबल",
+      "लाल डिब्बा चाय"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-BV-NC050",
+    "code": "SKU-BV-NC050",
+    "name": "Nescafe Classic 100% Pure Coffee Jar 50g",
+    "brand": "Nescafe",
+    "manufacturer": "Nestle India Ltd.",
+    "category": "Tea, Coffee & Beverages",
+    "packSize": "50g",
+    "packaging": {
+      "unitsPerCase": 24,
+      "masterCaseWeightKg": 4.8
+    },
+    "unitsPerCase": 24,
+    "mrp": 195,
+    "packPrice": 165,
+    "dealerPrice": 3960,
+    "stockCases": 35,
+    "hsnCode": "21011110",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "nescafe",
+      "coffee jar",
+      "chhota coffee",
+      "nescafe 50g",
+      "नेस्कैफे",
+      "कॉफ़ी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-OL-FT1L",
+    "code": "SKU-OL-FT1L",
+    "name": "Fortune Sunlite Refined Sunflower Oil 1L Pouch",
+    "brand": "Fortune",
+    "manufacturer": "Adani Wilmar Ltd.",
+    "category": "Edible Oils & Ghee",
+    "packSize": "1L",
+    "packaging": {
+      "unitsPerCase": 16,
+      "masterCaseWeightKg": 14.7
+    },
+    "unitsPerCase": 16,
+    "mrp": 145,
+    "packPrice": 117.5,
+    "dealerPrice": 1880,
+    "stockCases": 80,
+    "hsnCode": "15121910",
+    "gstRate": 5,
+    "schemeType": "FLAT_REBATE",
+    "schemeDetail": {
+      "flatPerCase": 40,
+      "minCasesForRebate": 5
+    },
+    "aliases": [
+      "surajmukhi tel",
+      "chidiya tel",
+      "refine tel",
+      "fortune tel",
+      "fortune 1 litre",
+      "mitha tel",
+      "सूरजमुखी तेल",
+      "चिड़िया तेल",
+      "फॉर्च्यून तेल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-OL-KG1L",
+    "code": "SKU-OL-KG1L",
+    "name": "Fortune Kachi Ghani Pure Mustard Oil 1L Pouch",
+    "brand": "Fortune",
+    "manufacturer": "Adani Wilmar Ltd.",
+    "category": "Edible Oils & Ghee",
+    "packSize": "1L",
+    "packaging": {
+      "unitsPerCase": 16,
+      "masterCaseWeightKg": 14.5
+    },
+    "unitsPerCase": 16,
+    "mrp": 155,
+    "packPrice": 126,
+    "dealerPrice": 2016,
+    "stockCases": 65,
+    "hsnCode": "15149110",
+    "gstRate": 5,
+    "schemeType": "NONE",
+    "aliases": [
+      "sarson tel",
+      "kadwa tel",
+      "kachi ghani",
+      "fortune mustard",
+      "sarso ka tel",
+      "सरसों का तेल",
+      "कड़वा तेल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-OL-FT15T",
+    "code": "SKU-OL-FT15T",
+    "name": "Fortune Sunlite Refined Sunflower Oil 15L Tin",
+    "brand": "Fortune",
+    "manufacturer": "Adani Wilmar Ltd.",
+    "category": "Edible Oils & Ghee",
+    "packSize": "15L",
+    "packaging": {
+      "unitsPerCase": 1,
+      "masterCaseWeightKg": 13.8,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 1,
+    "mrp": 2350,
+    "packPrice": 2080,
+    "dealerPrice": 2080,
+    "stockCases": 45,
+    "hsnCode": "15121910",
+    "gstRate": 5,
+    "schemeType": "FLAT_REBATE",
+    "schemeDetail": {
+      "flatPerCase": 50,
+      "minCasesForRebate": 2
+    },
+    "aliases": [
+      "fortune dabba",
+      "15 litre refine",
+      "refine tin",
+      "tel ka dabba",
+      "15 ltr tel",
+      "फॉर्च्यून डिब्बा",
+      "१५ लीटर तेल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-OL-MK1L",
+    "code": "SKU-OL-MK1L",
+    "name": "Mahakosh Refined Soyabean Oil 1L Pouch",
+    "brand": "Mahakosh",
+    "manufacturer": "Patanjali Foods Ltd. (Ruchi Soya)",
+    "category": "Edible Oils & Ghee",
+    "packSize": "1L",
+    "packaging": {
+      "unitsPerCase": 16,
+      "masterCaseWeightKg": 14.6
+    },
+    "unitsPerCase": 16,
+    "mrp": 130,
+    "packPrice": 106,
+    "dealerPrice": 1696,
+    "stockCases": 110,
+    "hsnCode": "15079010",
+    "gstRate": 5,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 4,
+      "discountPct": 3
+    },
+    "aliases": [
+      "soya tel",
+      "mahakosh",
+      "soyabean refine",
+      "ruchi soya",
+      "महाकोश तेल",
+      "सोयाबीन तेल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-GH-AM1L",
+    "code": "SKU-GH-AM1L",
+    "name": "Amul Pure Ghee 1L Tin",
+    "brand": "Amul",
+    "manufacturer": "GCMMF Ltd. (Amul)",
+    "category": "Edible Oils & Ghee",
+    "packSize": "1L",
+    "packaging": {
+      "unitsPerCase": 12,
+      "masterCaseWeightKg": 11,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 12,
+    "mrp": 650,
+    "packPrice": 570,
+    "dealerPrice": 6840,
+    "stockCases": 30,
+    "hsnCode": "04059020",
+    "gstRate": 12,
+    "schemeType": "NONE",
+    "aliases": [
+      "amul ghee",
+      "deshi ghee",
+      "asli ghee",
+      "ghee tin",
+      "amul 1 litre ghee",
+      "अमूल घी",
+      "देसी घी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-GH1KG",
+    "code": "SKU-DT-GH1KG",
+    "name": "Ghadi Detergent Powder 1kg Poly Pack",
+    "brand": "Ghadi",
+    "manufacturer": "RSPL Limited",
+    "category": "Laundry & Detergents",
+    "packSize": "1kg",
+    "packaging": {
+      "unitsPerCase": 20,
+      "masterCaseWeightKg": 20
+    },
+    "unitsPerCase": 20,
+    "mrp": 70,
+    "packPrice": 58,
+    "dealerPrice": 1160,
+    "stockCases": 190,
+    "hsnCode": "34029011",
+    "gstRate": 18,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 10,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "kapde dhone wala ghadi",
+      "ghari powder",
+      "ghadi 1kg",
+      "ek kilo ghadi",
+      "ghadi surf",
+      "घड़ी पाउडर",
+      "कपड़े धोने वाला घड़ी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-GH500",
+    "code": "SKU-DT-GH500",
+    "name": "Ghadi Detergent Powder 500g Poly Pack",
+    "brand": "Ghadi",
+    "manufacturer": "RSPL Limited",
+    "category": "Laundry & Detergents",
+    "packSize": "500g",
+    "packaging": {
+      "unitsPerCase": 40,
+      "masterCaseWeightKg": 20
+    },
+    "unitsPerCase": 40,
+    "mrp": 36,
+    "packPrice": 29.5,
+    "dealerPrice": 1180,
+    "stockCases": 130,
+    "hsnCode": "34029011",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "aadha kilo ghadi",
+      "ghadi aadha kilo",
+      "chhota ghadi powder",
+      "ghadi 500g",
+      "आधा किलो घड़ी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-CK250",
+    "code": "SKU-DT-CK250",
+    "name": "Ghadi Detergent Laundry Cake 250g Bar",
+    "brand": "Ghadi",
+    "manufacturer": "RSPL Limited",
+    "category": "Laundry & Detergents",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 72,
+      "masterCaseWeightKg": 18
+    },
+    "unitsPerCase": 72,
+    "mrp": 15,
+    "packPrice": 12.75,
+    "dealerPrice": 918,
+    "stockCases": 150,
+    "hsnCode": "34011941",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 6,
+      "discountPct": 5
+    },
+    "aliases": [
+      "bartan bar",
+      "ghadi tikiya",
+      "ghadi sabun",
+      "kapde ki tikiya",
+      "laundry soap",
+      "घड़ी टिकिया",
+      "घड़ी साबुन"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-SE1KG",
+    "code": "SKU-DT-SE1KG",
+    "name": "Surf Excel Easy Wash Detergent Powder 1kg",
+    "brand": "Surf Excel",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Laundry & Detergents",
+    "packSize": "1kg",
+    "packaging": {
+      "unitsPerCase": 16,
+      "masterCaseWeightKg": 16
+    },
+    "unitsPerCase": 16,
+    "mrp": 145,
+    "packPrice": 117.5,
+    "dealerPrice": 1880,
+    "stockCases": 85,
+    "hsnCode": "34029011",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 3,
+      "discountPct": 3
+    },
+    "aliases": [
+      "bada surf",
+      "surf excel",
+      "easy wash",
+      "mehenga surf",
+      "surf 1kg",
+      "सर्फ एक्सेल",
+      "बड़ा सर्फ"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-WH1KG",
+    "code": "SKU-DT-WH1KG",
+    "name": "Wheel Active 2-in-1 Detergent Powder 1kg",
+    "brand": "Wheel",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Laundry & Detergents",
+    "packSize": "1kg",
+    "packaging": {
+      "unitsPerCase": 20,
+      "masterCaseWeightKg": 20
+    },
+    "unitsPerCase": 20,
+    "mrp": 65,
+    "packPrice": 54,
+    "dealerPrice": 1080,
+    "stockCases": 90,
+    "hsnCode": "34029011",
+    "gstRate": 18,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 15,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "wheel powder",
+      "active wheel",
+      "neela wheel",
+      "wheel 1kg",
+      "व्हील पाउडर"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DT-RN250",
+    "code": "SKU-DT-RN250",
+    "name": "Rin Advanced Detergent Laundry Bar 250g",
+    "brand": "Rin",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Laundry & Detergents",
+    "packSize": "250g",
+    "packaging": {
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 12
+    },
+    "unitsPerCase": 48,
+    "mrp": 22,
+    "packPrice": 18.3,
+    "dealerPrice": 878.4,
+    "stockCases": 95,
+    "hsnCode": "34011941",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "rin sabun",
+      "rin tikiya",
+      "chamkila sabun",
+      "rin bar",
+      "रिन साबुन",
+      "रिन टिकिया"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-DT125",
+    "code": "SKU-PC-DT125",
+    "name": "Dettol Original Bathing Soap 125g",
+    "brand": "Dettol",
+    "manufacturer": "Reckitt Benckiser India Pvt. Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "125g",
+    "packaging": {
+      "unitsPerInnerBox": 12,
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 6,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 48,
+    "mrp": 58,
+    "packPrice": 46.8,
+    "dealerPrice": 2246.4,
+    "stockCases": 110,
+    "hsnCode": "34011110",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 4,
+      "discountPct": 4
+    },
+    "aliases": [
+      "nahane wala dettol",
+      "dettol sabun",
+      "bada dettol",
+      "dettol 125g",
+      "डेटॉल साबुन",
+      "नहाने वाला डेटॉल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-DT075",
+    "code": "SKU-PC-DT075",
+    "name": "Dettol Original Bathing Soap 75g",
+    "brand": "Dettol",
+    "manufacturer": "Reckitt Benckiser India Pvt. Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "75g",
+    "packaging": {
+      "unitsPerInnerBox": 24,
+      "unitsPerCase": 72,
+      "masterCaseWeightKg": 5.4,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 72,
+    "mrp": 38,
+    "packPrice": 31,
+    "dealerPrice": 2232,
+    "stockCases": 80,
+    "hsnCode": "34011110",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "chhota dettol",
+      "dettol 75g",
+      "dettol chhota sabun",
+      "छोटा डेटॉल"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-LB100",
+    "code": "SKU-PC-LB100",
+    "name": "Lifebuoy Total Germ Protection Soap 100g",
+    "brand": "Lifebuoy",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "100g",
+    "packaging": {
+      "unitsPerCase": 60,
+      "masterCaseWeightKg": 6
+    },
+    "unitsPerCase": 60,
+    "mrp": 36,
+    "packPrice": 29.5,
+    "dealerPrice": 1770,
+    "stockCases": 75,
+    "hsnCode": "34011110",
+    "gstRate": 18,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 12,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "lal sabun",
+      "lifebuoy",
+      "laal tikiya",
+      "life boy",
+      "लाल साबुन",
+      "लाइफबॉय"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-LX100",
+    "code": "SKU-PC-LX100",
+    "name": "Lux Soft Touch Rose Bath Soap 100g",
+    "brand": "Lux",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "100g",
+    "packaging": {
+      "unitsPerCase": 60,
+      "masterCaseWeightKg": 6
+    },
+    "unitsPerCase": 60,
+    "mrp": 42,
+    "packPrice": 34.5,
+    "dealerPrice": 2070,
+    "stockCases": 65,
+    "hsnCode": "34011110",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "lux sabun",
+      "gulabi sabun",
+      "khushbu wala sabun",
+      "lux rose",
+      "लक्स साबुन",
+      "गुलाबी साबुन"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-CG100",
+    "code": "SKU-PC-CG100",
+    "name": "Colgate Strong Teeth Dental Cream Toothpaste 100g",
+    "brand": "Colgate",
+    "manufacturer": "Colgate-Palmolive India Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "100g",
+    "packaging": {
+      "unitsPerInnerBox": 12,
+      "unitsPerCase": 72,
+      "masterCaseWeightKg": 8.5,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 72,
+    "mrp": 65,
+    "packPrice": 53,
+    "dealerPrice": 3816,
+    "stockCases": 95,
+    "hsnCode": "33061020",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 3,
+      "discountPct": 5
+    },
+    "aliases": [
+      "colgate",
+      "colgate paste",
+      "dant manjan",
+      "safed colgate",
+      "colgate 100g",
+      "कोलगेट पेस्ट",
+      "दंत मंजन"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-PC-CP080",
+    "code": "SKU-PC-CP080",
+    "name": "Clinic Plus Strong & Long Health Shampoo 80ml",
+    "brand": "Clinic Plus",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Personal Care & Toilet Soaps",
+    "packSize": "80ml",
+    "packaging": {
+      "unitsPerCase": 36,
+      "masterCaseWeightKg": 3.5
+    },
+    "unitsPerCase": 36,
+    "mrp": 70,
+    "packPrice": 57.5,
+    "dealerPrice": 2070,
+    "stockCases": 55,
+    "hsnCode": "33051090",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "clinic plus",
+      "shampoo bottle",
+      "neela shampoo",
+      "clinic 80ml",
+      "क्लिनिक प्लस",
+      "शैम्पू"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-FD-MG070",
+    "code": "SKU-FD-MG070",
+    "name": "Maggi 2-Minute Masala Instant Noodles 70g",
+    "brand": "Maggi",
+    "manufacturer": "Nestle India Ltd.",
+    "category": "Packaged Foods & Noodles",
+    "packSize": "70g",
+    "packaging": {
+      "unitsPerCase": 96,
+      "masterCaseWeightKg": 6.72
+    },
+    "unitsPerCase": 96,
+    "mrp": 14,
+    "packPrice": 11.6,
+    "dealerPrice": 1113.6,
+    "stockCases": 210,
+    "hsnCode": "19023010",
+    "gstRate": 12,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 10,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "10 wala maggi",
+      "chhota maggi",
+      "maggi packet",
+      "masala noodles",
+      "maggi 70g",
+      "मैगी",
+      "छोटा मैगी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-FD-MG140",
+    "code": "SKU-FD-MG140",
+    "name": "Maggi 2-Minute Masala Instant Noodles 140g Double Pack",
+    "brand": "Maggi",
+    "manufacturer": "Nestle India Ltd.",
+    "category": "Packaged Foods & Noodles",
+    "packSize": "140g",
+    "packaging": {
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 6.72
+    },
+    "unitsPerCase": 48,
+    "mrp": 28,
+    "packPrice": 23,
+    "dealerPrice": 1104,
+    "stockCases": 120,
+    "hsnCode": "19023010",
+    "gstRate": 12,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 3,
+      "discountPct": 4
+    },
+    "aliases": [
+      "bada maggi",
+      "double maggi",
+      "maggi 140g",
+      "दो वाला मैगी",
+      "बड़ा मैगी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-FD-YP065",
+    "code": "SKU-FD-YP065",
+    "name": "Sunfeast YiPPee! Magic Masala Noodles 65g",
+    "brand": "YiPPee",
+    "manufacturer": "ITC Limited",
+    "category": "Packaged Foods & Noodles",
+    "packSize": "65g",
+    "packaging": {
+      "unitsPerCase": 96,
+      "masterCaseWeightKg": 6.24
+    },
+    "unitsPerCase": 96,
+    "mrp": 14,
+    "packPrice": 11.45,
+    "dealerPrice": 1099.2,
+    "stockCases": 80,
+    "hsnCode": "19023010",
+    "gstRate": 12,
+    "schemeType": "NONE",
+    "aliases": [
+      "yippee",
+      "yippi",
+      "itc noodles",
+      "magic masala",
+      "gol maggi",
+      "यिप्पी"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-FD-TS1KG",
+    "code": "SKU-FD-TS1KG",
+    "name": "Tata Salt Vacuum Evaporated Iodised Salt 1kg",
+    "brand": "Tata",
+    "manufacturer": "Tata Consumer Products Ltd.",
+    "category": "Packaged Foods & Noodles",
+    "packSize": "1kg",
+    "packaging": {
+      "unitsPerCase": 25,
+      "masterCaseWeightKg": 25
+    },
+    "unitsPerCase": 25,
+    "mrp": 28,
+    "packPrice": 23.2,
+    "dealerPrice": 580,
+    "stockCases": 160,
+    "hsnCode": "25010010",
+    "gstRate": 5,
+    "schemeType": "NONE",
+    "aliases": [
+      "tata namak",
+      "desh ka namak",
+      "iodised salt",
+      "tata salt 1kg",
+      "टाटा नमक",
+      "नमक की थैली"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-SP-EV100",
+    "code": "SKU-SP-EV100",
+    "name": "Everest Garam Masala Powder 100g Carton",
+    "brand": "Everest",
+    "manufacturer": "S N Narendra Kumar & Co.",
+    "category": "Packaged Foods & Noodles",
+    "packSize": "100g",
+    "packaging": {
+      "unitsPerInnerBox": 10,
+      "unitsPerCase": 40,
+      "masterCaseWeightKg": 4.8,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 40,
+    "mrp": 92,
+    "packPrice": 75.5,
+    "dealerPrice": 3020,
+    "stockCases": 50,
+    "hsnCode": "09109100",
+    "gstRate": 5,
+    "schemeType": "FLAT_REBATE",
+    "schemeDetail": {
+      "flatPerCase": 50,
+      "minCasesForRebate": 2
+    },
+    "aliases": [
+      "everest masala",
+      "garam masala",
+      "everest garam masala",
+      "everest 100g",
+      "एवरेस्ट गरम मसाला"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-DB-VM500",
+    "code": "SKU-DB-VM500",
+    "name": "Vim Dishwash Lemon Bar 500g Tub",
+    "brand": "Vim",
+    "manufacturer": "Hindustan Unilever Ltd.",
+    "category": "Home Care & Cleaning",
+    "packSize": "500g",
+    "packaging": {
+      "unitsPerCase": 30,
+      "masterCaseWeightKg": 15,
+      "isPolysemicDabbaUnit": true
+    },
+    "unitsPerCase": 30,
+    "mrp": 40,
+    "packPrice": 32.5,
+    "dealerPrice": 975,
+    "stockCases": 110,
+    "hsnCode": "34011942",
+    "gstRate": 18,
+    "schemeType": "FREE_GOODS",
+    "schemeDetail": {
+      "buyQty": 10,
+      "getFreeQty": 1
+    },
+    "aliases": [
+      "bada vim bar",
+      "vim bar 500g",
+      "vim sabun",
+      "bartan bar",
+      "nimbu bar",
+      "विम बार",
+      "बर्तन धोने का साबुन"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-HC-GK045",
+    "code": "SKU-HC-GK045",
+    "name": "Good Knight Gold Flash Liquid Mosquito Vaporizer Refill 45ml",
+    "brand": "Good Knight",
+    "manufacturer": "Godrej Consumer Products Ltd.",
+    "category": "Home Care & Cleaning",
+    "packSize": "45ml",
+    "packaging": {
+      "unitsPerCase": 48,
+      "masterCaseWeightKg": 4
+    },
+    "unitsPerCase": 48,
+    "mrp": 85,
+    "packPrice": 70.4,
+    "dealerPrice": 3379.2,
+    "stockCases": 40,
+    "hsnCode": "38089191",
+    "gstRate": 18,
+    "schemeType": "SLAB_DISCOUNT",
+    "schemeDetail": {
+      "minCases": 4,
+      "discountPct": 5
+    },
+    "aliases": [
+      "machhar dava",
+      "good knight refill",
+      "good night machine",
+      "mosquito liquid",
+      "गुड नाइट रिफिल",
+      "मच्छर की दवा"
+    ],
+    "active": true
+  },
+  {
+    "id": "SKU-HC-HP500",
+    "code": "SKU-HC-HP500",
+    "name": "Harpic Power Plus Disinfectant Toilet Cleaner 500ml",
+    "brand": "Harpic",
+    "manufacturer": "Reckitt Benckiser India Pvt. Ltd.",
+    "category": "Home Care & Cleaning",
+    "packSize": "500ml",
+    "packaging": {
+      "unitsPerCase": 24,
+      "masterCaseWeightKg": 13.5
+    },
+    "unitsPerCase": 24,
+    "mrp": 99,
+    "packPrice": 81.5,
+    "dealerPrice": 1956,
+    "stockCases": 60,
+    "hsnCode": "34029099",
+    "gstRate": 18,
+    "schemeType": "NONE",
+    "aliases": [
+      "harpic",
+      "neela harpic",
+      "toilet cleaner",
+      "harpic 500ml",
+      "हार्पिक",
+      "टॉयलेट क्लीनर"
+    ],
+    "active": true
+  }
+]

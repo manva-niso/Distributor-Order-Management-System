@@ -508,6 +508,67 @@ function extractAndStripExplanatoryClause(text: string): { cleanedText: string; 
   return { cleanedText: text, explanatoryCapacity: null };
 }
 
+export const ALL_UNIT_KEYWORDS = [
+  ...CASE_KEYWORDS,
+  ...PACK_KEYWORDS,
+  ...AMBIGUOUS_UNIT_KEYWORDS,
+  "kg",
+  "kilo",
+  "किलो",
+  "g",
+  "gm",
+  "gram",
+  "लीटर",
+  "ltr",
+  "liter",
+  "litre",
+  "tin",
+  "टिन",
+];
+
+const CONVERSATIONAL_PATTERNS = [
+  /\b(?:namaste|hello|pranam|ram\s*ram|salaam|namaskar)\b/i,
+  /\b(?:order\s*likho|order\s*note|order\s*bhejo|order\s*hai|likhiye)\b/i,
+  /\b(?:bol\s*raha\s*hu|se\s*bol\s*rahe|store\s*se|dukan\s*se|market\s*se)\b/i,
+  /\b(?:delivery\s*(?:karwa|karva|karna|karana|dena|karo|bhejo))\b/i,
+  /\b(?:kal\s*subah|subah\s*tak|shaam\s*ko|jaldi\s*(?:bhejo|dena)|urgent\s*hai)\b/i,
+  /\b(?:baaki\s*kal|itna\s*hi|aur\s*kuch\s*nahi|shukriya|dhanyawad|thanks)\b/i,
+];
+
+export function isConversationalFiller(segment: string): boolean {
+  const norm = segment.toLowerCase().trim();
+  if (norm.length === 0) return true;
+
+  // If segment contains any numeric quantity, it is NOT a filler
+  if (/\d/.test(norm)) return false;
+
+  // Check word numbers (e.g. ek, do, teen, aadha, derh)
+  const words = norm
+    .replace(/[.,!?:;]+/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+  for (const w of words) {
+    if (WORD_NUMBERS[w] !== undefined) return false;
+  }
+
+  // Check packaging unit keywords (peti, case, pack, dabba, carton, piece) on word boundaries
+  for (const u of ALL_UNIT_KEYWORDS) {
+    const regex = new RegExp(`(^|\\s)${u}($|\\s|[0-9])`, "i");
+    if (regex.test(norm)) return false;
+  }
+
+  // If it matches any conversational greeting or footer pattern, it's filler
+  for (const pat of CONVERSATIONAL_PATTERNS) {
+    if (pat.test(norm)) return true;
+  }
+
+  // If every word in the segment is a noise word
+  const nonNoiseWords = words.filter((w) => !NOISE_WORDS.includes(w) && w.length > 1);
+  if (nonNoiseWords.length === 0) return true;
+
+  return false;
+}
+
 /**
  * Splits raw multi-item order text into individual item lines
  */
@@ -521,7 +582,8 @@ export function splitOrderTextIntoLines(rawText: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  return rawSegments;
+  const nonFiller = rawSegments.filter((s) => !isConversationalFiller(s));
+  return nonFiller.length > 0 ? nonFiller : rawSegments;
 }
 
 /**

@@ -99,9 +99,15 @@ The Engine contains a built-in regional alias dictionary (`SEED_ALIASES`) mapped
 | *"nahane wala dettol"* | Dettol Bathing Soap 125g | `SKU-PC-DT125` |
 | *"lal sabun"* | Lifebuoy Soap 100g | `SKU-PC-LB100` |
 
-### C. Conversational Courtesy Stripping
-Shopkeepers often add polite phrases (*"bhaiya"*, *"sethji"*, *"kal subah jaldi bhejo"*, *"urgent order hai"*).  
-The Engine gently filters out these non-product words so they don't confuse the catalog lookup.
+### C. Conversational Courtesy Stripping (Clean WhatsApp & Call Transcripts)
+Shopkeepers almost never send just a sterile list of items. A real WhatsApp text or voice call transcript looks like this:
+> *"bhaiya namaste, sharma store se order likho... 10 peti pila wala aur 2 peti shakti chai... kal subah tak delivery karwa dena urgent hai"*
+
+If a basic computer program reads this, it might mistakenly try to look up *"sharma store"* or *"delivery"* in the product catalog and throw errors.  
+The Engine contains an **Intelligent Courtesy Filter**:
+- It identifies and strips greeting headers (*"bhaiya namaste"*, *"order likho"*, *"se bol raha hu"*).
+- It identifies and strips delivery footers (*"kal subah tak delivery karwa dena"*, *"urgent hai"*, *"baaki kal dekhenge"*).
+- It isolates **only the true product lines** so the cart is 100% clean, with zero bogus items.
 
 ---
 
