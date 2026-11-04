@@ -1,0 +1,24 @@
+{
+  "name": "@isolabs/order-engine",
+  "version": "1.0.0",
+  "description": "Standalone FMCG AI Demand Detection, Unit Disambiguation & Universal Scheme Calculation Engine",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "fmcg",
+    "ai-order-capture",
+    "trade-schemes",
+    "tally-erp",
+    "hinglish-nlp"
+  ],
+  "author": "IsoLabs",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
