@@ -8,10 +8,11 @@ import {
   SkuCandidate,
   OrderParserPipeline,
   ParserContext,
+  BrokenCaseInfo,
 } from "./types";
 
 // Hindi Devanagari digit translation map
-const DEVANAGARI_DIGITS: Record<string, string> = {
+export const DEVANAGARI_DIGITS: Record<string, string> = {
   "०": "0",
   "१": "1",
   "२": "2",
@@ -24,8 +25,8 @@ const DEVANAGARI_DIGITS: Record<string, string> = {
   "९": "9",
 };
 
-// Word numeral translations (Latin Hinglish, English, and Devanagari Hindi)
-const WORD_NUMBERS: Record<string, number> = {
+// Comprehensive word numerals & local weights (English, Hinglish, and Devanagari Hindi)
+export const WORD_NUMBERS: Record<string, number> = {
   // English
   one: 1,
   two: 2,
@@ -39,10 +40,20 @@ const WORD_NUMBERS: Record<string, number> = {
   ten: 10,
   eleven: 11,
   twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
   fifteen: 15,
+  sixteen: 16,
   twenty: 20,
   twentyfive: 25,
-  // Hinglish
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  hundred: 100,
+  half: 0.5,
+  quarter: 0.25,
+
+  // Hinglish Numerals
   ek: 1,
   do: 2,
   teen: 3,
@@ -58,12 +69,33 @@ const WORD_NUMBERS: Record<string, number> = {
   das: 10,
   gyarah: 11,
   barah: 12,
+  terah: 13,
+  chaudah: 14,
   pandrah: 15,
+  solah: 16,
+  satrah: 17,
+  atharah: 18,
+  unnees: 19,
   bees: 20,
   pachees: 25,
+  tees: 30,
+  chalees: 40,
+  pachas: 50,
+  sau: 100,
+
+  // Regional Jabalpur Vernacular Fractional Weights & Multipliers
   aadha: 0.5,
   adha: 0.5,
-  // Devanagari
+  sawa: 1.25,
+  derh: 1.5,
+  dedh: 1.5,
+  dhai: 2.5,
+  adhai: 2.5,
+  pao: 0.25,
+  pav: 0.25,
+  paanv: 0.25,
+
+  // Devanagari Hindi Numerals
   एक: 1,
   दो: 2,
   तीन: 3,
@@ -77,14 +109,27 @@ const WORD_NUMBERS: Record<string, number> = {
   दस: 10,
   ग्यारह: 11,
   बारह: 12,
+  तेरह: 13,
+  चौदह: 14,
   पंद्रह: 15,
+  सोलह: 16,
+  सत्रह: 17,
+  अठारह: 18,
+  उन्नीस: 19,
   बीस: 20,
   पच्चीस: 25,
+  तीस: 30,
+  पचास: 50,
+  सौ: 100,
   आधा: 0.5,
+  डेढ़: 1.5,
+  ढाई: 2.5,
+  सवा: 1.25,
+  पाव: 0.25,
 };
 
-// Wholesale Master Case Keywords
-const CASE_KEYWORDS = [
+// Wholesale Master Case Keywords (Explicit Wholesale Packaging)
+export const CASE_KEYWORDS = [
   "peti",
   "petee",
   "petti",
@@ -95,20 +140,23 @@ const CASE_KEYWORDS = [
   "boxes",
   "carton",
   "cartons",
-  "dabba",
-  "dabbe",
   "crate",
+  "crates",
+  "bora",
+  "bori",
+  "katta",
+  "kattay",
   "पेटी",
   "पेटियां",
   "पेटिया",
-  "डिब्बा",
-  "डिब्बे",
-  "बॉक्स",
   "कार्टन",
+  "बॉक्स",
+  "बोरी",
+  "कट्टा",
 ];
 
-// Retail Loose Pack Keywords
-const PACK_KEYWORDS = [
+// Retail Loose Pack Keywords (Single Consumer Units)
+export const PACK_KEYWORDS = [
   "packet",
   "packets",
   "pack",
@@ -121,17 +169,41 @@ const PACK_KEYWORDS = [
   "pcs",
   "pouch",
   "pouches",
+  "tikiya",
+  "tikki",
+  "tikia",
+  "nang",
   "पैकेट",
   "पैक",
   "पीस",
   "पाउच",
+  "टिकिया",
+  "नग",
 ];
 
-// Conversational filler words to strip out
-const NOISE_WORDS = [
+// Ambiguous Unit Keywords ("Dabba" Invariant [A16] Guardrail)
+// In MP Kirana trade, "dabba" can mean an oil tin (15L), an inner carton (12-24 pkts), or a master case.
+export const AMBIGUOUS_UNIT_KEYWORDS = [
+  "dabba",
+  "dabbe",
+  "dibba",
+  "dibbe",
+  "डिब्बा",
+  "डिब्बे",
+  "डब्बा",
+  "डब्बे",
+];
+
+// Conversational filler & noise words in Jabalpur kirana trade
+export const NOISE_WORDS = [
   "bhaiya",
+  "bhayya",
   "bhai",
+  "sethji",
+  "seth",
+  "babuji",
   "ji",
+  "sir",
   "chahiye",
   "bhejo",
   "bhej",
@@ -140,20 +212,26 @@ const NOISE_WORDS = [
   "de",
   "do",
   "likho",
+  "likh",
+  "likhiye",
   "order",
   "jaldi",
-  "please",
+  "turant",
   "urgent",
+  "please",
   "aur",
   "and",
+  "plus",
+  "tatha",
   "kal",
+  "aaj",
   "subah",
+  "sham",
+  "shaam",
   "parchi",
+  "list",
   "namaste",
   "ram",
-  "wala",
-  "wali",
-  "wale",
   "ka",
   "ki",
   "ke",
@@ -171,6 +249,7 @@ const NOISE_WORDS = [
   "with",
   "भैया",
   "भाई",
+  "सेठजी",
   "जी",
   "चाहिए",
   "भेज",
@@ -183,9 +262,6 @@ const NOISE_WORDS = [
   "राम",
   "और",
   "तथा",
-  "वाला",
-  "वाली",
-  "वाले",
   "का",
   "की",
   "के",
@@ -194,6 +270,144 @@ const NOISE_WORDS = [
   "में",
   "मे",
 ];
+
+// Tier 0: Data-Driven Regional Alias Table for Jabalpur FMCG kirana vernacular
+export const SEED_ALIASES: Record<string, string> = {
+  // Parle-G 75g (SKU-BS-075)
+  "pila wala": "SKU-BS-075",
+  "pila biscuit": "SKU-BS-075",
+  "biscuit pila": "SKU-BS-075",
+  "peela wala": "SKU-BS-075",
+  "peela biscuit": "SKU-BS-075",
+  "pila": "SKU-BS-075",
+  "peela": "SKU-BS-075",
+  "parle pila": "SKU-BS-075",
+  "parle chhota": "SKU-BS-075",
+  "chhota parle": "SKU-BS-075",
+  "chhota biscuit": "SKU-BS-075",
+  "chota biscuit": "SKU-BS-075",
+  "biscuit chhota": "SKU-BS-075",
+  "biscuit chota": "SKU-BS-075",
+  "parleg": "SKU-BS-075",
+  "parle-g": "SKU-BS-075",
+  "parle g": "SKU-BS-075",
+  "parle g pila wala": "SKU-BS-075",
+  "parle g pila": "SKU-BS-075",
+  "parle": "SKU-BS-075",
+  "gluco": "SKU-BS-075",
+  "glucose": "SKU-BS-075",
+  "glucose biscuit": "SKU-BS-075",
+  "पीला वाला": "SKU-BS-075",
+  "पीला": "SKU-BS-075",
+  "छोटा बिस्कुट": "SKU-BS-075",
+  "छोटा बिस्किट": "SKU-BS-075",
+  "बिस्कुट छोटा": "SKU-BS-075",
+  "पारले": "SKU-BS-075",
+  "पारले जी": "SKU-BS-075",
+
+  // Britannia Good Day 120g (SKU-BS-GD120)
+  "good day": "SKU-BS-GD120",
+  "goodday": "SKU-BS-GD120",
+  "butter cookies": "SKU-BS-GD120",
+  "butter cookie": "SKU-BS-GD120",
+  "gud day": "SKU-BS-GD120",
+  "गुड डे": "SKU-BS-GD120",
+  "बटर कुकीज़": "SKU-BS-GD120",
+
+  // Britannia Marie Gold 250g (SKU-BS-MG250)
+  "marie gold": "SKU-BS-MG250",
+  "marie": "SKU-BS-MG250",
+  "mariegold": "SKU-BS-MG250",
+  "mari gold": "SKU-BS-MG250",
+  "chai biscuit": "SKU-BS-MG250",
+  "मैरी गोल्ड": "SKU-BS-MG250",
+  "मारी गोल्ड": "SKU-BS-MG250",
+
+  // Ghadi Detergent Powder 1kg (SKU-DT-1KG)
+  "ghadi powder": "SKU-DT-1KG",
+  "ghari powder": "SKU-DT-1KG",
+  "ghadi 1kg": "SKU-DT-1KG",
+  "kapde dhone wala ghadi": "SKU-DT-1KG",
+  "kapde dhone wala powder": "SKU-DT-1KG",
+  "kapde dhone ghadi": "SKU-DT-1KG",
+  "detergent powder 1kg": "SKU-DT-1KG",
+  "detergent powder": "SKU-DT-1KG",
+  "घड़ी पाउडर": "SKU-DT-1KG",
+
+  // Surf Excel 1kg (SKU-DT-SX1KG)
+  "surf excel": "SKU-DT-SX1KG",
+  "surf": "SKU-DT-SX1KG",
+  "safed powder": "SKU-DT-SX1KG",
+  "quick wash": "SKU-DT-SX1KG",
+  "सर्फ एक्सेल": "SKU-DT-SX1KG",
+  "सर्फ": "SKU-DT-SX1KG",
+
+  // Ghadi Detergent Cake 250g (SKU-DT-CK250)
+  "ghadi cake": "SKU-DT-CK250",
+  "ghadi sabun": "SKU-DT-CK250",
+  "ghadi tikiya": "SKU-DT-CK250",
+  "detergent cake": "SKU-DT-CK250",
+  "kapde dhone ki tikiya": "SKU-DT-CK250",
+  "bartan bar": "SKU-DT-CK250",
+  "ghadi bar": "SKU-DT-CK250",
+  "घड़ी साबुन": "SKU-DT-CK250",
+  "घड़ी टिकिया": "SKU-DT-CK250",
+
+  // Wagh Bakri Tea 250g (SKU-TE-250)
+  "wagh bakri": "SKU-TE-250",
+  "wagh bakri tea": "SKU-TE-250",
+  "wagh bakri chai": "SKU-TE-250",
+  "bagh bakri": "SKU-TE-250",
+  "bakri chai": "SKU-TE-250",
+  "tea leaf 250g": "SKU-TE-250",
+  "tea leaf": "SKU-TE-250",
+  "वाघ बकरी": "SKU-TE-250",
+  "वाघ बकरी चाय": "SKU-TE-250",
+
+  // Tata Tea Gold 500g (SKU-TE-TT500)
+  "tata tea": "SKU-TE-TT500",
+  "tata tea gold": "SKU-TE-TT500",
+  "tata gold": "SKU-TE-TT500",
+  "shakti chai": "SKU-TE-TT500",
+  "kadak chai": "SKU-TE-TT500",
+  "kadak patti": "SKU-TE-TT500",
+  "टाटा टी": "SKU-TE-TT500",
+  "टाटा गोल्ड": "SKU-TE-TT500",
+  "शक्ति चाय": "SKU-TE-TT500",
+
+  // Dettol Bathing Soap 125g (SKU-PC-DT125)
+  "dettol": "SKU-PC-DT125",
+  "dettol soap": "SKU-PC-DT125",
+  "dettol sabun": "SKU-PC-DT125",
+  "nahane wala dettol": "SKU-PC-DT125",
+  "bathing soap": "SKU-PC-DT125",
+  "डेटॉल साबुन": "SKU-PC-DT125",
+  "डेटॉल": "SKU-PC-DT125",
+
+  // Lifebuoy Soap 100g (SKU-PC-LB100)
+  "lifebuoy": "SKU-PC-LB100",
+  "lifebuoy soap": "SKU-PC-LB100",
+  "lifebuoy sabun": "SKU-PC-LB100",
+  "lal sabun": "SKU-PC-LB100",
+  "लाइफबॉय": "SKU-PC-LB100",
+
+  // Fortune Refined Sunlite Oil 1L (SKU-OL-FT1L)
+  "fortune": "SKU-OL-FT1L",
+  "fortune oil": "SKU-OL-FT1L",
+  "fortune tel": "SKU-OL-FT1L",
+  "surajmukhi tel": "SKU-OL-FT1L",
+  "surajmukhi": "SKU-OL-FT1L",
+  "sunflower oil": "SKU-OL-FT1L",
+  "chidiya tel": "SKU-OL-FT1L",
+  "refine tel": "SKU-OL-FT1L",
+  "refined oil": "SKU-OL-FT1L",
+  "mitha tel": "SKU-OL-FT1L",
+  "meetha tel": "SKU-OL-FT1L",
+  "cooking oil": "SKU-OL-FT1L",
+  "फॉर्च्यून तेल": "SKU-OL-FT1L",
+  "सूरजमुखी तेल": "SKU-OL-FT1L",
+  "रिफाइंड तेल": "SKU-OL-FT1L",
+};
 
 /**
  * Normalizes input text converting Devanagari numerals to standard digits
@@ -236,8 +450,8 @@ function detectPartialCaseIntent(text: string): PartialCaseIntent | null {
     const rawCap = hindiMatch[1] ? parseInt(hindiMatch[1]) : null;
     const rawQty = hindiMatch[2];
     let qty: number | null = null;
-    if (/^\d+$/.test(rawQty)) {
-      qty = parseInt(rawQty);
+    if (/^\d+(\.\d+)?$/.test(rawQty)) {
+      qty = parseFloat(rawQty);
     } else if (WORD_NUMBERS[rawQty.toLowerCase()] !== undefined) {
       qty = WORD_NUMBERS[rawQty.toLowerCase()];
     }
@@ -258,8 +472,8 @@ function detectPartialCaseIntent(text: string): PartialCaseIntent | null {
     const rawQty = englishMatch[1];
     const rawCap = parseInt(englishMatch[2]);
     let qty: number | null = null;
-    if (/^\d+$/.test(rawQty)) {
-      qty = parseInt(rawQty);
+    if (/^\d+(\.\d+)?$/.test(rawQty)) {
+      qty = parseFloat(rawQty);
     } else if (WORD_NUMBERS[rawQty.toLowerCase()] !== undefined) {
       qty = WORD_NUMBERS[rawQty.toLowerCase()];
     }
@@ -297,13 +511,12 @@ function extractAndStripExplanatoryClause(text: string): { cleanedText: string; 
  * Splits raw multi-item order text into individual item lines
  */
 export function splitOrderTextIntoLines(rawText: string): string[] {
-  // First normalize numbers
   const cleaned = normalizeNumerals(rawText.trim());
 
   // Split on newlines, semicolons, or comma/plus delimiters
   const rawSegments = cleaned
     .split(/\r?\n|;|\band\b|\baur\b|\bतथा\b|\+/i)
-    .flatMap((seg) => seg.split(/,(?=\s*\d|\s*[a-zA-Z\u0900-\u097F]+)/)) // Split commas followed by new item tokens
+    .flatMap((seg) => seg.split(/,(?=\s*\d|\s*[a-zA-Z\u0900-\u097F]+)/))
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
@@ -311,7 +524,7 @@ export function splitOrderTextIntoLines(rawText: string): string[] {
 }
 
 /**
- * Extracts numeric quantity from an utterance
+ * Extracts numeric quantity from an utterance, supporting digits, word numbers, multipliers (darjan/dozen), and fractions
  */
 function extractQuantity(tokens: string[]): { qty: number | null; remainingTokens: string[] } {
   const remaining: string[] = [];
@@ -320,13 +533,19 @@ function extractQuantity(tokens: string[]): { qty: number | null; remainingToken
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i].toLowerCase();
 
-    // Check direct numeric digit (e.g. 5, 10, 0.5)
+    // Check multiplier: darjan / dozen / दर्जन
+    if (token === "darjan" || token === "darzan" || token === "dozen" || token === "दर्जन") {
+      detectedQty = (detectedQty || 1) * 12;
+      continue;
+    }
+
+    // Direct numeric digits (e.g., "5", "10", "2.5")
     if (/^\d+(\.\d+)?$/.test(token) && detectedQty === null) {
       detectedQty = parseFloat(token);
       continue;
     }
 
-    // Check word numeral (e.g. "paanch", "do", "five", "दो")
+    // Word numeral or local fractional weight (e.g., "paanch", "do", "aadha", "sawa", "derh", "पाँच")
     if (WORD_NUMBERS[token] !== undefined && detectedQty === null) {
       detectedQty = WORD_NUMBERS[token];
       continue;
@@ -339,7 +558,8 @@ function extractQuantity(tokens: string[]): { qty: number | null; remainingToken
 }
 
 /**
- * Detects unit of measure (CASE vs PACK vs KG vs UNKNOWN)
+ * Detects unit of measure (CASE vs PACK vs KG vs DABBA vs UNKNOWN)
+ * In accordance with Invariant [A16], "dabba" is treated as DABBA (ambiguous) rather than CASE!
  */
 function extractUnit(tokens: string[]): { unit: UnitType; remainingTokens: string[] } {
   const remaining: string[] = [];
@@ -348,11 +568,19 @@ function extractUnit(tokens: string[]): { unit: UnitType; remainingTokens: strin
   for (const token of tokens) {
     const clean = token.toLowerCase();
 
+    // Check ambiguous "dabba" first
+    if (AMBIGUOUS_UNIT_KEYWORDS.includes(clean) && detectedUnit === "UNKNOWN") {
+      detectedUnit = "DABBA";
+      continue;
+    }
+
+    // Master wholesale case
     if (CASE_KEYWORDS.includes(clean) && detectedUnit === "UNKNOWN") {
       detectedUnit = "CASE";
       continue;
     }
 
+    // Retail loose packs
     if (PACK_KEYWORDS.includes(clean) && detectedUnit === "UNKNOWN") {
       detectedUnit = "PACK";
       continue;
@@ -370,14 +598,112 @@ function extractUnit(tokens: string[]): { unit: UnitType; remainingTokens: strin
 }
 
 /**
- * Computes similarity match score between cleaned keywords and SKU catalog
+ * Trigram character similarity between two lowercase strings
  */
-function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | null; candidates: SkuCandidate[] } {
-  // Filter out conversational filler words
-  const cleanTokens = queryTokens
-    .map((t) => t.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, ""))
-    .filter((t) => t.length > 1 && !NOISE_WORDS.includes(t));
+function characterTrigramSimilarity(a: string, b: string): number {
+  if (a === b) return 1.0;
+  if (a.length < 3 || b.length < 3) {
+    return a.includes(b) || b.includes(a) ? 0.6 : 0.0;
+  }
 
+  const getTrigrams = (str: string) => {
+    const set = new Set<string>();
+    for (let i = 0; i <= str.length - 3; i++) {
+      set.add(str.substring(i, i + 3));
+    }
+    return set;
+  };
+
+  const triA = getTrigrams(a);
+  const triB = getTrigrams(b);
+  let intersection = 0;
+  for (const tri of triA) {
+    if (triB.has(tri)) intersection++;
+  }
+
+  return (2 * intersection) / (triA.size + triB.size);
+}
+
+/**
+ * Tier 0 & Tier 2: Candidate Retrieval & Matching
+ * Combines exact alias lookup with lexical trigram and token matching
+ */
+export function matchSkuWithRetrieval(
+  queryTokens: string[],
+  skus: SeedSku[],
+  retailerAliases?: Record<string, string>
+): { matched: SeedSku | null; candidates: SkuCandidate[]; aliasHit: boolean } {
+  const mergedAliases = { ...SEED_ALIASES, ...(retailerAliases || {}) };
+
+  const findSkuByCode = (code: string): SeedSku | undefined => {
+    return skus.find(
+      (s) => s.code.toLowerCase() === code.toLowerCase() || s.id.toLowerCase() === code.toLowerCase()
+    );
+  };
+
+  // 1. TIER 0: Exact or N-Gram Merchant Alias Lookup on Pre-Filtered Tokens (Preserves phrases like "pila wala")
+  const rawCleaned = queryTokens
+    .map((t) => t.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, ""))
+    .filter((t) => t.length > 0);
+
+  const rawPhrase = rawCleaned.join(" ");
+  if (mergedAliases[rawPhrase]) {
+    const targetSku = findSkuByCode(mergedAliases[rawPhrase]);
+    if (targetSku) {
+      return { matched: targetSku, candidates: [{ sku: targetSku, score: 1.0 }], aliasHit: true };
+    }
+  }
+
+  // Check n-grams of rawCleaned
+  for (let n = Math.min(rawCleaned.length, 5); n >= 2; n--) {
+    for (let i = 0; i <= rawCleaned.length - n; i++) {
+      const slice = rawCleaned.slice(i, i + n);
+      const sub = slice.join(" ");
+      const subSorted = [...slice].sort().join(" ");
+      const matchedCode = mergedAliases[sub] || mergedAliases[subSorted];
+      if (matchedCode) {
+        const targetSku = findSkuByCode(matchedCode);
+        if (targetSku) {
+          return { matched: targetSku, candidates: [{ sku: targetSku, score: 0.98 }], aliasHit: true };
+        }
+      }
+    }
+  }
+
+  // 2. Clean tokens by filtering general conversational noise
+  const cleanTokens = rawCleaned.filter((t) => !NOISE_WORDS.includes(t));
+  const queryPhrase = cleanTokens.join(" ");
+  const queryPhraseSorted = [...cleanTokens].sort().join(" ");
+
+  // Check filtered phrase hits
+  if (mergedAliases[queryPhrase] || mergedAliases[queryPhraseSorted]) {
+    const skuCode = mergedAliases[queryPhrase] || mergedAliases[queryPhraseSorted];
+    const targetSku = findSkuByCode(skuCode);
+    if (targetSku) {
+      return {
+        matched: targetSku,
+        candidates: [{ sku: targetSku, score: 1.0 }],
+        aliasHit: true,
+      };
+    }
+  }
+
+  // Check single token aliases
+  for (const token of cleanTokens) {
+    if (mergedAliases[token]) {
+      const skuCode = mergedAliases[token];
+      const targetSku = findSkuByCode(skuCode);
+      if (targetSku) {
+        return {
+          matched: targetSku,
+          candidates: [{ sku: targetSku, score: 0.90 }],
+          aliasHit: true,
+        };
+      }
+    }
+  }
+
+  // 3. TIER 2: Candidate Retrieval & Scoring
   const candidates: SkuCandidate[] = [];
 
   for (const sku of skus) {
@@ -387,53 +713,50 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
     const skuCategory = sku.category.toLowerCase();
     const skuPackSize = sku.packSize.toLowerCase();
 
-    // Brand matching (highest priority weight: +0.4)
+    // Brand matching (High priority: +0.40)
     for (const token of cleanTokens) {
-      if (skuBrand.includes(token) || token.includes(skuBrand)) {
-        score += 0.4;
+      if (skuBrand === token) {
+        score += 0.45;
+        break;
+      } else if (skuBrand.includes(token) || token.includes(skuBrand)) {
+        score += 0.35;
         break;
       }
-      if (token === "parleg" || token === "parle-g") {
-        if (sku.code.includes("BS-075")) score += 0.5;
-      }
     }
 
-    // Category / Product type matching (high baseline +0.50 so category queries match catalog)
+    // Category / Product type matching (+0.35 to +0.50)
     for (const token of cleanTokens) {
-      if (token === "biscuit" || token === "biskut" || token === "viscut" || token === "बिस्कुट" || token === "बिस्किट" || token === "cookies" || token === "cookie") {
-        if (skuCategory === "biscuits") score += 0.50;
-      } else if (token === "detergent" || token === "powder" || token === "surf" || token === "washing" || token === "डिटर्जेंट" || token === "पाउडर") {
-        if (skuCategory === "detergent") score += 0.50;
-      } else if (token === "chai" || token === "tea" || token === "patti" || token === "chay" || token === "चाय" || token === "चायपत्ती") {
-        if (skuCategory === "tea") score += 0.55;
-      } else if (token === "soap" || token === "saboon" || token === "sabun" || token === "साबुन") {
-        if (skuCategory === "personal care" || skuCategory === "detergent") score += 0.50;
-      } else if (token === "oil" || token === "tel" || token === "refined" || token === "तेल") {
+      if (["biscuit", "biskut", "viscut", "बिस्कुट", "बिस्किट", "cookies", "cookie"].includes(token)) {
+        if (skuCategory === "biscuits") score += 0.45;
+      } else if (["detergent", "powder", "surf", "washing", "डिटर्जेंट", "पाउडर"].includes(token)) {
+        if (skuCategory === "detergent") score += 0.45;
+      } else if (["chai", "tea", "patti", "chay", "चाय", "चायपत्ती"].includes(token)) {
+        if (skuCategory === "tea") score += 0.50;
+      } else if (["soap", "saboon", "sabun", "साबुन"].includes(token)) {
+        if (skuCategory === "personal care" || skuCategory === "detergent") score += 0.45;
+      } else if (["oil", "tel", "refined", "तेल"].includes(token)) {
         if (skuCategory === "cooking oil") score += 0.50;
-      } else if (token === "maggi" || token === "noodles" || token === "मैगी") {
-        if (skuCategory === "packaged foods") score += 0.55;
       }
     }
 
-    // Pack size / weight matching (+0.3)
+    // Pack size / weight matching (+0.30)
     for (const token of cleanTokens) {
       const isNumericOnly = /^\d+$/.test(token);
       if (!isNumericOnly && (skuPackSize.includes(token) || skuName.includes(token))) {
         score += 0.25;
       }
-      // Specific size hints (e.g., "chhota" for 75g biscuits)
-      if ((token === "chhota" || token === "chota" || token === "छोटा") && sku.code === "SKU-BS-075") {
-        score += 0.35;
-      }
-      if ((token === "1kg" || token === "1 kilo" || token === "1kilo") && sku.packSize.includes("1 kg")) {
-        score += 0.35;
-      }
-      if (token === "cake" && sku.name.includes("Cake")) {
+      if (["chhota", "chota", "छोटा"].includes(token) && sku.code === "SKU-BS-075") {
         score += 0.35;
       }
     }
 
-    if (score > 0.25) {
+    // Trigram character similarity between query and SKU name
+    const trigramSim = characterTrigramSimilarity(queryPhrase, skuName);
+    if (trigramSim > 0.3) {
+      score += trigramSim * 0.35;
+    }
+
+    if (score > 0.20) {
       candidates.push({
         sku,
         score: Math.min(1.0, Math.round(score * 100) / 100),
@@ -441,22 +764,33 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
     }
   }
 
-  // Sort descending by score
+  // Sort descending by candidate score
   candidates.sort((a, b) => b.score - a.score);
 
-  const matched = candidates.length > 0 && candidates[0].score >= 0.45 ? candidates[0].sku : null;
+  const top = candidates[0] || null;
 
-  return { matched, candidates: candidates.slice(0, 3) };
+  // Assign top candidate if score reaches threshold
+  let matched: SeedSku | null = null;
+  if (top && top.score >= 0.35) {
+    matched = top.sku;
+  }
+
+  return { matched, candidates: candidates.slice(0, 3), aliasHit: false };
 }
 
 /**
- * Main Pure Deterministic Parsing Function for a single line utterance
+ * Main Pure Deterministic & Calibrated Parsing Function for a single line utterance
  */
-export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): ParsedLineItem {
+export function parseSingleUtterance(
+  rawUtterance: string,
+  skus: SeedSku[],
+  retailerAliases?: Record<string, string>
+): ParsedLineItem {
   const normalizedNumerals = normalizeNumerals(rawUtterance.trim());
 
   // 1. Strip and record explanatory case capacity clauses (e.g. "where a case contains 24 pkts")
-  const { cleanedText: textAfterExplanatory, explanatoryCapacity } = extractAndStripExplanatoryClause(normalizedNumerals);
+  const { cleanedText: textAfterExplanatory, explanatoryCapacity } =
+    extractAndStripExplanatoryClause(normalizedNumerals);
 
   // 2. Check for Partial / Broken Case Intent (e.g. "case of 20 mai se 15 dedo", "15 out of 20")
   const partialIntent = detectPartialCaseIntent(textAfterExplanatory);
@@ -480,16 +814,15 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     rawTokens = unitResult.remainingTokens;
   }
 
-  // 3. Match SKU from catalog
-  const { matched, candidates } = matchSku(rawTokens, skus);
+  // 3. Match SKU with Tier 0 Alias Table & Tier 2 Retrieval
+  const { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
 
-  // 4. Ambiguity & Broken Case Guardrail (Rules [A16] & [A36])
+  // 4. Ambiguity & Broken Case Guardrails (Rules [A16] & [A36])
   let isAmbiguous = false;
   let ambiguityReason: AmbiguityReason = null;
-  let brokenCaseInfo: import("./types").BrokenCaseInfo | null = null;
+  let brokenCaseInfo: BrokenCaseInfo | null = null;
 
-  // Broken master case detection:
-  // Triggered when explicitly requesting a partial case ("mai se X") OR ordering fewer packs than a full case
+  // Broken master case detection (Invariant [A36]):
   if (matched && unit === "PACK" && qty !== null && qty > 0 && (partialIntent !== null || qty < matched.unitsPerCase)) {
     isAmbiguous = true;
     ambiguityReason = "BROKEN_CASE";
@@ -501,10 +834,15 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
       loosePackPrice: matched.packPrice,
       fullCasePrice: matched.dealerPrice,
     };
+  } else if (unit === "DABBA") {
+    // "Dabba" Guardrail: In MP FMCG trade, "dabba" is polysemic (Case vs Inner Box vs Oil Tin).
+    // In accordance with [A16] ("Ask, Never Guess"), trigger disambiguation.
+    isAmbiguous = true;
+    ambiguityReason = "AMBIGUOUS_UNIT";
   } else if (unit === "UNKNOWN") {
     isAmbiguous = true;
     ambiguityReason = "MISSING_UNIT";
-  } else if (!matched && candidates.length > 1 && Math.abs(candidates[0].score - candidates[1].score) < 0.15) {
+  } else if (!aliasHit && candidates.length > 1 && Math.abs(candidates[0].score - candidates[1].score) < 0.12 && candidates[0].score < 0.70) {
     isAmbiguous = true;
     ambiguityReason = "MULTIPLE_CANDIDATES";
   } else if (!matched) {
@@ -512,21 +850,47 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     ambiguityReason = "UNKNOWN_SKU";
   }
 
-  // Confidence calculation
+  // 5. Tier 3: Calibrated Probabilistic Confidence Scoring
   let confidence = 0.0;
-  if (matched) confidence += 0.65;
-  if (qty !== null && qty > 0) confidence += 0.15;
-  if (unit !== "UNKNOWN") confidence += 0.2;
-  confidence = Math.min(0.98, Math.round(confidence * 100) / 100);
+  if (aliasHit) {
+    // Exact phrase match from alias dictionary
+    if (unit === "CASE" || unit === "PACK" || unit === "KG") {
+      confidence = qty !== null && qty > 0 ? 0.98 : 0.85;
+    } else if (unit === "DABBA") {
+      // High SKU certainty, but low packaging certainty -> triggers disambiguation card
+      confidence = 0.65;
+    } else {
+      confidence = 0.60;
+    }
+  } else if (matched) {
+    // Candidate retrieved via scoring
+    const topScore = candidates[0]?.score || 0.6;
+    const runnerScore = candidates[1]?.score || 0.0;
+    const margin = topScore - runnerScore;
 
-  // Compute resolved quantities for cart (both wholesale cases and retail loose packs)
+    const baseProb = Math.min(0.95, Math.max(0.65, topScore * 0.75 + margin * 0.25));
+    if (unit === "CASE" || unit === "PACK" || unit === "KG") {
+      confidence = qty !== null && qty > 0 ? Math.max(0.80, baseProb) : baseProb * 0.8;
+    } else if (unit === "DABBA") {
+      confidence = Math.min(0.65, baseProb * 0.7);
+    } else {
+      confidence = Math.min(0.60, baseProb * 0.65);
+    }
+  } else if (candidates.length > 0) {
+    confidence = Math.min(0.55, candidates[0].score * 0.6);
+  } else {
+    confidence = 0.10;
+  }
+
+  confidence = Math.min(0.98, Math.max(0.05, Math.round(confidence * 100) / 100));
+
+  // 6. Compute resolved quantities for cart
   let resolvedQtyCases = qty || 1;
   let resolvedQtyPacks = 0;
   if (unit === "PACK" && matched) {
     resolvedQtyPacks = qty || 1;
-    // Wholesale case equivalent:
     resolvedQtyCases = Math.max(1, Math.ceil((qty || 1) / matched.unitsPerCase));
-  } else if (unit === "CASE") {
+  } else if (unit === "CASE" || unit === "DABBA") {
     resolvedQtyCases = qty || 1;
     resolvedQtyPacks = 0;
   }
@@ -554,10 +918,12 @@ export class DeterministicTextParserPipeline implements OrderParserPipeline {
   public name = "rules_deterministic";
 
   public async parseText(rawText: string, context?: ParserContext): Promise<ParseResult> {
-    const activeSkus = dbStore.getAllSkus();
+    const activeSkus = context?.availableSkus || dbStore.getAllSkus();
     const rawLines = splitOrderTextIntoLines(rawText);
 
-    const parsedLines = rawLines.map((utterance) => parseSingleUtterance(utterance, activeSkus));
+    const parsedLines = rawLines.map((utterance) =>
+      parseSingleUtterance(utterance, activeSkus, context?.retailerAliases)
+    );
     const ambiguousCount = parsedLines.filter((l) => l.isAmbiguous).length;
 
     return {

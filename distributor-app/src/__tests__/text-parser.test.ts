@@ -91,6 +91,102 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
     });
   });
 
+  describe("Jabalpur Regional FMCG Vernacular & Dialect Suite", () => {
+    it("recognizes 'pila wala' as Parle-G 75g (Tier 0 Alias)", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("3 peti pila wala", skus);
+      expect(line.matchedSku?.code).toBe("SKU-BS-075");
+      expect(line.extractedQty).toBe(3);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.confidence).toBeGreaterThanOrEqual(0.85);
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'shakti chai' as Tata Tea Gold 500g", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("2 peti shakti chai bhejo", skus);
+      expect(line.matchedSku?.code).toBe("SKU-TE-TT500");
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'surajmukhi tel' and 'chidiya tel' as Fortune Sunflower Oil", () => {
+      const skus = dbStore.getAllSkus();
+      const line1 = parseSingleUtterance("5 case surajmukhi tel", skus);
+      expect(line1.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line1.extractedQty).toBe(5);
+
+      const line2 = parseSingleUtterance("4 peti chidiya tel", skus);
+      expect(line2.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line2.extractedQty).toBe(4);
+    });
+
+    it("recognizes 'kapde dhone wala ghadi' as Ghadi Detergent Powder 1kg", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("sethji 6 peti kapde dhone wala ghadi", skus);
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.extractedQty).toBe(6);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'bartan bar' and 'ghadi tikiya' as Ghadi Detergent Cake", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("2 peti bartan bar", skus);
+      expect(line.matchedSku?.code).toBe("SKU-DT-CK250");
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("CASE");
+    });
+
+    it("resolves fractional weights: aadha (0.5), derh (1.5), dhai (2.5), sawa (1.25)", () => {
+      const skus = dbStore.getAllSkus();
+      const halfLine = parseSingleUtterance("aadha peti surf excel", skus);
+      expect(halfLine.extractedQty).toBe(0.5);
+
+      const oneAndHalf = parseSingleUtterance("derh peti good day", skus);
+      expect(oneAndHalf.extractedQty).toBe(1.5);
+      expect(oneAndHalf.matchedSku?.code).toBe("SKU-BS-GD120");
+
+      const twoAndHalf = parseSingleUtterance("dhai peti dettol soap", skus);
+      expect(twoAndHalf.extractedQty).toBe(2.5);
+      expect(twoAndHalf.matchedSku?.code).toBe("SKU-PC-DT125");
+    });
+
+    it("resolves darjan (12) and dozen as numeric 12", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("ek darjan packet good day", skus);
+      expect(line.extractedQty).toBe(12);
+      expect(line.extractedUnit).toBe("PACK");
+    });
+  });
+
+  describe("The 'Dabba' Semantic Ambiguity Guardrail (Invariant [A16] 'Ask, Never Guess')", () => {
+    it("flags '2 dabba parle g pila wala' as AMBIGUOUS_UNIT rather than silently assuming CASE", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("2 dabba parle g pila wala", skus);
+
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("DABBA");
+      expect(line.matchedSku?.code).toBe("SKU-BS-075");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("AMBIGUOUS_UNIT");
+      // Calibrated confidence stays <= 0.70 to trigger the disambiguation card
+      expect(line.confidence).toBeLessThanOrEqual(0.70);
+    });
+
+    it("flags Devanagari '३ डिब्बा फॉर्च्यून तेल' as AMBIGUOUS_UNIT", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("३ डिब्बा फॉर्च्यून तेल", skus);
+
+      expect(line.extractedQty).toBe(3);
+      expect(line.extractedUnit).toBe("DABBA");
+      expect(line.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("AMBIGUOUS_UNIT");
+    });
+  });
+
   describe("Unit Ambiguity Guardrail (Rule [A16])", () => {
     it("flags item as ambiguous when unit is missing (e.g., '5 biscuit chhota')", () => {
       const skus = dbStore.getAllSkus();
@@ -106,7 +202,6 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
 
     it("converts loose retail packets into wholesale case multiples when specified as pack", () => {
       const skus = dbStore.getAllSkus();
-      // SKU-BS-075 has 96 units per case. 120 packets = ceil(120/96) = 2 cases
       const line = parseSingleUtterance("120 packet biscuit chhota", skus);
 
       expect(line.extractedQty).toBe(120);
@@ -150,7 +245,6 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
 
     it("flags broken case when loose packet quantity is less than full case capacity", () => {
       const skus = dbStore.getAllSkus();
-      // SKU-DT-1KG capacity is 20. Retailer orders 10 packets.
       const line = parseSingleUtterance("10 packet detergent powder 1kg", skus);
 
       expect(line.extractedQty).toBe(10);
@@ -190,18 +284,31 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
     });
   });
 
+  describe("Tier 0 Merchant Alias Table & Dynamic Retailer Context", () => {
+    it("allows dynamic per-retailer alias override passed in context", () => {
+      const skus = dbStore.getAllSkus();
+      const customAliases = {
+        "apna biscuit": "SKU-BS-GD120",
+      };
+      const line = parseSingleUtterance("5 peti apna biscuit", skus, customAliases);
+      expect(line.matchedSku?.code).toBe("SKU-BS-GD120");
+      expect(line.confidence).toBeGreaterThanOrEqual(0.85);
+      expect(line.isAmbiguous).toBe(false);
+    });
+  });
+
   describe("Pipeline Interface & Deterministic Parser", () => {
     it("runs full DeterministicTextParserPipeline on multi-line text", async () => {
       const text = `bhaiya 5 peti biscuit chhota
 2 peti ghadi powder 1 kg
 1 peti chai wagh bakri 250
-10 biscuit`; // 10 biscuit is ambiguous (missing unit)
+10 biscuit`;
 
       const result = await deterministicTextParser.parseText(text);
 
       expect(result.success).toBe(true);
       expect(result.totalLines).toBe(4);
-      expect(result.ambiguousCount).toBe(1); // line 4 is ambiguous
+      expect(result.ambiguousCount).toBe(1);
       expect(result.lines[0].matchedSku?.code).toBe("SKU-BS-075");
       expect(result.lines[0].resolvedQtyCases).toBe(5);
       expect(result.lines[3].isAmbiguous).toBe(true);

@@ -88,6 +88,93 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
     });
   });
 
+  describe("Jabalpur Regional FMCG Vernacular & Dialect Suite", () => {
+    it("recognizes 'pila wala' as Parle-G 75g (Tier 0 Alias)", () => {
+      const line = parseSingleUtterance("3 peti pila wala", SEED_SKUS);
+      expect(line.matchedSku?.code).toBe("SKU-BS-075");
+      expect(line.extractedQty).toBe(3);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.confidence).toBeGreaterThanOrEqual(0.85);
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'shakti chai' as Tata Tea Gold 500g", () => {
+      const line = parseSingleUtterance("2 peti shakti chai bhejo", SEED_SKUS);
+      expect(line.matchedSku?.code).toBe("SKU-TE-TT500");
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'surajmukhi tel' and 'chidiya tel' as Fortune Sunflower Oil", () => {
+      const line1 = parseSingleUtterance("5 case surajmukhi tel", SEED_SKUS);
+      expect(line1.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line1.extractedQty).toBe(5);
+
+      const line2 = parseSingleUtterance("4 peti chidiya tel", SEED_SKUS);
+      expect(line2.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line2.extractedQty).toBe(4);
+    });
+
+    it("recognizes 'kapde dhone wala ghadi' as Ghadi Detergent Powder 1kg", () => {
+      const line = parseSingleUtterance("sethji 6 peti kapde dhone wala ghadi", SEED_SKUS);
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.extractedQty).toBe(6);
+      expect(line.extractedUnit).toBe("CASE");
+      expect(line.isAmbiguous).toBe(false);
+    });
+
+    it("recognizes 'bartan bar' and 'ghadi tikiya' as Ghadi Detergent Cake", () => {
+      const line = parseSingleUtterance("2 peti bartan bar", SEED_SKUS);
+      expect(line.matchedSku?.code).toBe("SKU-DT-CK250");
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("CASE");
+    });
+
+    it("resolves fractional weights: aadha (0.5), derh (1.5), dhai (2.5), sawa (1.25)", () => {
+      const halfLine = parseSingleUtterance("aadha peti surf excel", SEED_SKUS);
+      expect(halfLine.extractedQty).toBe(0.5);
+
+      const oneAndHalf = parseSingleUtterance("derh peti good day", SEED_SKUS);
+      expect(oneAndHalf.extractedQty).toBe(1.5);
+      expect(oneAndHalf.matchedSku?.code).toBe("SKU-BS-GD120");
+
+      const twoAndHalf = parseSingleUtterance("dhai peti dettol soap", SEED_SKUS);
+      expect(twoAndHalf.extractedQty).toBe(2.5);
+      expect(twoAndHalf.matchedSku?.code).toBe("SKU-PC-DT125");
+    });
+
+    it("resolves darjan (12) and dozen as numeric 12", () => {
+      const line = parseSingleUtterance("ek darjan packet good day", SEED_SKUS);
+      expect(line.extractedQty).toBe(12);
+      expect(line.extractedUnit).toBe("PACK");
+    });
+  });
+
+  describe("The 'Dabba' Semantic Ambiguity Guardrail (Invariant [A16] 'Ask, Never Guess')", () => {
+    it("flags '2 dabba parle g pila wala' as AMBIGUOUS_UNIT rather than silently assuming CASE", () => {
+      const line = parseSingleUtterance("2 dabba parle g pila wala", SEED_SKUS);
+
+      expect(line.extractedQty).toBe(2);
+      expect(line.extractedUnit).toBe("DABBA");
+      expect(line.matchedSku?.code).toBe("SKU-BS-075");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("AMBIGUOUS_UNIT");
+      // Calibrated confidence stays <= 0.70 to trigger the disambiguation card
+      expect(line.confidence).toBeLessThanOrEqual(0.70);
+    });
+
+    it("flags Devanagari '३ डिब्बा फॉर्च्यून तेल' as AMBIGUOUS_UNIT", () => {
+      const line = parseSingleUtterance("३ डिब्बा फॉर्च्यून तेल", SEED_SKUS);
+
+      expect(line.extractedQty).toBe(3);
+      expect(line.extractedUnit).toBe("DABBA");
+      expect(line.matchedSku?.code).toBe("SKU-OL-FT1L");
+      expect(line.isAmbiguous).toBe(true);
+      expect(line.ambiguityReason).toBe("AMBIGUOUS_UNIT");
+    });
+  });
+
   describe("Unit Ambiguity Guardrail (Rule [A16])", () => {
     it("flags item as ambiguous when unit is missing (e.g., '5 biscuit chhota')", () => {
       const skus = SEED_SKUS;
@@ -184,6 +271,18 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
       const biscuitLine = parseSingleUtterance("5 biscuit", skus);
       expect(biscuitLine.matchedSku).not.toBeNull();
       expect(biscuitLine.matchedSku?.category.toLowerCase()).toBe("biscuits");
+    });
+  });
+
+  describe("Tier 0 Merchant Alias Table & Dynamic Retailer Context", () => {
+    it("allows dynamic per-retailer alias override passed in context", () => {
+      const customAliases = {
+        "apna biscuit": "SKU-BS-GD120", // Store nickname for Good Day
+      };
+      const line = parseSingleUtterance("5 peti apna biscuit", SEED_SKUS, customAliases);
+      expect(line.matchedSku?.code).toBe("SKU-BS-GD120");
+      expect(line.confidence).toBeGreaterThanOrEqual(0.85);
+      expect(line.isAmbiguous).toBe(false);
     });
   });
 

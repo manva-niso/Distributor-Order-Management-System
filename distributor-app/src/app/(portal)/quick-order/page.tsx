@@ -784,19 +784,27 @@ export default function QuickOrderPage() {
                       </div>
                     )}
 
-                    {/* AMBIGUITY GUARDRAIL CARD (Rule [A16]: Missing Unit) */}
-                    {line.isAmbiguous && line.ambiguityReason === "MISSING_UNIT" && sku && (
+                    {/* AMBIGUITY GUARDRAIL CARD (Rule [A16]: Missing Unit or Ambiguous "Dabba") */}
+                    {line.isAmbiguous && (line.ambiguityReason === "MISSING_UNIT" || line.ambiguityReason === "AMBIGUOUS_UNIT") && sku && (
                       <div className="bg-amber-100/70 border border-amber-300 rounded-lg p-3 text-xs text-amber-950 space-y-2">
                         <div className="flex items-center gap-1.5 font-bold">
                           <HelpCircle className="w-4 h-4 text-amber-700" />
                           <span>
-                            {lang === "hi"
-                              ? "यूनिट स्पष्ट नहीं है! क्या मतलब था?"
-                              : "Unit not specified! Please clarify customer intent:"}
+                            {line.ambiguityReason === "AMBIGUOUS_UNIT"
+                              ? lang === "hi"
+                                ? "डब्बा / डिब्बा (Ambiguous Packaging) - क्या मतलब था?"
+                                : "Ambiguous Packaging Unit ('Dabba') - Please Clarify Intent:"
+                              : lang === "hi"
+                                ? "यूनिट स्पष्ट नहीं है! क्या मतलब था?"
+                                : "Unit not specified! Please clarify customer intent:"}
                           </span>
                         </div>
                         <p className="text-slate-600 text-[11px]">
-                          Customer wrote "{line.extractedQty} {sku.brand}". Choose wholesale master cases or loose packets:
+                          {line.ambiguityReason === "AMBIGUOUS_UNIT"
+                            ? lang === "hi"
+                              ? `ग्राहक ने "${line.extractedQty} डब्बा" लिखा है। जबलपुर किराना में डब्बा का अर्थ मास्टर पेटी या इनर बॉक्स/टिन दोनों हो सकता है:`
+                              : `Customer wrote "${line.extractedQty} dabba". In Jabalpur FMCG trade, 'dabba' can mean a master case (peti) or an inner box / tin:`
+                            : `Customer wrote "${line.extractedQty} ${sku.brand}". Choose wholesale master cases or loose packets:`}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
@@ -805,7 +813,7 @@ export default function QuickOrderPage() {
                             className="p-2 rounded-lg border border-emerald-400 bg-white hover:bg-emerald-50 text-left cursor-pointer transition-colors shadow-2xs"
                           >
                             <span className="block font-bold text-emerald-900">
-                              {line.extractedQty} Master Cases
+                              {line.extractedQty} Master Cases (पेटी)
                             </span>
                             <span className="text-[10px] text-slate-500">
                               {(line.extractedQty || 1) * sku.unitsPerCase} packs · ₹
@@ -819,7 +827,7 @@ export default function QuickOrderPage() {
                             className="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-left cursor-pointer transition-colors shadow-2xs"
                           >
                             <span className="block font-bold text-slate-900">
-                              {line.extractedQty} Loose Packs
+                              {line.extractedQty} Loose Packs / Boxes
                             </span>
                             <span className="text-[10px] text-slate-500">
                               ₹{((line.extractedQty || 1) * sku.packPrice).toFixed(2)} retail value

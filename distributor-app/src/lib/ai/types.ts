@@ -1,9 +1,10 @@
 import { SeedSku } from "@/db/seed-data";
 
-export type UnitType = "CASE" | "PACK" | "KG" | "UNIT" | "UNKNOWN";
+export type UnitType = "CASE" | "PACK" | "KG" | "UNIT" | "DABBA" | "UNKNOWN";
 
 export type AmbiguityReason =
   | "MISSING_UNIT"
+  | "AMBIGUOUS_UNIT"
   | "MULTIPLE_CANDIDATES"
   | "UNKNOWN_SKU"
   | "BROKEN_CASE"
@@ -28,7 +29,7 @@ export interface ParsedLineItem {
   extractedQty: number | null;
   extractedUnit: UnitType;
   matchedSku: SeedSku | null;
-  confidence: number; // 0.0 to 1.0
+  confidence: number; // Calibrated 0.0 to 1.0 probability
   isAmbiguous: boolean;
   ambiguityReason: AmbiguityReason;
   candidates: SkuCandidate[];
@@ -48,6 +49,8 @@ export interface ParseResult {
 
 export interface ParserContext {
   retailerId?: string;
+  retailerAliases?: Record<string, string>;
+  availableSkus?: SeedSku[];
 }
 
 /**
