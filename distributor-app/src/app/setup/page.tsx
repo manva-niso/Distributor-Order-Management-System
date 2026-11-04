@@ -21,6 +21,8 @@ import {
   ShieldCheck,
   PackageCheck,
   Search,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 type Language = "en" | "hi";
@@ -78,6 +80,36 @@ export default function SetupPage() {
 
   // Search filter in browse tab
   const [browseQuery, setBrowseQuery] = useState("");
+
+  // Master Reset database state
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetChoice, setResetChoice] = useState<"clean_slate" | "factory_demo">("clean_slate");
+
+  const handleResetDatabase = async (mode: "clean_slate" | "factory_demo") => {
+    setResetting(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+    try {
+      const res = await fetch("/api/setup/reset-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUploadSuccess(data.message);
+        setShowResetModal(false);
+        await loadStatus();
+      } else {
+        setUploadError(data.error || "Failed to reset database.");
+      }
+    } catch {
+      setUploadError("Network error while resetting database.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const loadStatus = async () => {
     try {
@@ -194,6 +226,16 @@ export default function SetupPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowResetModal(true)}
+              className="h-8 px-2.5 text-xs font-bold rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Reset Database to Clean Slate"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{lang === "hi" ? "क्लीन स्लेट" : "Clean Slate"}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setLang(lang === "en" ? "hi" : "en")}
@@ -664,7 +706,168 @@ export default function SetupPage() {
             </div>
           </div>
         )}
+        {/* MASTER DATABASE RESET & CLEAN SLATE CARD */}
+        <div className="bg-red-50/70 border border-red-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center text-red-700 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-red-950 flex items-center gap-2">
+                  <span>{lang === "hi" ? "मास्टर डेटाबेस रीसेट व क्लीन स्लेट" : "Master Database Clean Slate & Reset"}</span>
+                  <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-full bg-red-200 text-red-800">
+                    Presentation Tool
+                  </span>
+                </h3>
+                <p className="text-xs text-red-800/80 mt-0.5">
+                  {lang === "hi"
+                    ? "उपयोगकर्ताओं या परीक्षकों को सिस्टम दिखाते समय डेटाबेस को एकदम नए जैसा (0 आर्डर) करें"
+                    : "Wipe test orders, restore original stock, and reset credit balances to start product demonstrations from a clean slate."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetChoice("clean_slate");
+                  setShowResetModal(true);
+                }}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-red-700 hover:bg-red-800 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{lang === "hi" ? "क्लीन स्लेट रीसेट" : "Wipe to Clean Slate"}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 text-xs text-red-900 pt-1">
+            <div className="bg-white/80 border border-red-200/80 rounded-lg p-3">
+              <strong className="block text-slate-900 font-bold mb-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                Option 1: Pristine Clean Slate (0 Orders)
+              </strong>
+              <p className="text-slate-600 text-[11px] leading-relaxed">
+                Clears all placed orders, cart history, captured utterances, and OCC locks. Restores baseline warehouse stock (340 biscuit, 85 detergent, 0 tea) and credit headroom so the order desk queue is completely empty.
+              </p>
+            </div>
+
+            <div className="bg-white/80 border border-red-200/80 rounded-lg p-3">
+              <strong className="block text-slate-900 font-bold mb-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Option 2: Factory Jabalpur Demo State
+              </strong>
+              <p className="text-slate-600 text-[11px] leading-relaxed">
+                Resets all tables to baseline plus the 3 standard sample orders (ORD-10482, ORD-10483 held credit, ORD-10484 verified) for desk verification and Tally XML export testing.
+              </p>
+            </div>
+          </div>
+        </div>
       </main>
+
+      {/* DOUBLE-CONFIRMATION RESET MODAL */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {lang === "hi" ? "डेटाबेस रीसेट की पुष्टि करें" : "Confirm Database Reset"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {lang === "hi"
+                    ? "क्या आप निश्चित रूप से डेटाबेस को रीसेट करना चाहते हैं? इससे सभी टेस्ट आर्डर मिट जाएंगे।"
+                    : "This action will clear test orders and reset ledger balances. Choose your target state below:"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  resetChoice === "clean_slate"
+                    ? "border-red-500 bg-red-50/60 ring-2 ring-red-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="resetChoice"
+                  checked={resetChoice === "clean_slate"}
+                  onChange={() => setResetChoice("clean_slate")}
+                  className="mt-1 text-red-600 focus:ring-red-500"
+                />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Pristine Clean Slate (Recommended for Demos)
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    Wipes all orders to 0. Restores default stock & credit limits.
+                  </span>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  resetChoice === "factory_demo"
+                    ? "border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="resetChoice"
+                  checked={resetChoice === "factory_demo"}
+                  onChange={() => setResetChoice("factory_demo")}
+                  className="mt-1 text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Factory Jabalpur Demo State
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    Restores baseline catalog + 3 pre-seeded orders (1 placed, 1 credit hold, 1 verified).
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 text-xs font-bold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={() => handleResetDatabase(resetChoice)}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors flex items-center gap-1.5"
+              >
+                {resetting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Resetting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Execute Reset</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

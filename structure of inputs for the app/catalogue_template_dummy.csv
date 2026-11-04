@@ -1,0 +1,11 @@
+Code,Name,Brand,Category,PackSize,UnitsPerCase,DealerPrice,StockCases,GstRate,HsnCode,SchemeType,SchemeDescription,BuyQty,GetFreeQty,FreeSkuId,FreeSkuName,MinCases,DiscountPct,Tiers,FlatPerCase
+SKU-BS-075,"Glucose biscuit 75 g, case of 96",Parle,Biscuits,75 g,96,777.60,340,18,19053100,FREE_GOODS,"Buy 10 cases get 1 free",10,1,,,0,0,,0
+SKU-DT-1KG,"Detergent powder 1 kg, case of 20",Ghadi,Detergents,1 kg,20,2030.00,85,18,34029011,SLAB_DISCOUNT,"3% off on 5 or more cases",0,0,,,5,3.0,,0
+SKU-DT-500,"Washing Powder 500 g, case of 40",Ghadi,Detergents,500 g,40,1980.00,120,18,34029011,SLAB_DISCOUNT,"Progressive Ladder: 5cs=3%, 10cs=5%, 20cs=8%",0,0,,,5,3.0,"5:3%, 10:5%, 20:8%",0
+SKU-TE-250,"Tea leaf 250 g, case of 40",Wagh Bakri,Tea & Beverages,250 g,40,4720.00,0,5,09024020,NONE,"No active trade scheme",0,0,,,0,0,,0
+SKU-TE-100,"Premium CTC Tea 100 g, case of 80",Tata Tea,Tea & Beverages,100 g,80,3600.00,65,5,09024020,FREE_GOODS,"Buy 12 cases get 1 case free",12,1,,,0,0,,0
+SKU-SO-150,"Bathing Soap 150 g, case of 48",Lifebuoy,Personal Care,150 g,48,1680.00,150,18,34011110,FLAT_REBATE,"Flat ₹50 cash rebate per case on 5+ cases",0,0,,,5,0,,50
+SKU-CK-100,"Cream Cracker 100 g, case of 72",Britannia,Biscuits,100 g,72,1296.00,90,18,19053100,FREE_GOODS,"Cross-SKU: Buy 10 cases get 2 cases Cake Free",10,2,SKU-BS-075,"Glucose biscuit 75 g",0,0,,0
+SKU-NO-070,"Instant Noodles 70 g, case of 96",Maggi,Instant Food,70 g,96,1152.00,210,12,19023010,SLAB_DISCOUNT,"4% discount on 8+ cases",0,0,,,8,4.0,,0
+SKU-OL-1LT,"Refined Mustard Oil 1 L, case of 12",Fortune,Edible Oils,1 L,12,1560.00,45,5,15141910,NONE,"No active trade scheme",0,0,,,0,0,,0
+SKU-TO-500,"Red Tomato Ketchup 500 g, case of 24",Kissan,Sauces & Condiments,500 g,24,1920.00,30,12,21032000,SLAB_DISCOUNT,"5% discount on 6+ cases",0,0,,,6,5.0,,0

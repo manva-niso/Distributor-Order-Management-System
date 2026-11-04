@@ -23,6 +23,146 @@ This document records every error, build failure, test failure, runtime issue, a
 
 ## Log Entries
 
+### [ERR-016] Explanatory Clause Token Collision & Cart Loose-Pack Schema Rejection
+- **Date & Time:** 2026-11-04 12:45:00
+- **Module:** Module 5 & Module 4 - NLP Order Parser & Cart Checkout
+- **Phase:** API / UI / Parsing
+- **Symptoms / Error Message:**
+  ```text
+  Input: "1 pkt of tea, where a case contains 24 pkts"
+  Result: isAmbiguous: true, ambiguityReason: "UNKNOWN_SKU", candidates: []
+  Checkout Error: "Minimum 1 case required" when attempting to checkout single packets.
+  ```
+- **Root Cause Analysis:**
+  1. The deterministic tokenizer in `src/lib/ai/text-parser.ts` evaluated the secondary number `24` in explanatory clause `"where a case contains 24 pkts"`. Single category tokens (like `tea`, `chai`) had a low score weight (`+0.30`) that failed the `0.45` candidate threshold, returning `UNKNOWN_SKU`.
+  2. `CheckoutItemSchema` in `src/app/api/orders/checkout/route.ts` enforced `quantityCases: z.number().min(1)`, which rejected loose retail packets if `quantityCases === 0`.
+- **Resolution / Fix:**
+  1. Built regex pre-processor `extractAndStripExplanatoryClause` to detect and strip clauses like `"where a case contains 24 pkts"` while extracting `caseCapacityMentioned`.
+  2. Boosted category matching weight to `+0.55` so colloquial single-word queries (`1 pkt of tea`, `2 sabun`, `5 biscuit`) match cleanly with high confidence ($\ge 0.75$).
+  3. Added `quantityPacks` support to `CartItem`, `LineCalculation`, `CheckoutItemSchema`, and `StoredOrderItem`, allowing seamless single-packet ordering and dual-stepper UI.
+- **Prevention:** Always separate descriptive conversational context clauses from core item quantity-unit pairs prior to catalogue dictionary matching.
+
+### [ERR-015] Free goods tally undefined index in desk test
+- **Date & Time:** 2026-11-03 23:45:00
+- **Module:** Module 6 - Order Desk
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  TypeError: Cannot read properties of undefined (reading 'freeCases')
+  ```
+- **Root Cause Analysis:** `calculateOrderSummary` calculates composite totals but does not directly emit `freeGoodsTally`; it was computed by filtering lines with `freeCases > 0`.
+- **Resolution / Fix:** Emitted `freeGoodsTally` from `lines.filter(l => l.freeCases > 0)` in `route.ts` and `desk.test.ts`.
+- **Prevention:** Always align DTO contracts between calculation engines and desk API response types.
+
+### [ERR-014] TypeScript property mismatches in CalculatedLineItem
+- **Date & Time:** 2026-11-03 23:30:00
+- **Module:** Module 6 - Order Desk
+- **Phase:** Build / TypeScript Compilation
+- **Symptoms / Error Message:**
+  ```text
+  Property 'slabDiscountPct' does not exist on type 'CalculatedLineItem'.
+  Property 'netTaxableAmount' does not exist on type 'CalculatedLineItem'.
+  ```
+- **Root Cause Analysis:** Desk route attempted to access `slabDiscountPct` and `netTaxableAmount`. The canonical properties on `CalculatedLineItem` are `taxableAmount`, `totalGstAmount`, and `discountAmount`.
+- **Resolution / Fix:** Renamed property references in `desk/orders/[id]/route.ts` to canonical properties.
+- **Prevention:** Reference shared TypeScript interface definitions directly instead of ad-hoc assumptions.
+
+### [ERR-013] Stray closing brace syntax error in store.ts
+- **Date & Time:** 2026-11-03 23:15:00
+- **Module:** Master Data / Database Store
+- **Phase:** Build / TypeScript Compilation
+- **Symptoms / Error Message:**
+  ```text
+  Parsing error: Unexpected token, expected "}"
+  ```
+- **Root Cause Analysis:** An extra closing brace `}` was inadvertently left after `seedDefaultOrders()` during refactoring.
+- **Resolution / Fix:** Removed the superfluous brace.
+- **Prevention:** Run typecheck and automated test suites immediately after store edits.
+
+### [ERR-012] Brand name assertion mismatch in text-parser test
+- **Date & Time:** 2026-11-03 22:40:00
+- **Module:** Module 5 - Multi-Modal AI Text Parser
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  AssertionError: expected 'Ghadi' to be 'Ghadhi Detergent'
+  ```
+- **Root Cause Analysis:** The unit test asserted `"Ghadhi Detergent"` while the master SKU seed record had brand `"Ghadi"`.
+- **Resolution / Fix:** Updated expected assertion string to `"Ghadi"`.
+- **Prevention:** Assert against canonical seed data constants.
+
+### [ERR-011] Store reset method name mismatch
+- **Date & Time:** 2026-11-03 22:30:00
+- **Module:** Master Data / Database Store
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  TypeError: dbStore.resetToDefaults is not a function
+  ```
+- **Root Cause Analysis:** The test suite invoked `dbStore.resetToDefaults()`, but the method in `MemoryStore` was named `reset()`.
+- **Resolution / Fix:** Changed test call to `dbStore.reset()`.
+- **Prevention:** Export explicit interface for memory store test harnesses.
+
+### [ERR-010] Hardcoded catalog length assertion failure in catalogue test
+- **Date & Time:** 2026-11-03 22:15:00
+- **Module:** Module 2 - Catalogue
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  AssertionError: expected [Array(12)] to have length 3
+  ```
+- **Root Cause Analysis:** After expanding seed catalog from 3 to 12 SKUs, `catalogue.test.ts` still had `expect(skus).toHaveLength(3)`.
+- **Resolution / Fix:** Updated assertion to `expect(skus.length).toBeGreaterThanOrEqual(12)`.
+- **Prevention:** Use lower-bound assertions (`toBeGreaterThanOrEqual`) for evolving master catalogs.
+
+### [ERR-009] Next.js NextResponse BodyInit type error with Node Buffer
+- **Date & Time:** 2026-11-03 21:50:00
+- **Module:** Master Setup / Excel Template Generation
+- **Phase:** Build / TypeScript Compilation
+- **Symptoms / Error Message:**
+  ```text
+  Argument of type 'Buffer' is not assignable to parameter of type 'BodyInit'.
+  ```
+- **Root Cause Analysis:** Passing Node.js `Buffer` directly to `NextResponse` failed strict Web Streams typing in Next.js 16.
+- **Resolution / Fix:** Wrapped buffer with `new Uint8Array(excelBuffer)`.
+- **Prevention:** Convert Node.js Buffers to Uint8Array when returning streaming payloads in Next.js App Router route handlers.
+
+### [ERR-008] Next.js export mismatch in BottomNav & CartPage
+- **Date & Time:** 2026-11-03 21:30:00
+- **Module:** Navigation & Cart
+- **Phase:** Build / Next.js Prerender
+- **Symptoms / Error Message:**
+  ```text
+  Type error: Property 'activeTab' is missing in type '{}' but required in type 'BottomNavProps'.
+  ```
+- **Root Cause Analysis:** `BottomNav` was exported as a named function without a default export, and `BottomNavProps` was missing an optional default for `activeTab`.
+- **Resolution / Fix:** Added default props and `export default BottomNav`.
+- **Prevention:** Export components as both named and default exports for maximum interoperability.
+
+### [ERR-007] Stale dev server memory instance on store prototype changes
+- **Date & Time:** 2026-11-03 21:10:00
+- **Module:** Master Data / Database Store
+- **Phase:** Runtime / Dev Server
+- **Symptoms / Error Message:**
+  ```text
+  TypeError: dbStore.getVanManifest is not a function
+  ```
+- **Root Cause Analysis:** `globalThis.appStore` preserved the prototype of `MemoryStore` instantiated before adding new methods. Hot Module Replacement reloads modules but retains existing `globalThis` instances.
+- **Resolution / Fix:** Restarted the dev server process to instantiate the updated `MemoryStore` class prototype.
+- **Prevention:** Re-run or restart dev server process when adding new methods to `globalThis` singletons.
+
+### [ERR-006] PowerShell statement separator syntax error
+- **Date & Time:** 2026-11-03 20:45:00
+- **Module:** Tooling / PowerShell CLI
+- **Phase:** CLI Execution
+- **Symptoms / Error Message:**
+  ```text
+  The token '&&' is not a valid statement separator in this version.
+  ```
+- **Root Cause Analysis:** Executed Bash-style `&&` in Windows PowerShell 5.1 environment.
+- **Resolution / Fix:** Switched to `;` as the command separator in PowerShell commands.
+- **Prevention:** Always use `;` for chained commands in PowerShell.
+
 ### [ERR-005] IEEE 754 Floating-Point Imprecision in Financial Half-Up GST Rounding
 - **Date & Time:** 2026-11-03 20:01:00
 - **Module:** Module 3 - Pure Scheme & Pricing Calculation Engine

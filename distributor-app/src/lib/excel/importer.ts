@@ -97,12 +97,39 @@ export function parseSkuRows(rows: any[]): { skus: SeedSku[]; errors: string[] }
       schemeType = "FREE_GOODS";
       const buyQty = parseInt(String(row.buyqty || 10), 10);
       const getFreeQty = parseInt(String(row.getfreeqty || row.freeqty || 1), 10);
-      schemeDetail = { buyQty, getFreeQty };
-    } else if (rawScheme.includes("SLAB") || rawScheme.includes("DISCOUNT") || row.discountpct) {
+      const freeSkuId = row.freeskuid || row.freeitemcode ? String(row.freeskuid || row.freeitemcode).trim() : undefined;
+      const freeSkuName = row.freeskuname || row.freeitemname ? String(row.freeskuname || row.freeitemname).trim() : undefined;
+      schemeDetail = { buyQty, getFreeQty, freeSkuId, freeSkuName };
+    } else if (rawScheme.includes("REBATE") || rawScheme.includes("FLAT") || row.flatpercase) {
+      schemeType = "FLAT_REBATE";
+      const flatPerCase = parseFloat(String(row.flatpercase || row.cashdiscount || 50));
+      const minCasesForRebate = parseInt(String(row.mincases || 5), 10);
+      schemeDetail = { flatPerCase, minCasesForRebate };
+    } else if (rawScheme.includes("SLAB") || rawScheme.includes("DISCOUNT") || row.discountpct || row.tiers) {
       schemeType = "SLAB_DISCOUNT";
-      const minCases = parseInt(String(row.mincases || row.tiercases || 5), 10);
-      const discountPct = parseFloat(String(row.discountpct || row.discount || 3.0));
-      schemeDetail = { minCases, discountPct };
+      const rawTiersStr = String(row.tiers || "");
+      if (rawTiersStr && rawTiersStr.includes(":")) {
+        const tiers = rawTiersStr
+          .split(",")
+          .map((part) => {
+            const [m, d] = part.split(":");
+            return {
+              minCases: parseInt(m.trim(), 10),
+              discountPct: parseFloat(d.replace("%", "").trim()),
+            };
+          })
+          .filter((t) => !isNaN(t.minCases) && !isNaN(t.discountPct));
+
+        schemeDetail = {
+          tiers,
+          minCases: tiers[0]?.minCases || 5,
+          discountPct: tiers[0]?.discountPct || 3,
+        };
+      } else {
+        const minCases = parseInt(String(row.mincases || row.tiercases || 5), 10);
+        const discountPct = parseFloat(String(row.discountpct || row.discount || 3.0));
+        schemeDetail = { minCases, discountPct };
+      }
     }
 
     const packPrice = Math.round((dealerPrice / unitsPerCase) * 100) / 100;

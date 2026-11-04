@@ -4,10 +4,15 @@ import { dbStore, StoredOrder, StoredOrderItem } from "@/db/store";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 
-const CheckoutItemSchema = z.object({
-  skuId: z.string().min(1, "SKU ID required"),
-  quantityCases: z.number().int().min(1, "Minimum 1 case required"),
-});
+const CheckoutItemSchema = z
+  .object({
+    skuId: z.string().min(1, "SKU ID required"),
+    quantityCases: z.number().int().min(0).default(0),
+    quantityPacks: z.number().int().min(0).default(0),
+  })
+  .refine((data) => (data.quantityCases || 0) > 0 || (data.quantityPacks || 0) > 0, {
+    message: "Each line item must contain at least 1 case or 1 loose packet",
+  });
 
 const CheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema).min(1, "Cart cannot be empty"),
@@ -68,11 +73,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (sku.stockCases < req.quantityCases) {
+      const reqCases = req.quantityCases || 0;
+      const reqPacks = req.quantityPacks || 0;
+      const requiredEquivalentCases = reqCases + (reqPacks > 0 ? Math.ceil(reqPacks / sku.unitsPerCase) : 0);
+
+      if (sku.stockCases < requiredEquivalentCases) {
         return NextResponse.json(
           {
             success: false,
-            error: `Insufficient stock for ${sku.name}. Available: ${sku.stockCases} cases, requested: ${req.quantityCases} cases.`,
+            error: `Insufficient stock for ${sku.name}. Available: ${sku.stockCases} cases, requested: ${reqCases} cases${reqPacks > 0 ? ` + ${reqPacks} loose packs` : ""}.`,
           },
           { status: 400 }
         );
@@ -82,8 +91,11 @@ export async function POST(request: NextRequest) {
         skuId: sku.id,
         skuCode: sku.code,
         skuName: sku.name,
-        orderedCases: req.quantityCases,
+        orderedCases: reqCases,
+        orderedPacks: reqPacks,
         dealerPrice: sku.dealerPrice,
+        packPrice: sku.packPrice,
+        unitsPerCase: sku.unitsPerCase,
         gstRate: sku.gstRate,
         schemeType: sku.schemeType,
         schemeDetail: sku.schemeDetail,
@@ -96,11 +108,12 @@ export async function POST(request: NextRequest) {
     // 5. Verify physical warehouse stock covers both ordered and free promotional cases
     for (const line of summary.lines) {
       const sku = dbStore.getSkuById(line.skuId)!;
-      if (sku.stockCases < line.totalDeliveredCases) {
+      const totalPhysicalCases = line.totalDeliveredCases + (line.totalDeliveredPacks > 0 ? 1 : 0);
+      if (sku.stockCases < totalPhysicalCases) {
         return NextResponse.json(
           {
             success: false,
-            error: `Warehouse stock (${sku.stockCases} cases) cannot cover ordered cases (${line.orderedCases}) + promotional free cases (${line.freeCases}) for ${sku.name}.`,
+            error: `Warehouse stock (${sku.stockCases} cases) cannot cover ordered cases (${line.orderedCases}) + loose packs (${line.orderedPacks}) + promotional free cases (${line.freeCases}) for ${sku.name}.`,
           },
           { status: 400 }
         );
@@ -114,7 +127,8 @@ export async function POST(request: NextRequest) {
 
     // 7. Deduct Warehouse Stock Atomically (Rule [A15])
     for (const line of summary.lines) {
-      dbStore.deductSkuStock(line.skuId, line.totalDeliveredCases);
+      const casesToDeduct = line.totalDeliveredCases + (line.totalDeliveredPacks > 0 ? 1 : 0);
+      dbStore.deductSkuStock(line.skuId, casesToDeduct);
     }
 
     // 8. Generate Order Record
@@ -153,8 +167,10 @@ export async function POST(request: NextRequest) {
       skuName: l.skuName,
       skuCode: l.skuCode,
       quantityCases: l.orderedCases,
+      quantityPacks: l.orderedPacks,
       freeCases: l.freeCases,
       unitDealerPrice: l.dealerPrice,
+      unitPackPrice: l.packPrice,
       discountPct: l.discountAmount > 0 ? (l.discountAmount / l.grossAmount) * 100 : 0,
       discountAmount: l.discountAmount,
       netLineAmount: l.taxableAmount,

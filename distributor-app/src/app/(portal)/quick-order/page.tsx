@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   ChevronDown,
 } from "lucide-react";
+import { SeedSku } from "@/db/seed-data";
 import { ParsedLineItem } from "@/lib/ai/types";
 import BottomNav from "@/components/layout/BottomNav";
 
@@ -31,9 +32,21 @@ export default function QuickOrderPage() {
   const [inputText, setInputText] = useState(
     "bhaiya 5 peti biscuit chhota\n2 peti ghadi powder 1 kg\n1 peti chai wagh bakri 250"
   );
+  const [allSkus, setAllSkus] = useState<SeedSku[]>([]);
   const [parsing, setParsing] = useState(false);
   const [parsedLines, setParsedLines] = useState<ParsedLineItem[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/catalogue")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.skus) {
+          setAllSkus(data.skus);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Quick Demo Templates
   const loadTemplate = (text: string) => {
@@ -78,17 +91,14 @@ export default function QuickOrderPage() {
       prev!.map((line) => {
         if (line.id !== lineId) return line;
 
-        let cases = line.extractedQty || 1;
-        if (chosenUnit === "PACK" && line.matchedSku) {
-          cases = Math.max(1, Math.ceil(cases / line.matchedSku.unitsPerCase));
-        }
-
+        const qty = line.extractedQty || 1;
         return {
           ...line,
           extractedUnit: chosenUnit,
           isAmbiguous: false,
           ambiguityReason: null,
-          resolvedQtyCases: cases,
+          resolvedQtyCases: chosenUnit === "CASE" ? qty : 0,
+          resolvedQtyPacks: chosenUnit === "PACK" ? qty : 0,
           confidence: 0.95,
         };
       })
@@ -103,12 +113,15 @@ export default function QuickOrderPage() {
         if (line.id !== lineId) return line;
 
         const roundUpCases = line.brokenCaseInfo?.fullCaseRoundUp || 1;
+        const requestedPacks = line.brokenCaseInfo?.requestedPacks || line.extractedQty || 1;
+
         return {
           ...line,
           extractedUnit: action === "ROUND_UP" ? "CASE" : "PACK",
           isAmbiguous: false,
           ambiguityReason: null,
-          resolvedQtyCases: roundUpCases,
+          resolvedQtyCases: action === "ROUND_UP" ? roundUpCases : 0,
+          resolvedQtyPacks: action === "KEEP_LOOSE" ? requestedPacks : 0,
           confidence: 0.98,
         };
       })
@@ -121,8 +134,29 @@ export default function QuickOrderPage() {
     setParsedLines((prev) =>
       prev!.map((line) => {
         if (line.id !== lineId) return line;
+        if (line.resolvedQtyPacks && line.resolvedQtyPacks > 0) {
+          const next = Math.max(1, line.resolvedQtyPacks + delta);
+          return { ...line, resolvedQtyPacks: next };
+        }
         const next = Math.max(1, line.resolvedQtyCases + delta);
         return { ...line, resolvedQtyCases: next };
+      })
+    );
+  };
+
+  // Manually assign SKU for unrecognized lines
+  const manuallyAssignSku = (lineId: string, sku: SeedSku) => {
+    if (!parsedLines) return;
+    setParsedLines((prev) =>
+      prev!.map((line) => {
+        if (line.id !== lineId) return line;
+        return {
+          ...line,
+          matchedSku: sku,
+          isAmbiguous: false,
+          ambiguityReason: null,
+          confidence: 0.99,
+        };
       })
     );
   };
@@ -139,12 +173,30 @@ export default function QuickOrderPage() {
 
     try {
       const existing = localStorage.getItem("isolabs_draft_cart");
-      const cartMap: Record<string, number> = existing ? JSON.parse(existing) : {};
+      let cartMap: Record<string, { cases: number; packs: number }> = {};
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing);
+          for (const [k, v] of Object.entries(parsed)) {
+            if (typeof v === "number") {
+              cartMap[k] = { cases: v, packs: 0 };
+            } else if (v && typeof v === "object") {
+              const obj = v as { cases?: number; packs?: number };
+              cartMap[k] = { cases: obj.cases || 0, packs: obj.packs || 0 };
+            }
+          }
+        } catch {}
+      }
 
       for (const line of parsedLines) {
         if (line.matchedSku) {
-          const current = cartMap[line.matchedSku.id] || 0;
-          cartMap[line.matchedSku.id] = current + line.resolvedQtyCases;
+          const entry = cartMap[line.matchedSku.id] || { cases: 0, packs: 0 };
+          const addCases = line.resolvedQtyCases || 0;
+          const addPacks = line.resolvedQtyPacks || 0;
+          cartMap[line.matchedSku.id] = {
+            cases: entry.cases + addCases,
+            packs: entry.packs + addPacks,
+          };
         }
       }
 
@@ -355,17 +407,37 @@ export default function QuickOrderPage() {
 
                         <div className="text-right shrink-0">
                           <span className="text-sm font-bold font-mono text-slate-900 block">
-                            ₹{Math.round(line.resolvedQtyCases * sku.dealerPrice).toLocaleString("en-IN")}
+                            ₹
+                            {Math.round(
+                              (line.resolvedQtyCases || 0) * sku.dealerPrice +
+                                (line.resolvedQtyPacks || 0) * sku.packPrice
+                            ).toLocaleString("en-IN")}
                           </span>
-                          <span className="text-[10px] text-slate-400">
-                            {line.resolvedQtyCases} cases
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {(line.resolvedQtyCases || 0) > 0 && `${line.resolvedQtyCases} cases`}
+                            {(line.resolvedQtyCases || 0) > 0 && (line.resolvedQtyPacks || 0) > 0 && " + "}
+                            {(line.resolvedQtyPacks || 0) > 0 && `${line.resolvedQtyPacks} packs`}
                           </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-red-50 text-red-800 rounded-lg p-2.5 text-xs flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                        <span>Could not match product from this line. Please select an SKU manually.</span>
+                      <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-lg p-3 text-xs space-y-2">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Could not match product for "{line.rawUtterance}". Select an SKU below:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {allSkus.slice(0, 6).map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => manuallyAssignSku(line.id, s)}
+                              className="px-2 py-1 bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-900 border border-slate-300 hover:border-emerald-500 rounded text-[11px] font-medium transition-colors cursor-pointer shadow-2xs"
+                            >
+                              + {s.brand} {s.name.split(",")[0]}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -381,13 +453,13 @@ export default function QuickOrderPage() {
                           </span>
                         </div>
                         <p className="text-slate-600 text-[11px]">
-                          Customer wrote "{line.extractedQty} {sku.brand}". Never guess wholesale cases vs loose packets.
+                          Customer wrote "{line.extractedQty} {sku.brand}". Choose wholesale master cases or loose packets:
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
                             type="button"
                             onClick={() => resolveUnit(line.id, "CASE")}
-                            className="p-2 rounded-lg border border-emerald-400 bg-white hover:bg-emerald-50 text-left cursor-pointer transition-colors"
+                            className="p-2 rounded-lg border border-emerald-400 bg-white hover:bg-emerald-50 text-left cursor-pointer transition-colors shadow-2xs"
                           >
                             <span className="block font-bold text-emerald-900">
                               {line.extractedQty} Master Cases
@@ -401,7 +473,7 @@ export default function QuickOrderPage() {
                           <button
                             type="button"
                             onClick={() => resolveUnit(line.id, "PACK")}
-                            className="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-left cursor-pointer transition-colors"
+                            className="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-left cursor-pointer transition-colors shadow-2xs"
                           >
                             <span className="block font-bold text-slate-900">
                               {line.extractedQty} Loose Packs
@@ -426,31 +498,32 @@ export default function QuickOrderPage() {
                           </span>
                         </div>
                         <p className="text-slate-700 text-[11px] leading-relaxed">
-                          Customer requested <strong>{line.brokenCaseInfo?.requestedPacks} loose packs</strong> out of a sealed <strong>Case of {line.brokenCaseInfo?.caseCapacity}</strong>. Distributors pick and dispatch by full master cases.
+                          Customer requested <strong>{line.brokenCaseInfo?.requestedPacks} loose packs</strong> out of a sealed <strong>Case of {line.brokenCaseInfo?.caseCapacity}</strong>.
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => resolveBrokenCase(line.id, "ROUND_UP")}
+                            onClick={() => resolveBrokenCase(line.id, "KEEP_LOOSE")}
                             className="p-2.5 bg-emerald-700 text-white rounded-lg text-left hover:bg-emerald-800 transition-colors shadow-xs cursor-pointer"
                           >
                             <span className="font-bold block text-xs">
-                              {line.brokenCaseInfo?.fullCaseRoundUp} Full Sealed Case ({line.brokenCaseInfo?.caseCapacity} packs)
+                              ✓ {line.brokenCaseInfo?.requestedPacks} Loose Packs (₹{((line.brokenCaseInfo?.requestedPacks || 0) * (line.brokenCaseInfo?.loosePackPrice || 0)).toFixed(2)})
                             </span>
                             <span className="text-[10px] text-emerald-100 block">
-                              ₹{line.brokenCaseInfo?.fullCasePrice.toFixed(2)} • Wholesale Dealer Rate (Recommended)
+                              Order exact requested quantity as loose packets
                             </span>
                           </button>
+
                           <button
                             type="button"
-                            onClick={() => resolveBrokenCase(line.id, "KEEP_LOOSE")}
-                            className="p-2.5 bg-white border border-amber-400 text-amber-900 rounded-lg text-left hover:bg-amber-50 transition-colors shadow-xs cursor-pointer"
+                            onClick={() => resolveBrokenCase(line.id, "ROUND_UP")}
+                            className="p-2.5 bg-white border border-slate-300 text-slate-900 rounded-lg text-left hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
                           >
                             <span className="font-bold block text-xs">
-                              {line.brokenCaseInfo?.requestedPacks} Loose Packs (Cut Pack)
+                              {line.brokenCaseInfo?.fullCaseRoundUp} Full Case ({line.brokenCaseInfo?.caseCapacity} packs)
                             </span>
                             <span className="text-[10px] text-slate-500 block">
-                              ₹{((line.brokenCaseInfo?.requestedPacks || 0) * (line.brokenCaseInfo?.loosePackPrice || 0)).toFixed(2)} • Subject to Desk Approval
+                              ₹{line.brokenCaseInfo?.fullCasePrice.toFixed(2)} • Sealed wholesale case
                             </span>
                           </button>
                         </div>
@@ -461,14 +534,16 @@ export default function QuickOrderPage() {
                     {!line.isAmbiguous && sku && (
                       <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                         <span className="text-xs text-slate-600 font-medium">
-                          {line.resolvedQtyCases * sku.unitsPerCase} total retail packs
+                          {(line.resolvedQtyPacks || 0) > 0
+                            ? `${line.resolvedQtyPacks} Loose Packets`
+                            : `${(line.resolvedQtyCases || 0) * sku.unitsPerCase} total retail packs`}
                         </span>
 
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => removeLine(line.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
                             title="Remove line"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -478,17 +553,17 @@ export default function QuickOrderPage() {
                             <button
                               type="button"
                               onClick={() => updateLineQty(line.id, -1)}
-                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors"
+                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </button>
                             <span className="w-10 text-center font-bold text-sm font-mono text-slate-900">
-                              {line.resolvedQtyCases}
+                              {(line.resolvedQtyPacks || 0) > 0 ? line.resolvedQtyPacks : line.resolvedQtyCases}
                             </span>
                             <button
                               type="button"
                               onClick={() => updateLineQty(line.id, 1)}
-                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors"
+                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
@@ -506,14 +581,21 @@ export default function QuickOrderPage() {
               <button
                 type="button"
                 onClick={handleMoveToCart}
-                disabled={totalCalculatedCases === 0}
+                disabled={
+                  !parsedLines ||
+                  parsedLines.reduce(
+                    (sum, l) =>
+                      sum + (l.matchedSku ? (l.resolvedQtyCases || 0) + (l.resolvedQtyPacks || 0) : 0),
+                    0
+                  ) === 0
+                }
                 className="w-full h-12 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>
                   {lang === "hi"
-                    ? `पुष्टि करें और कार्ट में जोड़ें (${totalCalculatedCases} पेटी) →`
-                    : `Confirm & Move to Cart (${totalCalculatedCases} Cases) →`}
+                    ? `पुष्टि करें और कार्ट में जोड़ें →`
+                    : `Confirm & Move to Cart →`}
                 </span>
               </button>
             </div>

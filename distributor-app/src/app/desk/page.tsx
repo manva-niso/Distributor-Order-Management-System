@@ -31,6 +31,7 @@ import {
   MapPin,
   Calendar,
   Boxes,
+  RotateCcw,
 } from "lucide-react";
 
 interface DeskOrder {
@@ -114,6 +115,30 @@ export default function OrderDeskPage() {
   const [dormantDays, setDormantDays] = useState<number>(14);
   const [loadingDormant, setLoadingDormant] = useState(false);
   const [activeNudgeRetailer, setActiveNudgeRetailer] = useState<any | null>(null);
+
+  // Master Clean Slate Reset State
+  const [showCleanSlateModal, setShowCleanSlateModal] = useState(false);
+  const [resettingDb, setResettingDb] = useState(false);
+
+  const handleCleanSlateReset = async (mode: "clean_slate" | "factory_demo") => {
+    setResettingDb(true);
+    try {
+      const res = await fetch("/api/setup/reset-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCleanSlateModal(false);
+        await fetchOrders();
+      }
+    } catch (err) {
+      console.error("Clean slate reset error:", err);
+    } finally {
+      setResettingDb(false);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -311,6 +336,16 @@ export default function OrderDeskPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCleanSlateModal(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
+              title="Reset Database to Clean Slate"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clean Slate</span>
+            </button>
+
             <Link
               href="/setup"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
@@ -1518,6 +1553,67 @@ export default function OrderDeskPage() {
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Approve & Verify Order</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MASTER CLEAN SLATE RESET MODAL */}
+      {showCleanSlateModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Wipe Database to Clean Slate
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Reset the order queue and warehouse inventory to start clean demonstrations.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 text-xs text-slate-600">
+              <div className="p-3 bg-red-50/70 border border-red-200 rounded-xl">
+                <strong className="block text-red-950 font-bold mb-1">
+                  🧹 Clean Slate (Zero Orders)
+                </strong>
+                <p className="text-[11px] text-red-800 leading-relaxed">
+                  Clears all incoming orders, cancels holds, resets credit exposures to baseline, and restores physical inventory (340 biscuit, 85 detergent, 0 tea).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={resettingDb}
+                onClick={() => setShowCleanSlateModal(false)}
+                className="px-4 py-2 text-xs font-bold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resettingDb}
+                onClick={() => handleCleanSlateReset("clean_slate")}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors flex items-center gap-1.5"
+              >
+                {resettingDb ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Resetting...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Yes, Wipe to Clean Slate</span>
                   </>
                 )}
               </button>

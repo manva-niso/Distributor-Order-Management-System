@@ -1,0 +1,9 @@
+Id,ShopName,OwnerName,Phone,Address,Route,CreditLimit,CurrentBalance
+RET-0001,"Sharma Kirana Store","Ramesh Sharma",9826000001,"Shop 14, Main Road, Napier Town, Jabalpur","Napier Town Route #4",50000,12000
+RET-0002,"Verma General Store","Sunil Verma",9826000002,"Plot 8B, Adhartal Industrial Area, Jabalpur","Adhartal Route #3",45000,8500
+RET-0003,"Gupta Daily Needs","Alok Gupta",9826000003,"Near Gol Bazar, Gorakhpur, Jabalpur","Gorakhpur Route #1",60000,0
+RET-0004,"Madan Mahal Super Store","Vikas Jain",9826000004,"Station Road, Madan Mahal, Jabalpur","Madan Mahal Route #2",75000,28500
+RET-0005,"Agrawal Provision Mart","Manoj Agrawal",9826000005,"Civil Lines Market, Jabalpur","Civil Lines Route #5",40000,43200
+RET-0006,"Sardarji Traders","Harpreet Singh",9826000006,"Ganjipura Cloth Market, Jabalpur","Ganjipura Route #6",55000,5000
+RET-0007,"Garha Kirana Kendra","Pankaj Patel",9826000007,"Medical College Road, Garha, Jabalpur","Garha Route #7",50000,0
+RET-0008,"Kalyan Daily Mart","Kalyan Das",9826000008,"Wright Town Stadium Road, Jabalpur","Wright Town Route #2",65000,14800

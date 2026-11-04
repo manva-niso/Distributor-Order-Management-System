@@ -161,6 +161,33 @@ describe("Module 5 - Multilingual FMCG Order Text Parser Suite", () => {
       expect(line.brokenCaseInfo?.requestedPacks).toBe(10);
       expect(line.brokenCaseInfo?.caseCapacity).toBe(20);
     });
+
+    it("parses descriptive explanatory clauses like '1 pkt of tea, where a case contains 24 pkts'", () => {
+      const skus = dbStore.getAllSkus();
+      const line = parseSingleUtterance("1 pkt of tea, where a case contains 24 pkts", skus);
+
+      expect(line.extractedQty).toBe(1);
+      expect(line.extractedUnit).toBe("PACK");
+      expect(line.matchedSku).not.toBeNull();
+      expect(line.matchedSku?.category.toLowerCase()).toBe("tea");
+      expect(line.resolvedQtyPacks).toBe(1);
+      expect(line.brokenCaseInfo?.caseCapacity).toBe(24);
+      expect(line.brokenCaseInfo?.requestedPacks).toBe(1);
+    });
+
+    it("matches single colloquial product tokens reliably", () => {
+      const skus = dbStore.getAllSkus();
+      const teaLine = parseSingleUtterance("1 pkt of tea", skus);
+      expect(teaLine.matchedSku).not.toBeNull();
+      expect(teaLine.matchedSku?.category.toLowerCase()).toBe("tea");
+
+      const soapLine = parseSingleUtterance("2 sabun", skus);
+      expect(soapLine.matchedSku).not.toBeNull();
+
+      const biscuitLine = parseSingleUtterance("5 biscuit", skus);
+      expect(biscuitLine.matchedSku).not.toBeNull();
+      expect(biscuitLine.matchedSku?.category.toLowerCase()).toBe("biscuits");
+    });
   });
 
   describe("Pipeline Interface & Deterministic Parser", () => {

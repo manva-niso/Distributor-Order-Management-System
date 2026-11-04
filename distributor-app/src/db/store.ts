@@ -59,8 +59,10 @@ export interface StoredOrderItem {
   skuName?: string;
   skuCode?: string;
   quantityCases: number;
+  quantityPacks?: number;
   freeCases: number;
   unitDealerPrice: number;
+  unitPackPrice?: number;
   discountPct: number;
   discountAmount: number;
   netLineAmount: number;
@@ -149,7 +151,7 @@ class MemoryStore {
     this.reset();
   }
 
-  public reset() {
+  public reset(includeDefaultOrders: boolean = true) {
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();
@@ -168,7 +170,9 @@ class MemoryStore {
       this.skus.set(s.id, { ...s });
     }
 
-    this.seedDefaultOrders();
+    if (includeDefaultOrders) {
+      this.seedDefaultOrders();
+    }
   }
 
   private seedDefaultOrders() {

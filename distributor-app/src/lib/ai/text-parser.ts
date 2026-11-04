@@ -278,6 +278,22 @@ function detectPartialCaseIntent(text: string): PartialCaseIntent | null {
 }
 
 /**
+ * Strips descriptive/explanatory case clauses such as "where a case contains 24 pkts",
+ * "jiski peti me 24 packet aate hai", "a case contains 24", "case of 24 pkts"
+ * while recording the user-specified case capacity for context.
+ */
+function extractAndStripExplanatoryClause(text: string): { cleanedText: string; explanatoryCapacity: number | null } {
+  const clauseRegex = /(?:,\s*)?(?:where|with|jiski|jisme)?\s*(?:a\s*)?(?:case|peti|box|carton|पेटी|डिब्बा)?\s*(?:contains|has|me|mein|aate\s*hai|hote\s*hai|wali)\s*(\d+)\s*(?:pkts|packets|packs|pieces|pcs|पैकेट|पीस)?/i;
+  const match = text.match(clauseRegex);
+  if (match) {
+    const capacity = match[1] ? parseInt(match[1], 10) : null;
+    const cleaned = text.replace(match[0], " ").trim();
+    return { cleanedText: cleaned, explanatoryCapacity: capacity };
+  }
+  return { cleanedText: text, explanatoryCapacity: null };
+}
+
+/**
  * Splits raw multi-item order text into individual item lines
  */
 export function splitOrderTextIntoLines(rawText: string): string[] {
@@ -382,20 +398,20 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
       }
     }
 
-    // Category / Product type matching (+0.3)
+    // Category / Product type matching (high baseline +0.50 so category queries match catalog)
     for (const token of cleanTokens) {
-      if (token === "biscuit" || token === "biskut" || token === "viscut" || token === "बिस्कुट") {
-        if (skuCategory === "biscuits") score += 0.3;
-      } else if (token === "detergent" || token === "powder" || token === "sabun" || token === "डिटर्जेंट") {
-        if (skuCategory === "detergent") score += 0.3;
-      } else if (token === "chai" || token === "tea" || token === "patti" || token === "चाय") {
-        if (skuCategory === "tea") score += 0.3;
-      } else if (token === "soap" || token === "saboon") {
-        if (skuCategory === "personal care") score += 0.3;
+      if (token === "biscuit" || token === "biskut" || token === "viscut" || token === "बिस्कुट" || token === "बिस्किट" || token === "cookies" || token === "cookie") {
+        if (skuCategory === "biscuits") score += 0.50;
+      } else if (token === "detergent" || token === "powder" || token === "surf" || token === "washing" || token === "डिटर्जेंट" || token === "पाउडर") {
+        if (skuCategory === "detergent") score += 0.50;
+      } else if (token === "chai" || token === "tea" || token === "patti" || token === "chay" || token === "चाय" || token === "चायपत्ती") {
+        if (skuCategory === "tea") score += 0.55;
+      } else if (token === "soap" || token === "saboon" || token === "sabun" || token === "साबुन") {
+        if (skuCategory === "personal care" || skuCategory === "detergent") score += 0.50;
       } else if (token === "oil" || token === "tel" || token === "refined" || token === "तेल") {
-        if (skuCategory === "cooking oil") score += 0.3;
+        if (skuCategory === "cooking oil") score += 0.50;
       } else if (token === "maggi" || token === "noodles" || token === "मैगी") {
-        if (skuCategory === "packaged foods") score += 0.4;
+        if (skuCategory === "packaged foods") score += 0.55;
       }
     }
 
@@ -439,8 +455,11 @@ function matchSku(queryTokens: string[], skus: SeedSku[]): { matched: SeedSku | 
 export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): ParsedLineItem {
   const normalizedNumerals = normalizeNumerals(rawUtterance.trim());
 
-  // 1. Check for Partial / Broken Case Intent (e.g. "case of 20 mai se 15 dedo", "15 out of 20")
-  const partialIntent = detectPartialCaseIntent(normalizedNumerals);
+  // 1. Strip and record explanatory case capacity clauses (e.g. "where a case contains 24 pkts")
+  const { cleanedText: textAfterExplanatory, explanatoryCapacity } = extractAndStripExplanatoryClause(normalizedNumerals);
+
+  // 2. Check for Partial / Broken Case Intent (e.g. "case of 20 mai se 15 dedo", "15 out of 20")
+  const partialIntent = detectPartialCaseIntent(textAfterExplanatory);
 
   let rawTokens: string[];
   let qty: number | null = null;
@@ -452,7 +471,7 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     const cleanedWithWeights = normalizeWeights(partialIntent.cleanedUtterance);
     rawTokens = cleanedWithWeights.split(/\s+/).filter((t) => t.length > 0);
   } else {
-    const textWithWeights = normalizeWeights(normalizedNumerals);
+    const textWithWeights = normalizeWeights(textAfterExplanatory);
     rawTokens = textWithWeights.split(/\s+/).filter((t) => t.length > 0);
     const qtyResult = extractQuantity(rawTokens);
     qty = qtyResult.qty;
@@ -461,10 +480,10 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     rawTokens = unitResult.remainingTokens;
   }
 
-  // 2. Match SKU from catalog
+  // 3. Match SKU from catalog
   const { matched, candidates } = matchSku(rawTokens, skus);
 
-  // 3. Ambiguity & Broken Case Guardrail (Rules [A16] & [A36])
+  // 4. Ambiguity & Broken Case Guardrail (Rules [A16] & [A36])
   let isAmbiguous = false;
   let ambiguityReason: AmbiguityReason = null;
   let brokenCaseInfo: import("./types").BrokenCaseInfo | null = null;
@@ -474,10 +493,11 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
   if (matched && unit === "PACK" && qty !== null && qty > 0 && (partialIntent !== null || qty < matched.unitsPerCase)) {
     isAmbiguous = true;
     ambiguityReason = "BROKEN_CASE";
+    const caseCap = explanatoryCapacity || partialIntent?.caseCapacityMentioned || matched.unitsPerCase;
     brokenCaseInfo = {
       requestedPacks: qty,
-      caseCapacity: matched.unitsPerCase,
-      fullCaseRoundUp: Math.max(1, Math.ceil(qty / matched.unitsPerCase)),
+      caseCapacity: caseCap,
+      fullCaseRoundUp: Math.max(1, Math.ceil(qty / caseCap)),
       loosePackPrice: matched.packPrice,
       fullCasePrice: matched.dealerPrice,
     };
@@ -499,11 +519,16 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
   if (unit !== "UNKNOWN") confidence += 0.2;
   confidence = Math.min(0.98, Math.round(confidence * 100) / 100);
 
-  // Compute resolved cases for cart
+  // Compute resolved quantities for cart (both wholesale cases and retail loose packs)
   let resolvedQtyCases = qty || 1;
+  let resolvedQtyPacks = 0;
   if (unit === "PACK" && matched) {
-    // If shopkeeper specified packs, calculate cases (ceil to wholesale case multiple)
+    resolvedQtyPacks = qty || 1;
+    // Wholesale case equivalent:
     resolvedQtyCases = Math.max(1, Math.ceil((qty || 1) / matched.unitsPerCase));
+  } else if (unit === "CASE") {
+    resolvedQtyCases = qty || 1;
+    resolvedQtyPacks = 0;
   }
 
   return {
@@ -517,6 +542,7 @@ export function parseSingleUtterance(rawUtterance: string, skus: SeedSku[]): Par
     ambiguityReason,
     candidates,
     resolvedQtyCases,
+    resolvedQtyPacks,
     brokenCaseInfo,
   };
 }

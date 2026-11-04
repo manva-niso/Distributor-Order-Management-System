@@ -25,6 +25,7 @@ interface OrderLine {
   skuName?: string;
   skuCode?: string;
   quantityCases: number;
+  quantityPacks?: number;
   freeCases: number;
   unitDealerPrice: number;
   netLineAmount: number;
@@ -63,6 +64,24 @@ function OrdersContent() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  const handleRepeatOrder = (order: OrderRecord) => {
+    try {
+      const draftCart: Record<string, { cases: number; packs: number }> = {};
+      for (const it of order.items) {
+        if (it.skuId) {
+          draftCart[it.skuId] = {
+            cases: it.quantityCases || 0,
+            packs: it.quantityPacks || 0,
+          };
+        }
+      }
+      localStorage.setItem("isolabs_draft_cart", JSON.stringify(draftCart));
+      window.location.href = "/cart";
+    } catch (err) {
+      console.error("Repeat order error:", err);
+    }
   };
 
   useEffect(() => {
@@ -252,7 +271,11 @@ function OrdersContent() {
                         className="flex items-center justify-between text-xs text-slate-700"
                       >
                         <span className="truncate pr-2">
-                          <strong className="font-mono text-slate-900">{it.quantityCases}x</strong>{" "}
+                          <strong className="font-mono text-slate-900">
+                            {it.quantityCases > 0 ? `${it.quantityCases} Case(s)` : ""}
+                            {it.quantityCases > 0 && (it.quantityPacks || 0) > 0 ? " + " : ""}
+                            {(it.quantityPacks || 0) > 0 ? `${it.quantityPacks} Pack(s)` : ""}
+                          </strong>{" "}
                           {it.skuName || it.skuId}
                           {it.freeCases > 0 && (
                             <span className="text-emerald-700 font-semibold ml-1">
@@ -265,6 +288,21 @@ function OrdersContent() {
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Repeat Order Action Button */}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {lang === "hi" ? "त्वरित पुनः ऑर्डर (1-टैप):" : "One-Tap Reorder:"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRepeatOrder(ord)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>{lang === "hi" ? "ऑर्डर दोहराएं (Repeat Order)" : "Repeat Order"}</span>
+                    </button>
                   </div>
 
                   {/* Delivery Schedule Footer */}

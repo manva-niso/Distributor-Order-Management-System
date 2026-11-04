@@ -324,17 +324,20 @@ All integrations can be flipped between **Development Mode** (console output) an
 
 ---
 
-## 5. Upcoming Modules Test Plan
+## 5. Comprehensive Automated Test Suite (77 Tests across 10 Suites)
 
-As subsequent modules are implemented, their test commands will integrate here:
+All test suites are fully automated and pass in <1 second with zero network dependencies:
 
-| Module | Individual Test Command | What It Verifies |
-| :--- | :--- | :--- |
-| **Module 2: Catalogue** | `npx vitest run src/__tests__/catalogue.test.ts` | Case/pack pricing, out-of-stock disablement, live search. |
-| **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 calculations, 3% slab tiers, GST tax formulas. |
-| **Module 4: Cart & Orders** | `npx vitest run src/__tests__/orders.test.ts` | Atomic stock reservation, ledger credit headroom ceiling check. |
-| **Module 5: AI Capture** | `npx vitest run src/__tests__/ai-capture.test.ts` | Hindi phonetic parsing, "peti" unit clarification, Gemini OCR fallback. |
-| **Module 6: Order Desk** | `npx vitest run src/__tests__/desk.test.ts` | Optimistic Concurrency Control (OCC) version conflicts, alias learning. |
-| **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime `<ENVELOPE>` XML generation. |
-| **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing. |
-| **Module 9: Dormant Retailers** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, WhatsApp deep-link generation. |
+| Module | Test Command | What It Verifies | Tests Count |
+| :--- | :--- | :--- | :--- |
+| **Module 1: Auth & OTP** | `npx vitest run src/__tests__/auth.test.ts` | OTP generation, rate limits, attempt lockouts, JWT sessions, B2B registration | 13 tests |
+| **Module 2: Catalogue** | `npx vitest run src/__tests__/catalogue.test.ts` | Case/pack pricing, out-of-stock disablement, live search & brand filters | 8 tests |
+| **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 floor division, 3% slab tiers, Rule 46 50/50 GST formulas | 10 tests |
+| **Module 4: Cart & Orders** | `npx vitest run src/__tests__/orders.test.ts` | Atomic stock reservation, ledger credit headroom ceiling check, OCC versioning | 4 tests |
+| **Master Setup (Excel)** | `npx vitest run src/__tests__/excel-import.test.ts` | Excel workbook parsing, column synonym tolerance, dynamic catalog replacement | 4 tests |
+| **Module 5: Text Parser** | `npx vitest run src/__tests__/text-parser.test.ts` | Devanagari numerals, Hinglish extraction, unit ambiguity guardrails, broken case handling | 14 tests |
+| **Module 6: Order Desk** | `npx vitest run src/__tests__/desk.test.ts` | Optimistic Concurrency Control (OCC) version conflicts, line editing, alias learning | 8 tests |
+| **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime XML `<ENVELOPE>`, Actual vs Billed quantities, double-entry balance | 8 tests |
+| **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
+| **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
+| **Total Test Coverage** | `npm run test` | **All 10 test suites executing collectively** | **77 tests (100% Passing)** |

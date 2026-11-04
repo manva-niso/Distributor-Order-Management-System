@@ -15,7 +15,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### Companion Documentation
 - [**`Overall_connections.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Overall_connections.md): Directory breakdown, file-by-file roles, and end-to-end data flow diagrams.
 - [**`Test_And_Run_Guide.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md): Operational guide for running & testing each part individually and collectively.
-- [**`Assumptions.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md): Comprehensive module-by-module assumption registry with permanent IDs (`[A1]` to `[A23]`).
+- [**`Assumptions.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md): Comprehensive module-by-module assumption registry with permanent IDs (`[A1]` to `[A44]`).
 - [**`Errors.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Errors.md): Incident registry tracking root cause analyses and verified fixes.
 
 
@@ -32,9 +32,9 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Master Setup** | Dynamic Excel Importer & First-Time Onboarding Hub | Distributor, Reviewer | ✅ Completed | Upload custom .xlsx/.csv, 1-click industry presets, live database explorer, downloadable templates |
 | **Module 5** | Multi-Modal Order Intake & Unit Disambiguation (Basic Text) | Retailer, Desk, Salesman | ✅ Completed | Multilingual text parser (Hinglish/Hindi/English), word numerals, unit guardrail card, pluggable ML adapter, direct cart sync |
 | **Module 6** | Order Desk Operations, Verification & OCC Concurrency | Order Desk Clerk | ✅ Completed | OCC version check (`[A19]`), split-screen desk terminal, line editing with live recalculation, alias auto-learning (`[A20]`), credit hold release (`[A37]`) |
-| **Module 7** | Tally XML Export & Batch Processing | Order Desk Clerk | ⏳ Pending | Tally ERP / Prime compliant XML batch download, exported status marking |
-| **Module 8** | Van Loading Route Manifest & Warehouse Picking | Desk Clerk / Warehouse | ⏳ Pending | Route & stop sequencing, aggregate SKU case picking lists, vehicle load tally |
-| **Module 9** | 14-Day Dormant Retailers Dashboard & WhatsApp Nudge | Owner / Desk Clerk | ⏳ Pending | Dormancy filtering (≥14 days), credit exposure, 1-tap Hindi WhatsApp nudge |
+| **Module 7** | Tally XML Export & Batch Processing | Order Desk Clerk | ✅ Completed | Tally ERP / Prime compliant XML batch download, Actual vs Billed quantities (`[A39]`), double-entry balance (`[A40]`), exported status marking |
+| **Module 8** | Van Loading Route Manifest & Warehouse Picking | Desk Clerk / Warehouse | ✅ Completed | Route & stop sequencing, aggregate SKU case picking lists (`[A22]`, `[A41]`), vehicle payload weight tally (`[A42]`), printable loading sheet |
+| **Module 9** | 14-Day Dormant Retailers Dashboard & WhatsApp Nudge | Owner / Desk Clerk | ✅ Completed | Dormancy filtering (≥14 days, `[A23]`), churn risk tiers (`[A43]`), credit exposure, 1-tap Hindi WhatsApp nudge (`[A44]`) |
 
 ---
 
@@ -144,20 +144,30 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ---
 
-## Module 3: Pure Scheme & Pricing Calculation Engine
+## Module 3: Universal Pure Scheme & Tax Calculation Engine
 
 ### 1. Features Implemented
-- [x] **Pure Functional Scheme Engine (`src/lib/schemes/engine.ts`):**
-  - **Free Goods Scheme (`[A11]`):** `floor(orderedCases / buyQty) * getFreeQty`. Valued at ₹0.00 promotional supply. Delivered total = `orderedCases + freeCases`.
-  - **Slab Tier Cash Discount (`[A12]`):** Applies percentage discount pre-GST once minimum threshold cases are reached (e.g. 3% off on 5+ cases of Detergent).
+- [x] **Universal Pure Functional Scheme Engine (`src/lib/schemes/engine.ts`):**
+  - **Free Goods Scheme (`[A11]` & `[A46]`):** `floor(orderedCases / buyQty) * getFreeQty`. Valued at ₹0.00 composite promotional supply (Circular 92/11/2019-GST). Supports both same-SKU bonus cases and cross-SKU gifting (`freeSkuId` & `freeSkuName`).
+  - **Multi-Tier Slab Ladders (`[A45]`):** Evaluates progressive volume ladders non-cumulatively (e.g. 5 cases = 3%, 10 cases = 5%, 20 cases = 8%), dynamically selecting the highest achieved tier.
+  - **Flat Per-Case Cash Rebates (`[A47]`):** Fixed cash incentives (e.g. ₹50 off per case on 5+ cases) applied pre-tax.
+  - **Real-Time Upsell Nudge Telemetry (`[A48]`):** For every active item below max tier, calculates `casesNeeded`, `targetTierPct`, and `potentialSavings` for instant UI banners and salesman prompts.
+  - **Dynamic Demand Support:** Seamlessly values both wholesale master cases and loose packets/pieces (`orderedPacks` at `packPrice`).
   - **Rule 46 CGST/SGST Half-Up Rounding (`[A2]`):** Intrastate Madhya Pradesh 50/50 tax split with IEEE 754 micro-epsilon compensation bias `(value + 1e-6) * 100 / 100`.
-  - **Non-Compounding Rule (`[A13]`):** Guarantees either free goods or slab discount is applied per SKU, strictly preventing double-discount compounding.
+  - **Non-Compounding Rule (`[A13]`):** Guarantees either free goods, slab discount, or flat rebate is applied per SKU, strictly preventing double-discount compounding.
   - **Composite Order Summary (`calculateOrderSummary`):** Aggregates line items into gross, discounts, taxable subtotal, CGST, SGST, unrounded total, round-off, and final payable amount.
   - **Input Guards:** Clamps negative quantities to zero; gracefully handles empty cart baskets.
 
 ### 2. Files Created / Modified
 - `distributor-app/`
-  - `src/lib/schemes/engine.ts` - Core pure function pricing & scheme calculation engine
+  - `src/lib/schemes/engine.ts` - Universal pricing, multi-tier ladder, and tax calculation engine
+  - `src/lib/catalogue/cart-store.ts` - Cart state and line calculations matching universal scheme schema
+  - `src/lib/excel/importer.ts` - Universal Excel parser parsing ladder tiers (`5:3%, 10:5%, 20:8%`), flat rebates, and cross-SKU free items
+  - `src/__tests__/schemes.test.ts` - 13 unit tests covering rounding, free goods, multi-tier ladders, flat rebates, cross-SKU gifting, and composite baskets
+
+### 3. Verification & Tests
+- **Vitest Suite:** `src/__tests__/schemes.test.ts`
+  - 13/13 unit tests passing (13ms runtime).
   - `src/__tests__/schemes.test.ts` - 10 unit tests covering edge cases, rounding, and scheme mechanics
 
 ### 3. Verification & Tests
@@ -242,6 +252,13 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Preset 2: *Grocery & Packaged Foods* (Biscuits, Tea, Edible Oil, Noodles).
     - Preset 3: *Home Care & Detergents* (Ghadi, Surf Excel, Laundry cakes, Dettol soap).
   - **Live Database Explorer:** Searchable, real-time tables showing loaded SKUs and Kirana credit balances with 1-click login links.
+- [x] **Master Database Clean Slate & Reset Engine (`POST /api/setup/reset-db`):**
+  - **Pristine Clean Slate Mode (`mode: "clean_slate"`):** Wipes all placed orders to 0, cancels credit holds, clears cart state, and restores baseline warehouse stock (340 biscuit, 85 detergent, 0 tea) and initial credit headroom. Perfect for presenting clean, zero-order live walkthroughs to evaluators.
+  - **Factory Jabalpur Demo Mode (`mode: "factory_demo"`):** Restores baseline catalog plus the 3 standard demo orders (`ORD-10482`, `ORD-10483` credit hold, `ORD-10484` verified) for desk triage demonstration.
+  - **Master Action Buttons:** High-contrast Clean Slate trigger buttons with double-confirmation dialogs embedded on both the Master Setup Hub (`/setup`) and Order Desk Header (`/desk`).
+- [x] **Live Neon Serverless Postgres Client Ready (`src/db/neon.ts`, `drizzle.config.ts`):**
+  - Configured `@neondatabase/serverless` connection pool with Drizzle ORM HTTP adapter.
+  - Ready for instantaneous connection by supplying `DATABASE_URL` in `.env.local`.
 - [x] **Login Screen Directory & Account Switcher:**
   - Displays dynamic directory of all currently loaded Kirana counters with available credit badges and 1-tap test login.
   - Direct callout linking to `/setup` for immediate Excel onboarding.
@@ -279,35 +296,35 @@ This document tracks each Core Build Module step by step, its features, implemen
   - **Word Numerals:** Translates written numbers across English (`one`, `two`, `ten`), Hinglish (`ek`, `do`, `chaar`, `paanch`, `das`), and Hindi (`एक`, `दो`, `तीन`, `पाँच`, `दस`).
   - **Unit Extraction:** Maps wholesale units (*"peti"*, *"petee"*, *"case"*, *"dabba"*, *"पेटी"*, *"डिब्बा"*) to `CASE`, and retail packs (*"packet"*, *"pack"*, *"pkt"*, *"piece"*, *"पैकेट"*) to `PACK`.
   - **Noise Words Stripping:** Discards conversational pleasantries (*"bhaiya"*, *"chahiye"*, *"jaldi bhejo"*, *"kal subah"*, *"नमस्ते"*, *"भैया"*).
-  - **Pack-to-Case Conversion:** Automatically computes wholesale case multiples when retail loose packs are specified (`[A35]`).
+  - **Explanatory Case Clause Pre-Processing:** Accurately isolates and strips descriptive clauses like *"where a case contains 24 pkts"*, *"jiski peti me 24 packet aate hai"*, or *"case contains 20"* while preserving the user's intended order quantity and context.
+  - **Generic Category Matching Boost (+0.55):** Ensures colloquial single-keyword requests (*"1 pkt of tea"*, *"2 sabun"*, *"5 biscuit"*, *"oil 1 ltr"*) match the catalogue with high baseline confidence ($\ge 0.75$) without falling below the candidate threshold.
+  - **Dynamic Loose Packets vs Whole Cases:** Accurately distinguishes whole cases from single-pack demands, setting `resolvedQtyPacks` and computing single-pack wholesale rates.
 - [x] **Strict Unit Disambiguation Guardrail (`[A16]` & `[A36]`):**
   - If a message omits the unit (e.g., *"bhaiya 5 biscuit chhota"*), the system flags the line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"`.
-  - **Broken Master Case & Cut Pack Detection (`[A36]`):** Handles colloquial fractional requests (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*). Accurately extracts requested loose packs (`15`) and SKU (`Ghadi 1kg`), ignores product weights (`1kg`) and case capacity (`20`), flags `ambiguityReason: "BROKEN_CASE"`, and prompts merchant/clerk with 1-click resolution (Round Up to Full Case vs Request Loose Packs with Desk Approval).
-  - The system **never guesses** between wholesale cases and loose packs.
+  - **Broken Master Case & Cut Pack Detection (`[A36]`):** Handles colloquial fractional requests (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*). Accurately extracts requested loose packs (`15`) and SKU (`Ghadi 1kg`), flags `ambiguityReason: "BROKEN_CASE"`, and offers 1-tap options: Order 15 Loose Packs directly vs Upgrade to Full Sealed Case.
 - [x] **Interactive Quick Order Screen (Screens 3 & 4) (`src/app/(portal)/quick-order/page.tsx`):**
   - Bilingual UI (English + Hindi toggle).
   - Multi-line textarea for copy-pasting WhatsApp messages or verbal transcriptions.
-  - 1-click test templates: Hinglish order, English wholesale order, Devanagari Hindi order, and an Ambiguity test case.
-  - Interactive **Disambiguation Card:** Prompts shopkeeper or clerk to resolve missing units: *"5 Cases (480 packs · ₹3,888)"* vs *"5 Loose Packs (₹40.50)"*.
-  - Quantity increment/decrement buttons and line removal controls.
-  - **Direct Cart Commitment:** 1-tap "Move to Cart & Checkout" commits parsed cases to `localStorage` draft cart and redirects to `/cart`.
+  - Interactive **Disambiguation Cards** with instant 1-tap resolution.
+  - **Unmatched Line Fallback Chips:** Suggests popular catalogue items with 1-tap assignment if a brand/item is unknown.
+  - Quantity steppers for both whole cases and loose packs.
+  - **Direct Cart Commitment:** 1-tap "Confirm & Move to Cart" commits parsed items (both cases and loose packs) to `localStorage` draft cart and redirects to `/cart`.
 - [x] **Text Parsing API Endpoint (`src/app/api/capture/parse-text/route.ts`):**
   - Validated via Zod (`ParseTextSchema`).
   - Returns parsed line items, SKU matches, confidence scores, and ambiguity flags.
 
 ### 2. Files Created / Modified
 - `distributor-app/`
-  - `src/lib/ai/types.ts` - Pipeline interface, parsed line types, ambiguity reasons
-  - `src/lib/ai/text-parser.ts` - Deterministic multilingual parser
+  - `src/lib/ai/types.ts` - Added `resolvedQtyPacks` to `ParsedLineItem`
+  - `src/lib/ai/text-parser.ts` - Added `extractAndStripExplanatoryClause`, category boosts, and loose pack resolution
   - `src/lib/ai/pipeline.ts` - Pipeline factory & ML microservice adapter
   - `src/app/api/capture/parse-text/route.ts` - Text parsing API route
-  - `src/app/(portal)/quick-order/page.tsx` - Multilingual WhatsApp text paste UI
-  - `src/components/layout/BottomNav.tsx` - Mobile navigation link to Quick Order
-  - `src/__tests__/text-parser.test.ts` - 11 unit tests covering Devanagari numerals, Hinglish extraction, unit ambiguity guardrails, pack conversions, and pipeline dispatch
+  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with loose packs, unmatched fallback chips, and error handling
+  - `src/__tests__/text-parser.test.ts` - 16 unit tests covering explanatory clauses, colloquial single tokens, and partial cases
 
 ### 3. Verification & Tests
 - **Vitest Suite:** `src/__tests__/text-parser.test.ts`
-  - 14/14 unit tests passing (24ms runtime).
+  - 16/16 unit tests passing (14ms runtime).
   - **Combined Suite:** Total 53/53 tests passing across all 6 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 25/25 routes compiled cleanly.
 

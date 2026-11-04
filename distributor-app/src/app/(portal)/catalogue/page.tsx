@@ -35,6 +35,30 @@ interface RetailerHeader {
   route: string;
 }
 
+interface DraftCartItem {
+  cases: number;
+  packs: number;
+}
+
+function parseStoredCart(raw: string | null): Record<string, DraftCartItem> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    const result: Record<string, DraftCartItem> = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      if (typeof val === "number") {
+        result[key] = { cases: val, packs: 0 };
+      } else if (val && typeof val === "object") {
+        const v = val as { cases?: number; packs?: number };
+        result[key] = { cases: v.cases || 0, packs: v.packs || 0 };
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 export default function CataloguePage() {
   const router = useRouter();
 
@@ -45,7 +69,7 @@ export default function CataloguePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
-  const [cartMap, setCartMap] = useState<Record<string, number>>({});
+  const [cartMap, setCartMap] = useState<Record<string, DraftCartItem>>({});
   const [notifiedSkus, setNotifiedSkus] = useState<Record<string, boolean>>({});
 
   // 1. Load Catalogue & Retailer Session
@@ -54,7 +78,7 @@ export default function CataloguePage() {
     try {
       const savedCart = localStorage.getItem("isolabs_draft_cart");
       if (savedCart) {
-        setCartMap(JSON.parse(savedCart));
+        setCartMap(parseStoredCart(savedCart));
       }
     } catch {
       // Fallback if localStorage unavailable
@@ -68,9 +92,9 @@ export default function CataloguePage() {
           setRetailer(data.retailer || null);
           // Pre-populate Sharma Kirana initial demo cart (10 biscuit, 4 detergent) if fresh
           if (Object.keys(cartMap).length === 0) {
-            const initialMap: Record<string, number> = {
-              "SKU-BS-075": 10,
-              "SKU-DT-1KG": 4,
+            const initialMap: Record<string, DraftCartItem> = {
+              "SKU-BS-075": { cases: 10, packs: 0 },
+              "SKU-DT-1KG": { cases: 4, packs: 0 },
             };
             setCartMap(initialMap);
             try {
@@ -83,16 +107,17 @@ export default function CataloguePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Sync cart changes to localStorage
-  const updateCartQty = (skuId: string, delta: number) => {
+  // Sync cart changes to localStorage for both wholesale cases and loose packets
+  const updateCartQty = (skuId: string, field: "cases" | "packs", delta: number) => {
     setCartMap((prev) => {
-      const current = prev[skuId] || 0;
-      const next = Math.max(0, current + delta);
+      const current = prev[skuId] || { cases: 0, packs: 0 };
+      const nextVal = Math.max(0, (current[field] || 0) + delta);
+      const updatedEntry = { ...current, [field]: nextVal };
       const updated = { ...prev };
-      if (next === 0) {
+      if (updatedEntry.cases === 0 && updatedEntry.packs === 0) {
         delete updated[skuId];
       } else {
-        updated[skuId] = next;
+        updated[skuId] = updatedEntry;
       }
       try {
         localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
@@ -103,10 +128,14 @@ export default function CataloguePage() {
 
   // Convert cartMap into calculated CartItems
   const cartItems: CartItem[] = useMemo(() => {
-    return skus.map((s) => ({
-      ...s,
-      quantityCases: cartMap[s.id] || 0,
-    }));
+    return skus.map((s) => {
+      const entry = cartMap[s.id] || { cases: 0, packs: 0 };
+      return {
+        ...s,
+        quantityCases: entry.cases,
+        quantityPacks: entry.packs,
+      };
+    });
   }, [skus, cartMap]);
 
   const totals = useMemo(() => {
@@ -304,9 +333,13 @@ export default function CataloguePage() {
 
         {!loading &&
           filteredSkus.map((sku) => {
-            const currentQty = cartMap[sku.id] || 0;
+            const currentEntry = cartMap[sku.id] || { cases: 0, packs: 0 };
             const isOutOfStock = sku.stockCases <= 0;
-            const lineCalc = calculateLineItem({ ...sku, quantityCases: currentQty });
+            const lineCalc = calculateLineItem({
+              ...sku,
+              quantityCases: currentEntry.cases,
+              quantityPacks: currentEntry.packs,
+            });
 
             return (
               <article
@@ -351,7 +384,7 @@ export default function CataloguePage() {
                   </div>
                 </div>
 
-                {/* Price Breakdown Strip (Ex-GST Dealer Rate + GST Badge) */}
+                {/* Price Breakdown Strip (Ex-GST Dealer Rate + Single Pack Rate + GST Badge) */}
                 <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5 flex items-baseline justify-between">
                   <div className="flex flex-col">
                     <div className="flex items-baseline gap-1">
@@ -361,7 +394,7 @@ export default function CataloguePage() {
                       <span className="text-xs text-slate-500 font-medium">/ case (पेटी)</span>
                     </div>
                     <span className="text-[11px] text-slate-500 font-medium">
-                      (₹{sku.packPrice.toFixed(2)}/pack) • Ex-GST
+                      Single Pack: <strong>₹{sku.packPrice.toFixed(2)}</strong> • Ex-GST
                     </span>
                   </div>
 
@@ -381,7 +414,7 @@ export default function CataloguePage() {
                     <Gift className="w-4 h-4 text-amber-700 shrink-0" />
                     <span>
                       {lang === "hi"
-                        ? `★ 10 पेटी पर 1 पेटी मुफ्त! (Buy 10 get 1 free)`
+                        ? `★ ${sku.schemeDetail.buyQty} पेटी पर ${sku.schemeDetail.getFreeQty} पेटी मुफ्त! (Buy ${sku.schemeDetail.buyQty} get ${sku.schemeDetail.getFreeQty} free)`
                         : `★ Buy ${sku.schemeDetail.buyQty} cases, get ${sku.schemeDetail.getFreeQty} case FREE!`}
                     </span>
                   </div>
@@ -392,14 +425,14 @@ export default function CataloguePage() {
                     <Percent className="w-4 h-4 text-amber-700 shrink-0" />
                     <span>
                       {lang === "hi"
-                        ? `★ 5 या अधिक पेटी पर ${sku.schemeDetail.discountPct}% थोक छूट!`
+                        ? `★ ${sku.schemeDetail.minCases} या अधिक पेटी पर ${sku.schemeDetail.discountPct}% थोक छूट!`
                         : `★ ${sku.schemeDetail.discountPct}% discount on ${sku.schemeDetail.minCases}+ cases!`}
                     </span>
                   </div>
                 )}
 
                 {/* Dynamic Scheme Alert / Threshold Nudge */}
-                {!isOutOfStock && currentQty > 0 && (
+                {!isOutOfStock && currentEntry.cases > 0 && (
                   <>
                     {/* Glucose Biscuit Free Scheme Progress */}
                     {sku.schemeType === "FREE_GOODS" && (
@@ -416,13 +449,13 @@ export default function CataloguePage() {
                             <span>
                               🎉 {lineCalc.freeCases} Free Case
                               {lineCalc.freeCases > 1 ? "s" : ""} Unlocked! (Total:{" "}
-                              {currentQty + lineCalc.freeCases} cases delivered)
+                              {currentEntry.cases + lineCalc.freeCases} cases delivered)
                             </span>
                           ) : (
                             <span>
                               {lang === "hi"
-                                ? `1 मुफ्त पेटी हेतु ${10 - currentQty} और पेटी जोड़ें`
-                                : `Add ${10 - currentQty} more cases to earn 1 FREE case!`}
+                                ? `1 मुफ्त पेटी हेतु ${(sku.schemeDetail?.buyQty || 10) - currentEntry.cases} और पेटी जोड़ें`
+                                : `Add ${(sku.schemeDetail?.buyQty || 10) - currentEntry.cases} more cases to earn 1 FREE case!`}
                             </span>
                           )}
                         </div>
@@ -442,13 +475,13 @@ export default function CataloguePage() {
                         <div>
                           {lineCalc.discountAmount > 0 ? (
                             <span>
-                              ✓ 3% Wholesale Discount Applied! Saved -₹{lineCalc.discountAmount.toFixed(2)}
+                              ✓ {sku.schemeDetail?.discountPct}% Wholesale Discount Applied! Saved -₹{lineCalc.discountAmount.toFixed(2)}
                             </span>
                           ) : (
                             <span>
                               {lang === "hi"
-                                ? `3% छूट हेतु ${5 - currentQty} और पेटी जोड़ें`
-                                : `Add ${5 - currentQty} more cases to unlock 3% slab cash rebate!`}
+                                ? `${sku.schemeDetail?.discountPct}% छूट हेतु ${(sku.schemeDetail?.minCases || 5) - currentEntry.cases} और पेटी जोड़ें`
+                                : `Add ${(sku.schemeDetail?.minCases || 5) - currentEntry.cases} more cases to unlock ${sku.schemeDetail?.discountPct}% slab cash rebate!`}
                             </span>
                           )}
                         </div>
@@ -457,8 +490,27 @@ export default function CataloguePage() {
                   </>
                 )}
 
-                {/* Quantity Action Row (48px Touch Steppers or Out-of-Stock Notify) */}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                {/* Quantity Action Section: Dual Stepper for Wholesale Cases & Loose Packs */}
+                <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                        {lang === "hi" ? "आर्डर कुल (GST सहित)" : "Line Total (Incl. GST)"}
+                      </span>
+                      <span className="text-base font-bold font-mono text-slate-900">
+                        ₹{lineCalc.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {(currentEntry.cases > 0 || currentEntry.packs > 0) && (
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {currentEntry.cases > 0 && `${currentEntry.cases} Case(s)`}
+                        {currentEntry.cases > 0 && currentEntry.packs > 0 && " + "}
+                        {currentEntry.packs > 0 && `${currentEntry.packs} Pack(s)`}
+                      </span>
+                    )}
+                  </div>
+
                   {isOutOfStock ? (
                     <button
                       type="button"
@@ -491,45 +543,67 @@ export default function CataloguePage() {
                       )}
                     </button>
                   ) : (
-                    <>
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase">Line Total</span>
-                        <span className="text-sm font-bold font-mono text-slate-900">
-                          ₹{lineCalc.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-
-                      {/* 48px Ergonomic Touch Target Stepper */}
-                      <div className="flex items-center bg-slate-100 border border-slate-300 rounded-lg p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          aria-label="Decrease quantity"
-                          disabled={currentQty <= 0}
-                          onClick={() => updateCartQty(sku.id, -1)}
-                          className="w-12 h-12 rounded-md bg-white text-slate-900 flex items-center justify-center shadow-xs active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                        >
-                          <Minus className="w-5 h-5 text-slate-800" />
-                        </button>
-
-                        <div className="w-14 text-center select-none">
-                          <span className="text-base font-bold font-mono text-slate-900 block leading-none">
-                            {currentQty}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
-                            {lang === "hi" ? "पेटी" : "cases"}
-                          </span>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {/* Master Case Stepper */}
+                      <div className="flex flex-col bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 px-1 mb-1">
+                          <span>{lang === "hi" ? "पेटी (Case)" : "Master Case"}</span>
+                          <span className="font-mono text-slate-500 text-[10px]">₹{sku.dealerPrice.toFixed(0)}</span>
                         </div>
-
-                        <button
-                          type="button"
-                          aria-label="Increase quantity"
-                          onClick={() => updateCartQty(sku.id, 1)}
-                          className="w-12 h-12 rounded-md bg-emerald-700 text-white flex items-center justify-center shadow-xs active:bg-emerald-800 transition-all cursor-pointer"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center justify-between bg-white border border-slate-200 rounded-md p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            aria-label="Decrease cases"
+                            disabled={currentEntry.cases <= 0}
+                            onClick={() => updateCartQty(sku.id, "cases", -1)}
+                            className="w-10 h-10 rounded bg-slate-100 text-slate-900 flex items-center justify-center active:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="font-mono font-bold text-sm text-slate-900">
+                            {currentEntry.cases}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Increase cases"
+                            onClick={() => updateCartQty(sku.id, "cases", 1)}
+                            className="w-10 h-10 rounded bg-emerald-700 text-white flex items-center justify-center active:bg-emerald-800 cursor-pointer transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </>
+
+                      {/* Loose Pack Stepper */}
+                      <div className="flex flex-col bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 px-1 mb-1">
+                          <span>{lang === "hi" ? "खुले पैकेट" : "Loose Pack"}</span>
+                          <span className="font-mono text-slate-500 text-[10px]">₹{sku.packPrice.toFixed(0)}</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-white border border-slate-200 rounded-md p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            aria-label="Decrease loose packs"
+                            disabled={currentEntry.packs <= 0}
+                            onClick={() => updateCartQty(sku.id, "packs", -1)}
+                            className="w-10 h-10 rounded bg-slate-100 text-slate-900 flex items-center justify-center active:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="font-mono font-bold text-sm text-slate-900">
+                            {currentEntry.packs}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Increase loose packs"
+                            onClick={() => updateCartQty(sku.id, "packs", 1)}
+                            className="w-10 h-10 rounded bg-slate-800 text-white flex items-center justify-center active:bg-slate-900 cursor-pointer transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </article>
@@ -538,14 +612,16 @@ export default function CataloguePage() {
       </main>
 
       {/* Sticky Bottom Cart Bar (Appears when items are selected) */}
-      {totals.totalCases > 0 && (
+      {(totals.totalCases > 0 || totals.totalPacks > 0) && (
         <aside className="fixed bottom-16 inset-x-0 z-40 bg-slate-900 text-white p-3 shadow-xl">
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
                 <span>{totals.itemCount} Items</span>
                 <span>•</span>
-                <span>{totals.totalCases} Cases</span>
+                {totals.totalCases > 0 && <span>{totals.totalCases} Cases</span>}
+                {totals.totalCases > 0 && totals.totalPacks > 0 && <span>+</span>}
+                {totals.totalPacks > 0 && <span>{totals.totalPacks} Packs</span>}
                 {totals.totalFreeCases > 0 && (
                   <span className="text-amber-400 font-bold">
                     (+{totals.totalFreeCases} Free)
@@ -572,7 +648,7 @@ export default function CataloguePage() {
       )}
 
       {/* Bottom PWA Navigation Bar */}
-      <BottomNav cartItemCount={totals.totalCases} lang={lang} />
+      <BottomNav cartItemCount={totals.totalCases + (totals.totalPacks > 0 ? 1 : 0)} lang={lang} />
     </div>
   );
 }

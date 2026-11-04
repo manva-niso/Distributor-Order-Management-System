@@ -34,13 +34,37 @@ interface RetailerLedger {
   currentBalance: number;
 }
 
+interface DraftCartItem {
+  cases: number;
+  packs: number;
+}
+
+function parseStoredCart(raw: string | null): Record<string, DraftCartItem> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    const result: Record<string, DraftCartItem> = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      if (typeof val === "number") {
+        result[key] = { cases: val, packs: 0 };
+      } else if (val && typeof val === "object") {
+        const v = val as { cases?: number; packs?: number };
+        result[key] = { cases: v.cases || 0, packs: v.packs || 0 };
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 export default function CartPage() {
   const router = useRouter();
 
   const [lang, setLang] = useState<Language>("en");
   const [skus, setSkus] = useState<SeedSku[]>([]);
   const [ledger, setLedger] = useState<RetailerLedger | null>(null);
-  const [cartMap, setCartMap] = useState<Record<string, number>>({});
+  const [cartMap, setCartMap] = useState<Record<string, DraftCartItem>>({});
   const [loading, setLoading] = useState(true);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,7 +74,7 @@ export default function CartPage() {
     try {
       const savedCart = localStorage.getItem("isolabs_draft_cart");
       if (savedCart) {
-        setCartMap(JSON.parse(savedCart));
+        setCartMap(parseStoredCart(savedCart));
       }
     } catch {}
 
@@ -75,16 +99,17 @@ export default function CartPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Update item quantity in cart
-  const updateQuantity = (skuId: string, delta: number) => {
+  // Update item quantity in cart (both whole cases and loose packs)
+  const updateQuantity = (skuId: string, field: "cases" | "packs", delta: number) => {
     setCartMap((prev) => {
-      const current = prev[skuId] || 0;
-      const next = Math.max(0, current + delta);
+      const current = prev[skuId] || { cases: 0, packs: 0 };
+      const nextVal = Math.max(0, (current[field] || 0) + delta);
+      const updatedEntry = { ...current, [field]: nextVal };
       const updated = { ...prev };
-      if (next === 0) {
+      if (updatedEntry.cases === 0 && updatedEntry.packs === 0) {
         delete updated[skuId];
       } else {
-        updated[skuId] = next;
+        updated[skuId] = updatedEntry;
       }
       try {
         localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
@@ -93,7 +118,7 @@ export default function CartPage() {
     });
   };
 
-  // Remove line from cart
+  // Remove entire line from cart
   const removeItem = (skuId: string) => {
     setCartMap((prev) => {
       const updated = { ...prev };
@@ -105,14 +130,29 @@ export default function CartPage() {
     });
   };
 
+  // Clear entire cart
+  const clearCart = () => {
+    setCartMap({});
+    try {
+      localStorage.removeItem("isolabs_draft_cart");
+    } catch {}
+  };
+
   // Active Cart Items
   const activeItems: CartItem[] = useMemo(() => {
     return skus
-      .filter((s) => (cartMap[s.id] || 0) > 0)
-      .map((s) => ({
-        ...s,
-        quantityCases: cartMap[s.id],
-      }));
+      .filter((s) => {
+        const entry = cartMap[s.id];
+        return entry && (entry.cases > 0 || entry.packs > 0);
+      })
+      .map((s) => {
+        const entry = cartMap[s.id] || { cases: 0, packs: 0 };
+        return {
+          ...s,
+          quantityCases: entry.cases,
+          quantityPacks: entry.packs,
+        };
+      });
   }, [skus, cartMap]);
 
   // Aggregate financial calculation
@@ -140,6 +180,7 @@ export default function CartPage() {
         items: activeItems.map((it) => ({
           skuId: it.id,
           quantityCases: it.quantityCases,
+          quantityPacks: it.quantityPacks || 0,
         })),
       };
 
@@ -324,12 +365,21 @@ export default function CartPage() {
             {/* 2. Itemized Case Breakdown */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  {lang === "hi" ? "कार्ट में उत्पाद" : "Order Line Items"} ({activeItems.length})
-                </span>
-                <span className="text-xs font-bold text-slate-500">
-                  {totals.totalCases} {lang === "hi" ? "पेटी (केस)" : "Cases"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    {lang === "hi" ? "कार्ट में उत्पाद" : "Order Line Items"} ({activeItems.length})
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500 font-mono">
+                    {totals.totalCases} Cases {totals.totalPacks > 0 && `+ ${totals.totalPacks} Packs`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCart}
+                  className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer transition-colors"
+                >
+                  {lang === "hi" ? "कार्ट खाली करें" : "Empty Cart"}
+                </button>
               </div>
 
               <div className="divide-y divide-slate-100">
@@ -337,17 +387,17 @@ export default function CartPage() {
                   const calc = calculateLineItem(sku);
 
                   return (
-                    <div key={sku.id} className="py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2">
+                    <div key={sku.id} className="py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            {sku.brand}
+                            {sku.brand} • {sku.code}
                           </span>
                           <h3 className="text-sm font-bold text-slate-900 mt-0.5 leading-snug">
                             {sku.name}
                           </h3>
                           <p className="text-xs text-slate-500">
-                            ₹{sku.dealerPrice.toFixed(2)}/case • {sku.unitsPerCase} packs/case
+                            ₹{sku.dealerPrice.toFixed(2)}/case · ₹{sku.packPrice.toFixed(2)}/pack · {sku.unitsPerCase} packs/case
                           </p>
                         </div>
 
@@ -385,43 +435,65 @@ export default function CartPage() {
                         </div>
                       )}
 
-                      {/* Quantity Stepper & Removal */}
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-xs text-slate-600 font-medium">
-                          {calc.quantityCases * sku.unitsPerCase} {lang === "hi" ? "पैकेट कुल" : "total retail packs"}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(sku.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors"
-                            title="Remove line"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-
-                          <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden bg-slate-50">
+                      {/* Quantity Stepper Row for Cases & Loose Packs */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-50">
+                        <div className="flex items-center gap-3">
+                          {/* Case Stepper */}
+                          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                            <span className="text-[11px] font-bold text-slate-600 px-1">Case:</span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(sku.id, -1)}
-                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 active:bg-slate-300 transition-colors"
+                              onClick={() => updateQuantity(sku.id, "cases", -1)}
+                              disabled={calc.quantityCases <= 0}
+                              className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-10 text-center font-bold text-sm font-mono text-slate-900">
+                            <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
                               {calc.quantityCases}
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(sku.id, 1)}
+                              onClick={() => updateQuantity(sku.id, "cases", 1)}
                               disabled={calc.quantityCases >= sku.stockCases}
-                              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                              className="w-7 h-7 flex items-center justify-center bg-emerald-700 text-white hover:bg-emerald-800 rounded cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Loose Pack Stepper */}
+                          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                            <span className="text-[11px] font-bold text-slate-600 px-1">Pack:</span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(sku.id, "packs", -1)}
+                              disabled={calc.quantityPacks <= 0}
+                              className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
+                              {calc.quantityPacks}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(sku.id, "packs", 1)}
+                              className="w-7 h-7 flex items-center justify-center bg-slate-800 text-white hover:bg-slate-900 rounded cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeItem(sku.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                          title="Remove line"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   );
@@ -443,6 +515,13 @@ export default function CartPage() {
                   <span>{lang === "hi" ? "ऑर्डर की गई पेटी: " : "Ordered Master Cases:"}</span>
                   <span className="font-mono font-bold text-slate-900">{totals.totalCases} cases</span>
                 </div>
+
+                {totals.totalPacks > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>{lang === "hi" ? "ऑर्डर किए गए खुले पैकेट: " : "Ordered Loose Packs:"}</span>
+                    <span className="font-mono font-bold text-slate-900">{totals.totalPacks} packs</span>
+                  </div>
+                )}
 
                 {totals.totalFreeCases > 0 && (
                   <div className="flex justify-between text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded">

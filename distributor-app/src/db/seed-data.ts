@@ -21,6 +21,25 @@ export interface SeedUser {
   active: boolean;
 }
 
+export type SchemeType = "NONE" | "FREE_GOODS" | "SLAB_DISCOUNT" | "FLAT_REBATE";
+
+export interface SlabTier {
+  minCases: number;
+  discountPct: number;
+}
+
+export interface SchemeDetail {
+  buyQty?: number;
+  getFreeQty?: number;
+  freeSkuId?: string;
+  freeSkuName?: string;
+  minCases?: number;
+  discountPct?: number;
+  tiers?: SlabTier[];
+  flatPerCase?: number;
+  minCasesForRebate?: number;
+}
+
 export interface SeedSku {
   id: string;
   code: string;
@@ -34,13 +53,8 @@ export interface SeedSku {
   stockCases: number;
   hsnCode: string;
   gstRate: number;
-  schemeType: "NONE" | "FREE_GOODS" | "SLAB_DISCOUNT";
-  schemeDetail?: {
-    buyQty?: number;
-    getFreeQty?: number;
-    minCases?: number;
-    discountPct?: number;
-  };
+  schemeType: SchemeType;
+  schemeDetail?: SchemeDetail;
   active: boolean;
 }
 

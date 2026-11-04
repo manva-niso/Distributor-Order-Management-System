@@ -305,3 +305,23 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A44]` Personalized Bilingual Devanagari Hindi Promotional Nudges
 - **Context:** Shopkeepers respond significantly better to culturally tailored Devanagari Hindi greetings over generic English notifications.
 - **Assumption:** 1-tap WhatsApp nudge links generate pre-encoded text addressing the owner by full name, naming their specific shop, acknowledging the exact inactivity duration, and spotlighting current trade schemes (e.g. *Buy 10 Get 1 Free on Parle-G Biscuit*, *3% cash discount on Detergent*), concluding with a direct link to the digital ordering catalogue.
+
+---
+
+### Universal Trade Scheme Engine Upgrades
+
+#### `[A45]` Multi-Tier Slab Ladders Non-Cumulative Selection
+- **Context:** Advanced FMCG volume discounting with stepped incentives (e.g. 5 cases = 3%, 10 cases = 5%, 20 cases = 8%).
+- **Assumption:** Slabs do not compound. The calculation engine evaluates the line's `orderedCases` against all configured tiers in descending threshold order, selecting strictly the highest achieved tier. The selected discount percentage applies across the entire gross case value of that SKU.
+
+#### `[A46]` Cross-SKU Free Goods Gifting & ₹0.00 Composite Supply Valuation
+- **Context:** FMCG brand cross-promotions (e.g. "Buy 10 cases Detergent Powder $\to$ Get 2 cases Laundry Cake Free").
+- **Assumption:** When a scheme defines a separate `freeSkuId` and `freeSkuName`, bonus cases are awarded in the secondary SKU without altering the primary SKU's delivered case count. Under Circular 92/11/2019-GST, the promotional goods are legally treated as a composite supply with zero additional tax liability.
+
+#### `[A47]` Flat Per-Case Trade Cash Rebates
+- **Context:** Commodity and fast-moving brands offering fixed cash incentives (e.g. ₹50 off per case on 5+ cases) rather than percentage discounts.
+- **Assumption:** Flat rebates are applied directly against the line's pre-tax gross amount as `orderedCases * flatPerCase`. The taxable amount is reduced accordingly, ensuring compliant intra-state 50/50 MP GST assessment on the net value.
+
+#### `[A48]` Real-Time Scheme Upsell Nudge Telemetry
+- **Context:** Maximizing distributor average order value (AOV) and preventing shopkeeper post-order complaints ("If I knew 1 more case would give me 5%, I would have ordered 10!").
+- **Assumption:** For every active line item below the maximum promotional tier, the pricing engine computes `nextTierNudge: { casesNeeded, targetTierPct, potentialSavings }`, providing immediate telemetry for UI nudge banners and counter sales prompts.

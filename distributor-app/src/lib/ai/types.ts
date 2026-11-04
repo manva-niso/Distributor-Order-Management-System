@@ -33,6 +33,7 @@ export interface ParsedLineItem {
   ambiguityReason: AmbiguityReason;
   candidates: SkuCandidate[];
   resolvedQtyCases: number;
+  resolvedQtyPacks?: number;
   brokenCaseInfo?: BrokenCaseInfo | null;
 }
 

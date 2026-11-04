@@ -113,6 +113,94 @@ describe("Module 3 - Pure Scheme & Pricing Calculation Engine", () => {
       expect(line.lineTotal).toBe(11617.7);
       expect(line.discountDescription).toContain("3% on 5+ cases");
     });
+
+    it("evaluates multi-tier slab ladder selecting the highest qualifying tier (Rule [A45])", () => {
+      const tieredSku: InputLineItem = {
+        skuId: "SKU-DT-1KG",
+        skuCode: "GHADI-DET-1KG",
+        skuName: "Detergent powder 1 kg",
+        orderedCases: 0,
+        dealerPrice: 2000.0,
+        gstRate: 18,
+        schemeType: "SLAB_DISCOUNT",
+        schemeDetail: {
+          tiers: [
+            { minCases: 5, discountPct: 3 },
+            { minCases: 10, discountPct: 5 },
+            { minCases: 20, discountPct: 8 },
+          ],
+        },
+      };
+
+      // Under lowest tier (4 cases)
+      const underLine = calculateLineItem({ ...tieredSku, orderedCases: 4 });
+      expect(underLine.discountAmount).toBe(0);
+      expect(underLine.nextTierNudge).toBeDefined();
+      expect(underLine.nextTierNudge?.casesNeeded).toBe(1); // 5 - 4
+
+      // Tier 1 (7 cases -> 3%)
+      const tier1Line = calculateLineItem({ ...tieredSku, orderedCases: 7 });
+      expect(tier1Line.discountAmount).toBe(420); // 7 * 2000 * 0.03
+      expect(tier1Line.discountDescription).toContain("3% on 5+ cases");
+      expect(tier1Line.nextTierNudge?.casesNeeded).toBe(3); // 10 - 7
+
+      // Tier 2 (12 cases -> 5%)
+      const tier2Line = calculateLineItem({ ...tieredSku, orderedCases: 12 });
+      expect(tier2Line.discountAmount).toBe(1200); // 12 * 2000 * 0.05
+      expect(tier2Line.discountDescription).toContain("5% on 10+ cases");
+      expect(tier2Line.nextTierNudge?.casesNeeded).toBe(8); // 20 - 12
+
+      // Tier 3 (25 cases -> 8%)
+      const tier3Line = calculateLineItem({ ...tieredSku, orderedCases: 25 });
+      expect(tier3Line.discountAmount).toBe(4000); // 25 * 2000 * 0.08
+      expect(tier3Line.discountDescription).toContain("8% on 20+ cases");
+      expect(tier3Line.nextTierNudge).toBeNull(); // top tier reached
+    });
+
+    it("evaluates flat cash rebate per case (Rule [A47])", () => {
+      const rebateSku: InputLineItem = {
+        skuId: "SKU-BS-GD120",
+        skuCode: "GD-120G",
+        skuName: "Good Day Cookies",
+        orderedCases: 6,
+        dealerPrice: 1000.0,
+        gstRate: 18,
+        schemeType: "FLAT_REBATE",
+        schemeDetail: {
+          flatPerCase: 50,
+          minCasesForRebate: 5,
+        },
+      };
+
+      const line = calculateLineItem(rebateSku);
+      expect(line.discountAmount).toBe(300); // 6 * 50
+      expect(line.taxableAmount).toBe(5700); // 6000 - 300
+      expect(line.discountDescription).toContain("Flat Cash Rebate (₹50/case");
+    });
+
+    it("supports cross-SKU free goods gifting (Rule [A46])", () => {
+      const crossSku: InputLineItem = {
+        skuId: "SKU-DT-1KG",
+        skuCode: "GHADI-1KG",
+        skuName: "Ghadi 1kg",
+        orderedCases: 10,
+        dealerPrice: 2000.0,
+        gstRate: 18,
+        schemeType: "FREE_GOODS",
+        schemeDetail: {
+          buyQty: 10,
+          getFreeQty: 2,
+          freeSkuId: "SKU-DT-CK250",
+          freeSkuName: "Ghadi Detergent Cake 250 g",
+        },
+      };
+
+      const line = calculateLineItem(crossSku);
+      expect(line.freeCases).toBe(2);
+      expect(line.freeSkuId).toBe("SKU-DT-CK250");
+      expect(line.freeSkuName).toBe("Ghadi Detergent Cake 250 g");
+      expect(line.discountDescription).toContain("free case(s) of Ghadi Detergent Cake");
+    });
   });
 
   describe("5% GST Category Item (Tea Leaf)", () => {
