@@ -4,86 +4,250 @@
 
 ---
 
-## Overview
+## First-Time User Interactive Tour (The Golden Path)
 
-This repository contains the end-to-end B2B order management system engineered to replace manual paper notebooks, unorganized WhatsApp text messages, and handwritten lists with a unified, high-speed, offline-capable digital workflow.
+If you are opening this project for the first time, follow this step-by-step walkthrough to experience the entire B2B wholesale workflow across **6 to 8 core screens**—from raw WhatsApp order capture to Tally ERP export.
 
-### Key Capabilities
-- **Installable PWA Web App:** Fast, responsive, bilingual (English & Hindi) interface with 48px touch targets designed for low-end Android smartphones on 3G networks.
-- **Legit OTP Authentication:** Multi-provider OTP verification (Fast2SMS / Twilio / Dev Console) with cryptographic timing-safe validation, rate limiting, and 7-day signed JWT session cookies (`jose`).
-- **Retailer Catalogue & Dynamic Schemes:** Live dealer pricing, stock visibility, and a pure calculation engine handling free goods (e.g. *Buy 10 get 1 free*) and slab discounts (e.g. *3% off at 5+ cases*).
-- **Multi-Modal AI Quick Order Capture:** Transcribes and maps informal WhatsApp text, paper slip photos (OCR with client canvas compression $\le 1000$px), and Hindi voice notes to inventory SKUs with strict unit disambiguation (*"peti"* mapped to wholesale cases, asking rather than guessing).
-- **Order Desk Operations:** Optimistic concurrency control (OCC), credit hold clearance queues, Tally ERP 9 / Prime XML batch export, and van loading route manifests.
-- **14-Day Dormant Retailers Dashboard:** Dormancy tracking with 1-tap Hindi WhatsApp nudge templates.
-
----
-
-## Repository Structure
+> [!NOTE]
+> The development server is running at **[http://localhost:3000](http://localhost:3000)**.
+> All credentials and test accounts are pre-seeded with 1-click test buttons.
 
 ```
-├── Build Docs/                                    # Build progress and incident tracking
-│   ├── Modules_And_Features.md                   # Feature registry across all 9 core build modules
-│   ├── Errors.md                                 # Root cause incident log for all build/runtime issues
-│   ├── Overall_connections.md                    # Directory breakdown, file roles & end-to-end data flow
-│   ├── Test_And_Run_Guide.md                     # Runbook for testing each part individually & collectively
-│   ├── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A44]) by module
-│   ├── TDD_Draft.md                              # Technical Design Document (Deliverable #1)
-│   └── deployment.md                             # Step-by-step local and production deployment guide (Deliverable #2)
-├── distributor-app/                              # Next.js App Router full-stack codebase
-│   ├── src/
-│   │   ├── app/                                  # App router pages & 32 production route handlers
-│   │   │   ├── (auth)/login/                     # Screen 1: Bilingual Login & OTP verification
-│   │   │   ├── (portal)/catalogue/               # Screen 2: Retailer catalogue & scheme pricing
-│   │   │   ├── (portal)/quick-order/             # Screen 3 & 4: Multi-modal AI quick ingest
-│   │   │   ├── (portal)/cart/                    # Screen 5: Cart & credit headroom meter
-│   │   │   ├── (portal)/orders/                  # Screen 6: Order tracking & history
-│   │   │   ├── desk/                             # Screen 7: Central Operations Terminal (Tally Export, Van Manifest, Dormant Retention)
-│   │   │   ├── desk/orders/[id]/                 # Screen 8: Split-screen order verification workspace with OCC & alias learning
-│   │   │   └── setup/                            # Master data & universal Excel ingestion hub
-│   │   ├── db/                                   # Drizzle ORM schema, reactive store & seed data
-│   │   ├── lib/                                  # Pure scheme engine, AI parser, Tally XML generator, Excel importer
-│   │   └── __tests__/                            # 10 Vitest test suites (77 automated tests)
-│   ├── next.config.ts                            # Next.js production configuration
-│   └── package.json                              # Dependencies & test scripts
-├── Inital Documents/                             # Initial client briefs & specifications
-├── PS4_Distributor_Complete_Flow_And_Architecture.md # Master Build Blueprint & Architecture
-└── UI/                                           # UI design mockups & design system reference
+                     THE END-TO-END 6-STEP FIRST USER JOURNEY:
+                     =========================================
+
+  [1. Login / Persona] ──► [2. Catalogue & Schemes] ──► [3. AI Quick Order]
+  1-Click Dev Logins        36 FMCG SKUs & GST rates     WhatsApp / Voice / Photo
+           │                                                        │
+           ▼                                                        ▼
+  [6. Order Desk & Tally] ◄── [5. Order History] ◄── [4. Cart & Credit Headroom]
+  Split-Screen & XML Export    Status Tracker & OCC       10+1 Schemes & Credit Limit
 ```
 
 ---
 
-## Quick Start
+### Step 1: Open the App & Choose a Persona (`/login`)
+1. Open your browser and navigate to **[http://localhost:3000](http://localhost:3000)** (redirects to `/login`).
+2. The login screen features a bilingual toggle (**EN / HI**) and an **Active Accounts Directory** for instant 1-click role selection:
+   - **Retailer Persona:** Click **"Sharma Kirana"** (`9826000001` — Napier Town Route #4, Ramesh Sharma, Credit Limit: ₹50,000, Outstanding: ₹12,000).
+   - **Order Desk Operator Persona:** Click **"Order Desk"** (`9826000099` — Central Depot, Amit Jain).
+   - **Field Salesman Persona:** Click **"Salesman Beat"** (`9826000018` — Beat #4, Rajesh Kumar).
+3. Click **"Get OTP" / "ओटीपी प्राप्त करें"**.
+4. The dev verification OTP code appears **directly above the input box** (and is printed to your terminal). Enter the 6 digits (or use dev code) to sign in.
 
-### 1. Prerequisites
-- Node.js v20+ or v24 LTS
-- npm v10+
+---
 
-### 2. Setup & Installation
+### Step 2: Browse the Retailer Catalogue & Scheme Engine (`/catalogue`)
+Once logged in as **Ramesh Sharma (Sharma Kirana)**:
+1. Browse 36 authentic wholesale SKUs across 7 FMCG categories (Biscuits, Edible Oils, Tea, Detergents, Soaps, Packaged Foods, Home Care).
+2. Notice the **Live Trade Schemes**:
+   - **Parle-G 75g:** *"Buy 10 Get 1 Free"* (`FREE_GOODS`).
+   - **Britannia Good Day:** *"Buy 4+ Cases $\to$ 5% Off"* (`SLAB_DISCOUNT`).
+   - **Fortune Refined Oil 1L:** *"Flat ₹40 rebate per case on 5+ cases"* (`FLAT_REBATE`).
+3. Toggle between **Ex-GST** and **Inc-GST** prices to inspect the 50/50 CGST + SGST tax calculation.
+
+---
+
+### Step 3: Experience AI Quick Order Capture (`/quick-order`)
+Navigate to **"Quick Order"** (or `/quick-order`). Kirana merchants rarely navigate catalogs; they send messy WhatsApp messages, voice notes, or photos of paper slips.
+
+Try copying and pasting any of these real-world test snippets into the **Text** tab:
+
+#### 🧪 Test Snippet A: Standard Daily WhatsApp List (with conversational filler)
+```text
+namaste bhaiji
+10 peti pila wala
+4 peti good day butter
+2 peti fortune refine 1L
+kal subah bhej dena
+```
+*Click **"Parse Order Text"** $\to$ The engine automatically filters conversational greetings/footers, resolves *"pila wala"* to Parle-G 75g, extracts quantities in wholesale cases (*peti*), and scores line confidence at $\ge 0.95$.*
+
+#### 🧪 Test Snippet B: The "Dabba" Polysemy Dilemma ("Ask, Never Guess")
+```text
+2 dabba parle g
+1 dabba surf excel
+```
+*Click **"Parse Order Text"** $\to$ Notice how the engine **refuses to guess**! In Jabalpur trade slang, *"dabba"* can mean a single inner retail display box or a master corrugated case. The engine triggers an interactive **1-Tap Disambiguation Card**: select *"Box"* or *"Case"* with one click.*
+
+#### 🧪 Test Snippet C: Broken-Case Cut Pack Alert
+```text
+15 out of 20 ghadi powder
+3 packet maggi
+```
+*Click **"Parse Order Text"** $\to$ The engine detects that 15 bags is a broken master case (case size = 20). It displays a **Broken-Case Warning** with a 1-tap option to round up to 1 full case or bill loose pouches.*
+
+#### 🧪 Test Snippet D: Devanagari Hindi Shorthand
+```text
+५ पेटी पार्ले जी
+२ टीन मीठा तेल
+३ पैकेट शक्ति चाय
+```
+*Click **"Parse Order Text"** $\to$ The engine converts Devanagari numerals (`५` $\to$ 5) and maps regional nicknames (*"मीठा तेल"* $\to$ edible oil).*
+
+Click **"Confirm & Move to Cart"** to transfer the parsed items directly into the wholesale checkout.
+
+---
+
+### Step 4: Inspect Cart, Automatic Schemes & Credit Headroom (`/cart`)
+Navigate to **Cart** (`/cart`):
+1. **Automatic Trade Schemes:**
+   - If you ordered 10 cases of Parle-G, notice an extra **+1 Free Case** automatically added at ₹0 billing rate.
+   - If you ordered 4+ cases of Good Day, notice the **5% Slab Discount** applied directly before tax.
+2. **Transparent GST Breakdown:**
+   - Clear itemized split of Central GST (CGST) and State GST (SGST) matching Jabalpur intra-state tax laws.
+3. **Dynamic Credit Limit Meter:**
+   - Sharma Kirana has a ₹50,000 credit limit with ₹12,000 existing balance.
+   - The interactive meter shows the new order against remaining credit headroom.
+4. Click **"Place Order"** (ऑर्डर भेजें). The order is assigned an ID (e.g. `ORD-XXXXX`) and sent to the Order Desk.
+
+---
+
+### Step 5: View Order Tracking (`/orders`)
+Navigate to **Orders** (`/orders`) to see the newly submitted order in **"Pending Review"** or **"Credit Hold"** status with full itemized breakdown.
+
+---
+
+### Step 6: Switch to Order Desk Operator (`/desk`)
+Now step into the shoes of the distributor's desk clerk, **Amit Jain**:
+1. Log out or open a new incognito window, navigate to `/login`, and click **"Order Desk"** (`9826000099`).
+2. Enter the dev OTP and sign in. You will land on the **Central Operations Terminal** (`/desk`):
+   - **Triage Queue:** Filter orders by Route (e.g., *Napier Town Route #4*) or Status (*Pending Review*, *Credit Hold*, *Approved*).
+   - **Split-Screen Verification Workspace (`/desk/orders/[id]`):**
+     * Click on any pending order.
+     * Left pane displays the **original raw WhatsApp text / OCR photo / audio recording**.
+     * Right pane displays the **structured SKU lines, scheme adjustments, and pricing**.
+   - **Clerk Alias Learning Loop:**
+     * Correcting or modifying an item stores the retailer's custom nickname `(retailer_id, raw_phrase, resolved_sku_id)` in the database so future orders match automatically with $P \ge 0.95$.
+   - **Optimistic Concurrency Control (OCC):**
+     * Open the same order in two browser tabs. Make and save an edit in Tab 1. Now try to save an edit in Tab 2.
+     * The system rejects the stale edit with an OCC conflict modal, preventing silent data overwrites between multiple desk clerks.
+   - **Approve Order:**
+     * Approve the order to move it to the fulfillment pipeline.
+3. **Tally ERP 9 / Prime XML Batch Export:**
+   - On the Order Desk dashboard, click **"Export Tally XML"** (or visit `/api/tally/export`).
+   - Generates production-ready Tally accounting voucher XML with exact HSN codes, ledger mappings, and 50/50 CGST/SGST splits ready for 1-click import into Tally.
+4. **Van Loading Route Manifest:**
+   - Click **"Van Manifest"** to generate the driver picking list grouped by delivery vehicle and route beat, highlighting loose broken cases vs sealed master shippers.
+5. **14-Day Dormant Retailers Dashboard:**
+   - Switch to the **"Dormant"** tab to review kiranas with no orders in $>14$ days, complete with a 1-tap Hindi WhatsApp retention nudge generator.
+
+---
+
+### Step 7: Master Data Hub & Reset (`/setup`)
+Need to reset data or test from a clean slate?
+- Visit **`/setup`** anytime.
+- Choose **"Reset to Demo State"** (restores default 8 retailers, 36 SKUs, and seed orders) or **"Absolute Zero Reset"**.
+- Upload custom Excel spreadsheets (`.xlsx`) to bulk-import catalogs or retailer customer lists.
+
+---
+
+## Technical Architecture & Core Modules
+
+The solution is divided into modular, decoupled packages:
+
+```
+├── distributor-app/       # Full-Stack Next.js 15 App (PWA, Tailwind CSS, SQLite/Drizzle ORM)
+│   ├── src/app/          # 34 production pages & API routes
+│   └── src/__tests__/    # 14 Vitest suites (121 automated tests)
+├── engine/                # Pure Vernacular Order Parsing Engine (@isolabs/order-engine)
+│   ├── src/pipeline/     # 5-Tier Cascaded Adaptive Order Engine
+│   └── src/__tests__/    # 6 Vitest suites (67 automated tests)
+├── catalogue/             # Authentic 36-SKU FMCG Wholesale Catalog & Benchmarks
+│   ├── catalog-data.ts   # Multi-tier packaging, HSN codes, GST rates, and schemes
+│   ├── datasets/         # 9 real-world Jabalpur WhatsApp/Call test scenarios
+│   └── __tests__/        # Scenario benchmark suite (9 automated tests)
+├── research/              # Comprehensive research document & Hindi NLP benchmark papers
+└── Build Docs/            # Living build documentation, runbooks, and incident logs
+    ├── Laymans_Guide.md  # Plain-English non-technical guide to the Order Engine
+    ├── Modules_And_Features.md # Complete feature registry across 9 modules
+    ├── Assumptions.md    # Verified business & technical assumptions [A1]-[A44]
+    ├── Errors.md         # Incident log with root causes and fixes [ERR-001]-[ERR-030]
+    └── Test_And_Run_Guide.md # Comprehensive test runbook
+```
+
+---
+
+## 5-Tier Cascaded Order Engine Architecture
+
+The vernacular order parsing engine (`engine/`) handles high-velocity WhatsApp text and speech transcripts across 5 sequential tiers:
+
+```
+   Raw Order Line: "10 peti pila wala aur 2 dabba tel"
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 0: Regional Alias Lookup (Instant DB / Seed Cache)     │
+ │ "pila wala" -> SKU-BS-PG075 (Parle-G 75g)                   │
+ └────────────────────────────┬────────────────────────────────┘
+                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 1: Deterministic Structural Parser                     │
+ │ Numerals, Hindi words (aadha/derh), cut-packs (15 out of 20)│
+ └────────────────────────────┬────────────────────────────────┘
+                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 2: Reciprocal Rank Fusion (RRF, k=60)                  │
+ │ Combines Trigram Jaccard + Keyword Synonyms + Indic Phonetic│
+ └────────────────────────────┬────────────────────────────────┘
+                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 3: Calibrated Scorer (Platt Logistic Calibration)      │
+ │ Honest probability P ∈ [0.05, 0.98]                         │
+ │ P ≥ 0.85 -> AUTO_CONFIRM                                    │
+ │ 0.45 ≤ P < 0.85 -> DISAMBIGUATION (1-tap card)              │
+ │ P < 0.45 -> ESCALATE_CHOOSER                                │
+ └────────────────────────────┬────────────────────────────────┘
+                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 4: Constrained Gemini Closed-Set Chooser (Optional)    │
+ │ Strict JSON schema enum over top 3 candidate IDs only       │
+ └────────────────────────────┬────────────────────────────────┘
+                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Tier 5: Plain-Code Packaging Guardrails                     │
+ │ "dabba" -> AMBIGUOUS_UNIT | Cut-pack -> BROKEN_CASE         │
+ └─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Automated Testing Suite (197 / 197 Passing)
+
+Run the full automated test suite across all packages from the root directory:
+
 ```bash
-# Navigate to the application directory
-cd distributor-app
-
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Copy environment variables
-cp .env.example .env.local
-
-# Run test suite
-npm run test
-
-# Run development server
-npm run dev
+# Run all 197 tests across app, engine, and catalog benchmarks
+npm test
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to open the application.
+Or run each subsystem individually:
+
+```bash
+# Run distributor app tests (121 tests across 14 suites)
+npm run test:app
+
+# Run standalone engine tests (67 tests across 6 suites)
+npm run test:engine
+
+# Run real-world WhatsApp/call catalog benchmark (9 scenario suites)
+npm run test:catalogue
+```
+
+### Production Build Verification
+Verify production compilation across all 34 routes:
+```bash
+npm run build
+```
 
 ---
 
-## Testing & Quality Assurance
-Run the automated Vitest test suite:
-```bash
-cd distributor-app
-npm run test
-```
-All 77 unit and integration tests across 10 test suites run in <1 second without requiring external network dependencies. Production build compiles 32/32 routes with 0 errors via `npm run build`.
+## Documentation Links
+
+- [Plain-English Guide to the Order Engine](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Laymans_Guide.md) — Simple, non-technical explanation of the engine for any audience.
+- [Research & Architecture Benchmark](file:///V:/Projects/Resume%20Projects/IsoLabs/research/README.md) — Grounding economics, Hindi NLP papers, and retrieval architecture.
+- [Authentic FMCG Wholesale Catalog](file:///V:/Projects/Resume%20Projects/IsoLabs/catalogue/README.md) — 36 SKUs, packaging tiers, and scheme configurations.
+- [Feature & Module Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Modules_And_Features.md) — Comprehensive technical reference for all 9 modules.
+- [Assumptions Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md) — Formal documentation of assumptions `[A1]` through `[A44]`.
+- [Incident & Bug Log](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Errors.md) — Root-cause analysis and resolutions for `[ERR-001]` through `[ERR-030]`.
+- [Step-by-Step Test Runbook](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md) — Comprehensive test guide for every subsystem.
