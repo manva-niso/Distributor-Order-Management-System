@@ -23,6 +23,62 @@ This document records every error, build failure, test failure, runtime issue, a
 
 ## Log Entries
 
+### [ERR-024] Colloquial Permutation and Multiplier Collision in Text Parser
+- **Date & Time:** 2026-11-04 22:05:00
+- **Module:** Module 5 - Order Capture Engine & Standalone Engine
+- **Phase:** Test / Vitest Execution
+- **Symptoms / Error Message:**
+  ```text
+  Input: "3 peti pila wala" -> matchedSku was undefined.
+  Input: "ek darjan packet good day" -> extractedQty was 1 instead of 12.
+  ```
+- **Root Cause Analysis:**
+  1. The general conversational noise word stripper included `"wala"`. Stripping `"wala"` reduced `"pila wala"` to `"pila"`, missing the exact alias key in `SEED_ALIASES`.
+  2. The sequential numeral parser evaluated `"ek"` as 1, but did not handle composite multipliers like `"darjan"` (dozen) that must multiply the preceding numeral.
+- **Resolution / Fix:**
+  1. Updated `matchSkuWithRetrieval` to check raw token phrases and n-grams against `SEED_ALIASES` *before* filtering conversational noise words, and added single token alias mappings (`pila`, `peela`).
+  2. Added multiplier evaluation in `extractQuantity`: when `"darjan"`, `"dozen"`, or `"दर्जन"` is encountered, it computes `detectedQty = (detectedQty || 1) * 12`.
+- **Prevention:** Always perform exact alias dictionary matching on raw token sequences before applying aggressive noise-word removal.
+
+### [ERR-023] Standalone Engine Vitest Path Resolution & Dependency Isolation
+- **Date & Time:** 2026-11-04 21:19:00
+- **Module:** Standalone Engine (`engine/`)
+- **Phase:** Packaging / Test Execution
+- **Symptoms / Error Message:**
+  ```text
+  Cannot find package 'vitest' imported from vitest.config.ts
+  Cannot find module '@/db/store' or its corresponding type declarations
+  ```
+- **Root Cause Analysis:**
+  1. `engine/` was decoupled outside `distributor-app` as an independent `@isolabs/order-engine` package without its own `node_modules` or dependencies.
+  2. Relative imports in test files still referenced `@/` aliases from Next.js.
+- **Resolution / Fix:**
+  1. Initialized independent `package.json` in `engine/` and installed `vitest`, `typescript`, `@types/node`.
+  2. Replaced Next.js path aliases with clean relative imports (`../data/catalog`, `../ai/text-parser`).
+  3. All 39 unit tests pass in 502ms with zero dependencies on Next.js.
+- **Prevention:** Standalone library packages must maintain self-contained TypeScript configurations and relative imports.
+
+### [ERR-022] Setup Page TS2345 Reset Mode Type Mismatch
+- **Date & Time:** 2026-11-04 19:40:00
+- **Module:** Master Data / Database Reset Hub
+- **Phase:** Build / TypeScript Compilation
+- **Symptoms / Error Message:**
+  ```text
+  Argument of type '"clean_slate" | "factory_demo" | "absolute_zero"' is not assignable to parameter of type '"clean_slate" | "factory_demo"'.
+  ```
+- **Root Cause Analysis:** `handleResetDatabase` was typed strictly as `"clean_slate" | "factory_demo"`, but the new Absolute Zero database wipe button passed `"absolute_zero"`.
+- **Resolution / Fix:** Updated parameter type to `"clean_slate" | "factory_demo" | "absolute_zero"` in `src/app/setup/page.tsx`.
+- **Prevention:** Update frontend handler type signatures whenever new backend API modes are added.
+
+### [ERR-021] Unwanted Popup Expand During Drag in Walkthrough Guide
+- **Date & Time:** 2026-11-04 18:25:00
+- **Module:** UI Walkthrough Component
+- **Phase:** UI / User Interaction
+- **Symptoms / Error Message:** Dragging the floating walkthrough pop-up across the screen caused step bars to unexpectedly expand on mouse release.
+- **Root Cause Analysis:** Releasing the pointer after dragging fired native `onClick` bubbling events onto child accordion headers.
+- **Resolution / Fix:** Added pointer distance tracking via `dragDistanceRef`. If total movement during pointer down/up exceeds 5 pixels, click events on step toggles are suppressed.
+- **Prevention:** Distinguish pointer drag gestures from intentional user clicks using drag delta thresholds.
+
 ### [ERR-016] Explanatory Clause Token Collision & Cart Loose-Pack Schema Rejection
 - **Date & Time:** 2026-11-04 12:45:00
 - **Module:** Module 5 & Module 4 - NLP Order Parser & Cart Checkout

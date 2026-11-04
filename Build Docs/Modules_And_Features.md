@@ -13,6 +13,8 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Testing:** Vitest test suite
 
 ### Companion Documentation
+- [**`Laymans_Guide.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Laymans_Guide.md): The plain-English, non-technical explanation of how every piece works for business owners and evaluators.
+- [**`research/README.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/research/README.md): In-depth research architecture document (Flipkart ACL 2023, IndicXlit, Cormack RRF k=60, Cascades with early abstention, ₹52.5L loss breakdown).
 - [**`Overall_connections.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Overall_connections.md): Directory breakdown, file-by-file roles, and end-to-end data flow diagrams.
 - [**`Test_And_Run_Guide.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md): Operational guide for running & testing each part individually and collectively.
 - [**`Assumptions.md`**](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md): Comprehensive module-by-module assumption registry with permanent IDs (`[A1]` to `[A44]`).
@@ -284,49 +286,69 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ---
 
-## Module 5: Multilingual Order Text Intake & Unit Disambiguation
+## Module 5: Multilingual Order Capture, Regional Vernacular & Unit Guardrails
 
 ### 1. Features Implemented
+- [x] **Decoupled Standalone Engine Package (`engine/` / `@isolabs/order-engine`):**
+  - Fully decoupled standalone package with zero framework dependencies on Next.js.
+  - Can be tested, benchmarked, and evolved in an isolated sandbox (`cd engine; npm test`).
+  - Contains full pure deterministic parser, scheme calculations, and unit tests (39/39 passing).
 - [x] **Pluggable Architecture & Strategy Pattern (`src/lib/ai/types.ts`, `src/lib/ai/pipeline.ts`):**
   - Defined strict `OrderParserPipeline` interface (`parseText(rawText, context): Promise<ParseResult>`).
   - Decoupled parser so an external machine learning pipeline (Python / FastAPI / PyTorch / spaCy) can drop-in replace it via environment variable `ORDER_PARSER_PROVIDER="custom_ml"` and `CUSTOM_ML_API_URL` without frontend modifications (`[A33]`).
   - Graceful zero-crash fallback to deterministic rules (`[A17]`) if the custom ML pipeline is offline or errors.
-- [x] **Sub-10ms Deterministic Multilingual Text Parser (`src/lib/ai/text-parser.ts`):**
+- [x] **Jabalpur Regional FMCG Vernacular & Dialect Dictionary:**
+  - **Tier 0 Data-Driven Regional Alias Table (`SEED_ALIASES`):**
+    - Parle-G 75g: *"pila wala"*, *"pila biscuit"*, *"chhota biscuit"*, *"parle pila"*, *"पीला वाला"*, *"छोटा बिस्कुट"* $\to$ `SKU-BS-075`
+    - Tata Tea Gold 500g: *"shakti chai"*, *"kadak chai"*, *"kadak patti"*, *"शक्ति चाय"* $\to$ `SKU-TE-TT500`
+    - Fortune Sunflower Oil 1L: *"surajmukhi tel"*, *"chidiya tel"*, *"refine tel"*, *"mitha tel"*, *"सूरजमुखी तेल"* $\to$ `SKU-OL-FT1L`
+    - Ghadi Detergent Powder 1kg: *"kapde dhone wala ghadi"*, *"ghari powder"*, *"घड़ी पाउडर"* $\to$ `SKU-DT-1KG`
+    - Ghadi Cake 250g: *"bartan bar"*, *"ghadi tikiya"*, *"kapde dhone ki tikiya"*, *"घड़ी टिकिया"* $\to$ `SKU-DT-CK250`
+    - Dettol Soap 125g: *"nahane wala dettol"*, *"डेटॉल साबुन"* $\to$ `SKU-PC-DT125`
+    - Lifebuoy Soap 100g: *"lal sabun"*, *"लाइफबॉय"* $\to$ `SKU-PC-LB100`
+  - **Regional Fractional Weights & Multipliers:**
+    - `aadha` / `adha` / `आधा` = $0.5$
+    - `derh` / `dedh` / `डेढ़` = $1.5$
+    - `dhai` / `adhai` / `ढाई` = $2.5$
+    - `sawa` / `सवा` = $1.25$
+    - `pao` / `pav` / `पाव` = $0.25$
+    - `darjan` / `dozen` / `दर्जन` = $12$ (with multipliers: *"2 darjan"* $\to 24$, *"aadha darjan"* $\to 6$)
   - **Devanagari Numeral Conversion:** Converts Hindi numerals (`०, १, २, ३, ४, ५, ६, ७, ८, ९`) into Arabic digits (`0-9`).
-  - **Word Numerals:** Translates written numbers across English (`one`, `two`, `ten`), Hinglish (`ek`, `do`, `chaar`, `paanch`, `das`), and Hindi (`एक`, `दो`, `तीन`, `पाँच`, `दस`).
-  - **Unit Extraction:** Maps wholesale units (*"peti"*, *"petee"*, *"case"*, *"dabba"*, *"पेटी"*, *"डिब्बा"*) to `CASE`, and retail packs (*"packet"*, *"pack"*, *"pkt"*, *"piece"*, *"पैकेट"*) to `PACK`.
-  - **Noise Words Stripping:** Discards conversational pleasantries (*"bhaiya"*, *"chahiye"*, *"jaldi bhejo"*, *"kal subah"*, *"नमस्ते"*, *"भैया"*).
-  - **Explanatory Case Clause Pre-Processing:** Accurately isolates and strips descriptive clauses like *"where a case contains 24 pkts"*, *"jiski peti me 24 packet aate hai"*, or *"case contains 20"* while preserving the user's intended order quantity and context.
-  - **Generic Category Matching Boost (+0.55):** Ensures colloquial single-keyword requests (*"1 pkt of tea"*, *"2 sabun"*, *"5 biscuit"*, *"oil 1 ltr"*) match the catalogue with high baseline confidence ($\ge 0.75$) without falling below the candidate threshold.
-  - **Dynamic Loose Packets vs Whole Cases:** Accurately distinguishes whole cases from single-pack demands, setting `resolvedQtyPacks` and computing single-pack wholesale rates.
-- [x] **Strict Unit Disambiguation Guardrail (`[A16]` & `[A36]`):**
-  - If a message omits the unit (e.g., *"bhaiya 5 biscuit chhota"*), the system flags the line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"`.
-  - **Broken Master Case & Cut Pack Detection (`[A36]`):** Handles colloquial fractional requests (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*). Accurately extracts requested loose packs (`15`) and SKU (`Ghadi 1kg`), flags `ambiguityReason: "BROKEN_CASE"`, and offers 1-tap options: Order 15 Loose Packs directly vs Upgrade to Full Sealed Case.
+  - **Conversational Pleasantries Stripping:** Discards noise words (*"bhaiya"*, *"sethji"*, *"chahiye"*, *"jaldi bhejo"*, *"kal subah"*, *"नमस्ते"*, *"भैया"*).
+- [x] **The "Dabba" Semantic Ambiguity Guardrail (Invariant `[A16]` "Ask, Never Guess"):**
+  - Removed `"dabba"` from `CASE_KEYWORDS`.
+  - Added dedicated `AMBIGUOUS_UNIT_KEYWORDS` (`dabba`, `dabbe`, `dibba`, `डिब्बा`).
+  - Utterances like *"2 dabba parle g pila wala"* are classified with `extractedUnit = "DABBA"`, `isAmbiguous = true`, and `ambiguityReason = "AMBIGUOUS_UNIT"`.
+  - Confidence is calibrated to $\le 0.70$, rendering an interactive clarification card asking the user: *Did you mean 2 Master Cases (peti) or 2 Inner Boxes/Tins?*
+- [x] **Broken Master Case & Cut Pack Detection (`[A36]`):**
+  - Handles colloquial fractional requests (e.g., *"detergent powder of 1 kg case of 20 mai se 15 dedo"*).
+  - Accurately extracts requested loose packs (`15`) and SKU (`Ghadi 1kg`), flags `ambiguityReason: "BROKEN_CASE"`, and offers 1-tap options: Order 15 Loose Packs directly vs Upgrade to Full Sealed Case.
+- [x] **Multi-Modal Cloud Ingestion Pipeline (Neon S3 Storage + Gemini 1.5):**
+  - Connected live Neon Postgres DB and Neon Object Storage S3-compatible bucket (`order-uploads`).
+  - API endpoint `/api/upload/media` stores files in S3 and invokes Gemini 1.5 Flash Vision (handwritten kirana slips) and Audio (voice notes) with fallback.
 - [x] **Interactive Quick Order Screen (Screens 3 & 4) (`src/app/(portal)/quick-order/page.tsx`):**
   - Bilingual UI (English + Hindi toggle).
-  - Multi-line textarea for copy-pasting WhatsApp messages or verbal transcriptions.
-  - Interactive **Disambiguation Cards** with instant 1-tap resolution.
-  - **Unmatched Line Fallback Chips:** Suggests popular catalogue items with 1-tap assignment if a brand/item is unknown.
-  - Quantity steppers for both whole cases and loose packs.
-  - **Direct Cart Commitment:** 1-tap "Confirm & Move to Cart" commits parsed items (both cases and loose packs) to `localStorage` draft cart and redirects to `/cart`.
-- [x] **Text Parsing API Endpoint (`src/app/api/capture/parse-text/route.ts`):**
-  - Validated via Zod (`ParseTextSchema`).
-  - Returns parsed line items, SKU matches, confidence scores, and ambiguity flags.
+  - Interactive **Disambiguation Cards** for `MISSING_UNIT`, `AMBIGUOUS_UNIT` ("dabba"), and `BROKEN_CASE`.
+  - Unmatched line fallback chips with 1-tap SKU assignment.
+  - Direct 1-tap "Confirm & Move to Cart" commits parsed items to cart and redirects to `/cart`.
 
 ### 2. Files Created / Modified
+- `engine/`
+  - `src/ai/text-parser.ts` - Decoupled pure text parser with Jabalpur vernacular, Tier 0 aliases, and "dabba" guardrail
+  - `src/ai/types.ts` - Enhanced `UnitType` (`DABBA`) and `AmbiguityReason` (`AMBIGUOUS_UNIT`)
+  - `src/__tests__/text-parser.test.ts` - 26 comprehensive unit tests covering dialects, fractions, dabba guardrails, and dynamic aliases
 - `distributor-app/`
-  - `src/lib/ai/types.ts` - Added `resolvedQtyPacks` to `ParsedLineItem`
-  - `src/lib/ai/text-parser.ts` - Added `extractAndStripExplanatoryClause`, category boosts, and loose pack resolution
-  - `src/lib/ai/pipeline.ts` - Pipeline factory & ML microservice adapter
-  - `src/app/api/capture/parse-text/route.ts` - Text parsing API route
-  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with loose packs, unmatched fallback chips, and error handling
-  - `src/__tests__/text-parser.test.ts` - 16 unit tests covering explanatory clauses, colloquial single tokens, and partial cases
+  - `src/lib/ai/text-parser.ts` - Synchronized app parser
+  - `src/lib/ai/types.ts` - Synchronized types
+  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card and multi-modal upload triggers
+  - `src/__tests__/text-parser.test.ts` - 26 unit tests in distributor-app
 
 ### 3. Verification & Tests
-- **Vitest Suite:** `src/__tests__/text-parser.test.ts`
-  - 16/16 unit tests passing (14ms runtime).
-  - **Combined Suite:** Total 53/53 tests passing across all 6 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`).
-- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 25/25 routes compiled cleanly.
+- **Engine Vitest Suite:** `engine/src/__tests__/text-parser.test.ts` + `schemes.test.ts`
+  - **39/39 unit tests passing** (502ms runtime).
+- **Distributor App Vitest Suite:** `distributor-app/src/__tests__/*.test.ts`
+  - **92/92 unit tests passing** across all 10 test suites.
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors.
 
 ---
 

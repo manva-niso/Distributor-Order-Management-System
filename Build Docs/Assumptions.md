@@ -187,9 +187,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 ### Module 5: Multi-Modal AI Quick Order Capture
 
-#### `[A16]` Strict Unit Disambiguation Guardrail
-- **Context:** Preventing costly redeliveries due to unit mix-ups.
-- **Assumption:** Colloquial Jabalpur wholesale vocabulary is mapped deterministically: *"peti"*, *"dabba"*, *"carton"*, *"box"* map to wholesale **CASE**. However, if a message omits the unit (e.g., *"bhaiya 5 biscuit chhota"*), the system **MUST NOT GUESS**. It must flag the line as ambiguous and prompt the user to choose: *5 Cases (480 packs · ₹3,888) or 5 Loose Packs (₹40.50)*.
+#### `[A16]` Strict Unit Disambiguation & The "Dabba" Semantic Guardrail
+- **Context:** Preventing costly wrong-delivery returns (₹350 per incident on 5% of 180,000 orders = ₹31.5 Lakhs annual loss).
+- **Assumption:** 
+  1. Explicit wholesale packaging tokens (*"peti"*, *"petee"*, *"petti"*, *"carton"*, *"box"*, *"bora"*, *"katta"*, *"पेटी"*, *"कार्टन"*) map deterministically to **CASE**.
+  2. Retail single packs (*"packet"*, *"pack"*, *"pkt"*, *"piece"*, *"pouch"*, *"tikiya"*, *"nang"*, *"पैकेट"*, *"पीस"*) map to **PACK**.
+  3. **The "Dabba" Polysemy Guardrail:** In Madhya Pradesh kirana trade, *"dabba"* is polysemic (meaning a 15L oil tin, a display inner carton of 12-24 packs, or a wholesale master case). **Mapping "dabba" blindly to CASE causes 4x over-shipment and delivery rejections.** Therefore, *"dabba"* / *"dibba"* / *"डिब्बा"* is classified as `AMBIGUOUS_UNIT` (`extractedUnit = "DABBA"`), capping confidence at $\le 0.70$ and rendering a 1-tap disambiguation card: *Did you mean Master Cases (peti) or Inner Boxes/Tins?*
+  4. If a message omits the unit entirely (e.g., *"bhaiya 5 biscuit chhota"*), the system **MUST NOT GUESS**. It flags the line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"` and prompts: *5 Master Cases or 5 Loose Packs?*
 
 #### `[A17]` Multi-Modal Fallback Pipeline
 - **Context:** Resilient capture on 3G mobile networks.
