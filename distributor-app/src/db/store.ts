@@ -208,7 +208,7 @@ class MemoryStore {
     }
   }
 
-  public loadMasterCatalog(includeDefaultOrders: boolean = true) {
+  public loadMasterCatalog(includeDefaultOrders: boolean = false) {
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();

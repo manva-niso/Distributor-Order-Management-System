@@ -222,10 +222,12 @@ export async function POST(request: NextRequest) {
     // 9. Persist Order and update Retailer ledger
     dbStore.createOrder(orderRecord, orderItemRecords);
 
-    // Sync to Neon PostgreSQL asynchronously
-    syncSingleOrderToNeon(orderRecord, orderItemRecords).catch((err) =>
-      console.warn("Neon order sync warning:", err)
-    );
+    // Sync to Neon PostgreSQL
+    try {
+      await syncSingleOrderToNeon(orderRecord, orderItemRecords);
+    } catch (err) {
+      console.warn("Neon order sync warning:", err);
+    }
 
     return NextResponse.json(
       {

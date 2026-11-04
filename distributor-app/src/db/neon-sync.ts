@@ -309,6 +309,22 @@ export async function syncSingleOrderToNeon(order: StoredOrder, items: StoredOrd
         .onConflictDoNothing();
     }
 
+    // Update retailer ledger and live balance in Neon PostgreSQL
+    const sql = getNeonSql();
+    if (sql) {
+      try {
+        await sql`UPDATE retailers SET current_balance = current_balance + ${toNumStr(order.grandTotal, "0")}, last_order_at = NOW() WHERE id = ${order.retailerId};`;
+        for (const it of items) {
+          const totalCases = (it.quantityCases || 0) + (it.freeCases || 0);
+          if (totalCases > 0) {
+            await sql`UPDATE skus SET stock_cases = GREATEST(0, stock_cases - ${totalCases}) WHERE id = ${it.skuId};`;
+          }
+        }
+      } catch (ledgerErr) {
+        console.warn("Neon ledger update warning:", ledgerErr);
+      }
+    }
+
     return true;
   } catch (err) {
     console.error("Failed to sync single order to Neon:", err);

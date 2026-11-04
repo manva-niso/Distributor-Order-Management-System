@@ -24,6 +24,7 @@ import {
   FileAudio,
   Image as ImageIcon,
   ExternalLink,
+  LogOut,
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { ParsedLineItem } from "@/lib/ai/types";
@@ -67,6 +68,11 @@ export default function QuickOrderPage() {
     setInputText(text);
     setParsedLines(null);
     setErrorMsg(null);
+  };
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
   };
 
   const handleParse = async () => {
@@ -359,16 +365,26 @@ export default function QuickOrderPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setLang(lang === "en" ? "hi" : "en")}
-            className="h-8 px-2.5 text-xs font-bold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1 transition-colors"
-          >
-            <span className={lang === "hi" ? "text-emerald-700" : "text-slate-400"}>
-              अ/A
-            </span>
-            <span>{lang === "en" ? "हिंदी" : "English"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLang(lang === "en" ? "hi" : "en")}
+              className="h-8 px-2.5 text-xs font-bold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1 transition-colors"
+            >
+              <span className={lang === "hi" ? "text-emerald-700" : "text-slate-400"}>
+                अ/A
+              </span>
+              <span>{lang === "en" ? "हिंदी" : "English"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-8 h-8 rounded-md border border-slate-300 bg-white flex items-center justify-center text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              title="Log Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 

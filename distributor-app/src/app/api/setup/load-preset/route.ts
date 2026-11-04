@@ -12,13 +12,17 @@ export async function POST(request: NextRequest) {
     let label = "";
 
     if (preset === "master") {
-      // 1. Full Master Enterprise Database (36 Wholesale FMCG SKUs)
-      dbStore.loadMasterCatalog(true);
-      label = "Master Wholesale FMCG Database (36 SKUs, 8 Kiranas, 4 Orders)";
+      // 1. Full Master Enterprise Database (36 Wholesale FMCG SKUs) - 0 Orders, pristine catalog
+      dbStore.loadMasterCatalog(false);
+      label = "Master Wholesale FMCG Database (36 SKUs, 8 Kiranas, 0 Orders)";
     } else if (preset === "company_a" || preset === "default" || preset === "reset") {
-      // 2. Company A Core Distribution (12 Baseline SKUs)
+      // 2. Company A Core Distribution (12 Baseline SKUs) - 0 Orders, pristine catalog
+      dbStore.reset(false);
+      label = "Company A Core FMCG (12 SKUs, 8 Kiranas, 0 Orders)";
+    } else if (preset === "factory_demo") {
+      // Optional: Demo state with sample test orders
       dbStore.reset(true);
-      label = "Company A Core FMCG (12 SKUs, 8 Kiranas, 4 Orders)";
+      label = "Company A Demo Orders (12 SKUs, 8 Kiranas, 4 Sample Orders)";
     } else if (preset === "fmcg_food") {
       // 3. Grocery, Packaged Foods & Staples
       const foodSkus = MASTER_CATALOG_SKUS.filter(
