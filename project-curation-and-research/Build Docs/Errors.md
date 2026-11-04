@@ -350,4 +350,29 @@ This document records every error, build failure, test failure, runtime issue, a
   5. **Benchmark & Excel Suite:** Created `overall_app_testing/generate-benchmark-excel.ts` validating 40 edge-case prompts with $100\%$ pass rate, generating `overall_app_testing_results.xlsx`.
 - **Prevention:** Always enforce multi-signal consensus across lexical, semantic, and phonetic rankers before financial transaction auto-confirmation. Never allow a single uncorroborated IR signal to claim high confidence in B2B wholesale distribution.
 
+---
+
+### [ERR-034] Seat Boundary Breach & Clerk Order Ingestion Redirection
+- **Date & Time:** 2026-11-05 01:50:00
+- **Module:** Module 1 - Authentication, Authorization & Order Desk Workstation
+- **Phase:** Live Seat & Multi-Role Verification
+- **Symptoms / Error Message:**
+  ```text
+  When logged into the Order Desk seat as Sunil Clerk (role: "desk"), clicking "+ Quick Ingest" on the desk header redirected to /quick-order (the mobile kirana buyer portal). On /cart, the screen mocked "Sharma Kirana Store" available credit balances, changing the perceived user role. Checking out returned HTTP 403 Forbidden: "Only authorized retailers can place direct orders".
+  ```
+- **Root Cause Analysis:**
+  1. **Cross-Seat Navigation Link:** The Order Desk header contained a direct link `<Link href="/quick-order">+ Quick Ingest</Link>`. `/quick-order` belongs to the Kirana mobile buyer portal group `(portal)`.
+  2. **Role / Identity Fallback in Portal:** In the customer portal (`/catalogue`, `/cart`), the API checked for `session.retailerId`. Because a Desk Clerk account does not have a retailer ID, the catalogue and cart APIs fell back to displaying the first sample shop (`Sharma Kirana Store`), confusing the user's role.
+  3. **Checkout Validation Gap:** `/api/orders/checkout` checked `if (!session || !session.retailerId) return 403`, preventing desk operators and field salesmen from booking orders on behalf of a chosen retailer.
+  4. **Missing Route Level Seat Isolation in Middleware:** `middleware.ts` only protected `/desk` against non-desk users, but did not prevent a desk clerk from accidentally entering customer portal pages, nor did it restrict `/setup` from non-desk users.
+- **Resolution / Fix:**
+  1. **In-Desk Quick Ingest Modal:** Built `DeskQuickIngestModal.tsx` directly into the Order Desk (`/desk`). Desk clerks capture WhatsApp text, handwritten slips, and voice notes without ever leaving the Order Desk workstation.
+  2. **Retailer Target Dropdown:** Added calling retailer selector with live credit limit and available credit indicators.
+  3. **Strict Seat Boundaries in `middleware.ts`:**
+     - Desk users (`role === "desk"`) are strictly confined to `/desk` and `/setup`. Any attempts to enter `/catalogue`, `/quick-order`, `/cart`, or `/orders` are redirected back to `/desk`.
+     - Kirana retailers (`role === "retailer"`) and salesmen (`role === "salesman"`) are strictly confined to the Kirana portal (`/catalogue`, `/quick-order`, `/cart`, `/orders`). Any attempts to enter `/desk` or `/setup` are redirected back to `/catalogue`.
+  4. **Multi-Role Checkout Support:** Updated `/api/orders/checkout` and `CheckoutSchema` to allow `desk` and `salesman` users to pass a target `retailerId` in the request body, while tagging `placedBy` (e.g. `Sunil Clerk (Desk WhatsApp)`) and `orderSource`.
+- **Prevention:** Always enforce strict role-based route boundaries in middleware so users remain exclusively within their designated seats ("Whatever you are, you must remain in that seat"). Ingestion tools for office clerks must reside directly inside their desk workstation.
+
+
 

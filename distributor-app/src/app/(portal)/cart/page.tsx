@@ -188,6 +188,7 @@ export default function CartPage() {
       } catch {}
 
       const payload = {
+        retailerId: ledger?.id,
         items: activeItems.map((it) => ({
           skuId: it.id,
           quantityCases: it.quantityCases,

@@ -16,6 +16,7 @@ const CheckoutItemSchema = z
   });
 
 const CheckoutSchema = z.object({
+  retailerId: z.string().optional(),
   items: z.array(CheckoutItemSchema).min(1, "Cart cannot be empty"),
   notes: z.string().optional(),
   mediaUrl: z.string().optional(),
@@ -35,18 +36,10 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await verifySessionToken(cookie.value);
-    if (!session || !session.retailerId) {
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: "Only authorized retailers can place direct orders" },
-        { status: 403 }
-      );
-    }
-
-    const retailer = dbStore.getRetailerById(session.retailerId);
-    if (!retailer) {
-      return NextResponse.json(
-        { success: false, error: "Retailer record not found" },
-        { status: 404 }
+        { success: false, error: "Authentication required to checkout" },
+        { status: 401 }
       );
     }
 
@@ -63,7 +56,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { items: requestedItems, notes, mediaUrl, mediaType, orderSource } = parseResult.data;
+    const { items: requestedItems, notes, mediaUrl, mediaType, orderSource, retailerId: requestedRetailerId } = parseResult.data;
+
+    // 3. Determine Target Retailer by Role:
+    // - Retailer role: strictly limited to their own assigned session.retailerId
+    // - Desk Clerk or Salesman role: can book on behalf of any selected retailerId
+    let targetRetailerId = session.retailerId;
+    if (session.role === "desk" || session.role === "salesman") {
+      targetRetailerId = requestedRetailerId || session.retailerId;
+    }
+
+    if (!targetRetailerId) {
+      return NextResponse.json(
+        { success: false, error: "A target retailer ID must be specified to book this order" },
+        { status: 400 }
+      );
+    }
+
+    const retailer = dbStore.getRetailerById(targetRetailerId);
+    if (!retailer) {
+      return NextResponse.json(
+        { success: false, error: `Retailer record '${targetRetailerId}' not found` },
+        { status: 404 }
+      );
+    }
 
     // 3. Validate Stock & Prepare Pricing Engine Input (Rule [A9])
     const engineInputs: InputLineItem[] = [];
@@ -156,8 +172,19 @@ export async function POST(request: NextRequest) {
       retailerId: retailer.id,
       retailerName: retailer.name,
       route: retailer.route,
-      placedBy: session.userId,
-      orderSource: orderSource || "PORTAL_CATALOGUE",
+      placedBy:
+        session.role === "desk"
+          ? `Sunil Clerk (Desk ${orderSource === "WHATSAPP_AI" ? "WhatsApp" : "Counter"})`
+          : session.role === "salesman"
+          ? `Rajesh Salesman (Counter Beat)`
+          : session.name || session.userId,
+      orderSource:
+        orderSource ||
+        (session.role === "desk"
+          ? "WHATSAPP_AI"
+          : session.role === "salesman"
+          ? "SALESMAN_COUNTER"
+          : "PORTAL_CATALOGUE"),
       mediaUrl,
       mediaType,
       rawUtterance: notes,

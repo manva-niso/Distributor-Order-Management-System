@@ -32,7 +32,9 @@ import {
   Calendar,
   Boxes,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
+import DeskQuickIngestModal from "@/components/desk/DeskQuickIngestModal";
 
 interface DeskOrder {
   id: string;
@@ -121,6 +123,9 @@ export default function OrderDeskPage() {
   // Master Clean Slate Reset State
   const [showCleanSlateModal, setShowCleanSlateModal] = useState(false);
   const [resettingDb, setResettingDb] = useState(false);
+
+  // In-Desk Quick Ingest Modal State
+  const [showQuickIngestModal, setShowQuickIngestModal] = useState(false);
 
   const handleCleanSlateReset = async (mode: "clean_slate" | "factory_demo") => {
     setResettingDb(true);
@@ -356,12 +361,15 @@ export default function OrderDeskPage() {
               <span>Catalog & Excel Hub</span>
             </Link>
 
-            <Link
-              href="/quick-order"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+            <button
+              type="button"
+              onClick={() => setShowQuickIngestModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-800 text-white hover:bg-emerald-900 shadow-xs transition-colors cursor-pointer"
+              title="Capture WhatsApp order text or voice note directly into Desk"
             >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>+ Quick Ingest</span>
-            </Link>
+            </button>
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block" />
 
@@ -1635,6 +1643,15 @@ export default function OrderDeskPage() {
           </div>
         </div>
       )}
+
+      {/* Desk Order Quick Ingest Modal */}
+      <DeskQuickIngestModal
+        isOpen={showQuickIngestModal}
+        onClose={() => setShowQuickIngestModal(false)}
+        onOrderCreated={async () => {
+          await fetchOrders();
+        }}
+      />
     </div>
   );
 }

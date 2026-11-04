@@ -7,7 +7,8 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute = pathname.startsWith("/login");
   const isDeskRoute = pathname.startsWith("/desk");
-  const isProtectedRoute =
+  const isSetupRoute = pathname.startsWith("/setup");
+  const isPortalRoute =
     pathname.startsWith("/catalogue") ||
     pathname.startsWith("/cart") ||
     pathname.startsWith("/orders") ||
@@ -17,22 +18,34 @@ export async function middleware(request: NextRequest) {
   // Validate session if token present
   const session = token ? await verifySessionToken(token) : null;
 
-  // 1. Authenticated user visiting /login -> redirect to appropriate home
+  // 1. Authenticated user visiting /login -> redirect to their designated seat
   if (isAuthRoute && session) {
     const dest = session.role === "desk" ? "/desk" : "/catalogue";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 
   // 2. Unauthenticated user visiting protected routes -> redirect to /login
-  if ((isProtectedRoute || isDeskRoute) && !session) {
+  // Note: /setup is open for unauthenticated users for first-time onboarding & database initialization
+  if ((isPortalRoute || isDeskRoute) && !session) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. Desk route protection: Only 'desk' role allowed
-  if (isDeskRoute && session && session.role !== "desk") {
-    // Non-desk user trying to access desk route -> bounce to catalogue
+  // 3. STRICT SEAT ISOLATION ("Whatever seat you are in, you must remain in that seat"):
+  // Seat A: Desk Operator (role === 'desk')
+  // - Authorized seats: /desk and /setup
+  // - If desk clerk attempts to visit the customer buyer portal (/catalogue, /quick-order, /cart, /orders),
+  //   keep them strictly in their Order Desk workstation seat.
+  if (isPortalRoute && session?.role === "desk") {
+    return NextResponse.redirect(new URL("/desk", request.url));
+  }
+
+  // Seat B & C: Kirana Retailer (role === 'retailer') & Salesman Beat (role === 'salesman')
+  // - Authorized seat: Kirana Portal (/catalogue, /quick-order, /cart, /orders)
+  // - If a retailer or salesman attempts to enter /desk or /setup,
+  //   keep them strictly in their Kirana buyer seat.
+  if ((isDeskRoute || isSetupRoute) && session && session.role !== "desk") {
     return NextResponse.redirect(new URL("/catalogue", request.url));
   }
 
@@ -43,6 +56,7 @@ export const config = {
   matcher: [
     "/login",
     "/desk/:path*",
+    "/setup/:path*",
     "/catalogue/:path*",
     "/cart/:path*",
     "/orders/:path*",
