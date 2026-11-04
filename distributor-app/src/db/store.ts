@@ -25,6 +25,8 @@ export interface StoredOrder {
   placedBy: string;
   orderSource?: "WHATSAPP_AI" | "PORTAL_CATALOGUE" | "SALESMAN_COUNTER";
   rawUtterance?: string;
+  mediaUrl?: string;
+  mediaType?: "image" | "audio";
   creditHoldReason?: string;
   holdReleasedBy?: string;
   holdReleaseNote?: string;

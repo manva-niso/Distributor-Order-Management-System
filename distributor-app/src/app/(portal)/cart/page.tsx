@@ -176,12 +176,27 @@ export default function CartPage() {
     setLoadingCheckout(true);
 
     try {
+      let mediaData: {
+        mediaUrl?: string;
+        mediaType?: "image" | "audio";
+        orderSource?: "WHATSAPP_AI" | "PORTAL_CATALOGUE" | "SALESMAN_COUNTER";
+        rawUtterance?: string;
+      } = {};
+      try {
+        const rawMedia = localStorage.getItem("isolabs_order_media");
+        if (rawMedia) mediaData = JSON.parse(rawMedia);
+      } catch {}
+
       const payload = {
         items: activeItems.map((it) => ({
           skuId: it.id,
           quantityCases: it.quantityCases,
           quantityPacks: it.quantityPacks || 0,
         })),
+        mediaUrl: mediaData.mediaUrl,
+        mediaType: mediaData.mediaType,
+        orderSource: mediaData.orderSource || "PORTAL_CATALOGUE",
+        notes: mediaData.rawUtterance,
       };
 
       const res = await fetch("/api/orders/checkout", {
@@ -198,9 +213,10 @@ export default function CartPage() {
         return;
       }
 
-      // Clear local storage cart upon successful placement
+      // Clear local storage cart and media draft upon successful placement
       try {
         localStorage.removeItem("isolabs_draft_cart");
+        localStorage.removeItem("isolabs_order_media");
       } catch {}
       setCartMap({});
 

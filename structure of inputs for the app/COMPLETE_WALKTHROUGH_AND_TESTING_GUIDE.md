@@ -167,8 +167,24 @@ Phase 8: Presentation Reset (Clean Slate)   ──> Wipe database back to zero i
 
 **Goal:** Test intake of messy WhatsApp text, Hinglish transliterations, explanatory clause stripping, and ambiguous unit guardrails.
 
-### Step 5.1: Open Quick Order
+### Step 5.1: Open Quick Order & Select Intake Mode
 - **Action:** Tap the **"Quick Order / AI"** icon in the bottom navigation (or go to [`/quick-order`](http://localhost:3000/quick-order)).
+- **What to Observe:**  
+  - Segmented 3-mode selector: **WhatsApp Text**, **Slip Photo**, and **Hindi Voice Note**.
+  - Connected live to **Neon Object Storage** (`order-uploads` bucket) for real cloud media uploads.
+
+### Step 5.2: Test Multimodal Capture Modes (Text, Photo & Voice)
+- **Mode A: WhatsApp Text Paste**
+  - Click template pill **"Template 1: Hinglish WhatsApp"** and click **"Parse Order Text"**.
+  - Conversational filler words (*"bhaiya"*) are stripped, quantities (*"5 peti"*, *"2 peti"*) mapped to full cases.
+- **Mode B: Photo of Handwritten Kirana Slip (Cloud Storage)**
+  - Click the **"Slip Photo"** tab.
+  - Tap **"⚡ 1-Click Kirana Slip Test"** (or upload your own paper slip photo).
+  - Observe green badge: `"Uploaded to Cloud: kirana_handwritten_slip.jpg"` with presigned S3 view link, thumbnail preview, and automated line extraction.
+- **Mode C: Hindi Voice Note (Cloud Storage)**
+  - Click the **"Hindi Voice"** tab.
+  - Tap **"⚡ 1-Click Hindi Audio Test"** (or upload an audio note).
+  - Observe audio player preview, cloud bucket confirmation, and automated line extraction.
 
 ### Step 5.2: Paste the Client Brief Sample Order
 - **Action:** Paste the exact sample message from the client problem statement into the text area:  

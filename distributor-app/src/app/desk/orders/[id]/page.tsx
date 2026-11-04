@@ -40,6 +40,8 @@ interface OrderDetail {
   placedBy: string;
   orderSource?: string;
   rawUtterance?: string;
+  mediaUrl?: string;
+  mediaType?: string;
   status: "PLACED" | "VERIFIED" | "CREDIT_HOLD" | "EXPORTED_TALLY" | "CANCELLED";
   subtotal: number;
   schemeDiscount: number;
@@ -415,6 +417,37 @@ export default function DeskOrderVerificationPage() {
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800 leading-relaxed whitespace-pre-wrap">
                 {order.rawUtterance || "Order booked directly through retailer portal catalogue."}
               </div>
+
+              {order.mediaUrl && (
+                <div className="mt-2.5 p-3 bg-indigo-50/60 border border-indigo-100 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
+                    <span className="flex items-center gap-1.5">
+                      {order.mediaType === "audio" ? "🎙️ Attached Hindi Voice Note" : "📸 Attached Kirana Paper Slip"}
+                    </span>
+                    <a
+                      href={order.mediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-indigo-700 hover:text-indigo-900 hover:underline flex items-center gap-1"
+                    >
+                      <span>Open Full Media</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+
+                  {order.mediaType === "audio" ? (
+                    <audio controls src={order.mediaUrl} className="w-full h-8" />
+                  ) : (
+                    <div className="rounded-md overflow-hidden border border-indigo-200 max-h-48 bg-white flex items-center justify-center">
+                      <img
+                        src={order.mediaUrl}
+                        alt="Handwritten order slip"
+                        className="w-full h-auto object-contain max-h-48"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
                 <span>Placed: {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>

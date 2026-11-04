@@ -76,15 +76,21 @@ export const skus = pgTable("skus", {
   packSize: text("pack_size").notNull(),
   unitsPerCase: integer("units_per_case").notNull(),
   dealerPrice: numeric("dealer_price", { precision: 10, scale: 2 }).notNull(),
+  packPrice: numeric("pack_price", { precision: 10, scale: 2 }).notNull().default("0.00"),
   stockCases: integer("stock_cases").notNull().default(0),
   hsnCode: varchar("hsn_code", { length: 20 }).notNull(),
   gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("18.00"),
-  schemeType: text("scheme_type", { enum: ["NONE", "FREE_GOODS", "SLAB_DISCOUNT"] }).notNull().default("NONE"),
+  schemeType: text("scheme_type", { enum: ["NONE", "FREE_GOODS", "SLAB_DISCOUNT", "FLAT_REBATE"] }).notNull().default("NONE"),
   schemeDetail: jsonb("scheme_detail").$type<{
     buyQty?: number;
     getFreeQty?: number;
+    freeSkuId?: string;
+    freeSkuName?: string;
     minCases?: number;
     discountPct?: number;
+    tiers?: Array<{ minCases: number; discountPct: number }>;
+    flatPerCase?: number;
+    minCasesForRebate?: number;
   }>(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -123,9 +129,13 @@ export const orderItems = pgTable("order_items", {
   id: varchar("id", { length: 36 }).primaryKey(),
   orderId: varchar("order_id", { length: 36 }).notNull(),
   skuId: varchar("sku_id", { length: 36 }).notNull(),
+  skuName: text("sku_name"),
+  skuCode: varchar("sku_code", { length: 50 }),
   quantityCases: integer("quantity_cases").notNull(),
+  quantityPacks: integer("quantity_packs").notNull().default(0),
   freeCases: integer("free_cases").notNull().default(0),
   unitDealerPrice: numeric("unit_dealer_price", { precision: 10, scale: 2 }).notNull(),
+  unitPackPrice: numeric("unit_pack_price", { precision: 10, scale: 2 }).default("0.00"),
   discountPct: numeric("discount_pct", { precision: 5, scale: 2 }).notNull().default("0.00"),
   discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
   netLineAmount: numeric("net_line_amount", { precision: 12, scale: 2 }).notNull(),

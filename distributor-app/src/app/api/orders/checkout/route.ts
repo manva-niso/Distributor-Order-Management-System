@@ -17,6 +17,9 @@ const CheckoutItemSchema = z
 const CheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema).min(1, "Cart cannot be empty"),
   notes: z.string().optional(),
+  mediaUrl: z.string().optional(),
+  mediaType: z.enum(["image", "audio"]).optional(),
+  orderSource: z.enum(["WHATSAPP_AI", "PORTAL_CATALOGUE", "SALESMAN_COUNTER"]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { items: requestedItems } = parseResult.data;
+    const { items: requestedItems, notes, mediaUrl, mediaType, orderSource } = parseResult.data;
 
     // 3. Validate Stock & Prepare Pricing Engine Input (Rule [A9])
     const engineInputs: InputLineItem[] = [];
@@ -123,6 +126,9 @@ export async function POST(request: NextRequest) {
     // 6. Check Credit Exposure Ceiling (Rule [A14])
     const projectedBalance = retailer.currentBalance + summary.grandTotal;
     const creditExceeded = projectedBalance > retailer.creditLimit;
+    const creditHoldReason = creditExceeded
+      ? `Credit limit exceeded: projected balance ₹${projectedBalance.toLocaleString("en-IN")} exceeds limit ₹${retailer.creditLimit.toLocaleString("en-IN")}`
+      : undefined;
     const initialStatus: StoredOrder["status"] = creditExceeded ? "CREDIT_HOLD" : "PLACED";
 
     // 7. Deduct Warehouse Stock Atomically (Rule [A15])
@@ -147,7 +153,14 @@ export async function POST(request: NextRequest) {
     const orderRecord: StoredOrder = {
       id: orderId,
       retailerId: retailer.id,
+      retailerName: retailer.name,
+      route: retailer.route,
       placedBy: session.userId,
+      orderSource: orderSource || "PORTAL_CATALOGUE",
+      mediaUrl,
+      mediaType,
+      rawUtterance: notes,
+      creditHoldReason: initialStatus === "CREDIT_HOLD" ? creditHoldReason : undefined,
       status: initialStatus,
       subtotal: summary.totalGrossAmount,
       schemeDiscount: summary.totalDiscountAmount,

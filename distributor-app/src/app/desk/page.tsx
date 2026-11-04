@@ -43,6 +43,8 @@ interface DeskOrder {
   placedBy: string;
   orderSource?: string;
   rawUtterance?: string;
+  mediaUrl?: string;
+  mediaType?: string;
   status: "PLACED" | "VERIFIED" | "CREDIT_HOLD" | "EXPORTED_TALLY" | "CANCELLED";
   subtotal: number;
   schemeDiscount: number;
@@ -667,6 +669,18 @@ export default function OrderDeskPage() {
                                 {ord.orderSource === "SALESMAN_COUNTER" && "💼 Sales Counter"}
                                 {!ord.orderSource && "📱 Direct Text"}
                               </span>
+                              {ord.mediaUrl && (
+                                <a
+                                  href={ord.mediaUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 hover:text-indigo-900 mt-0.5 hover:underline"
+                                >
+                                  {ord.mediaType === "audio" ? "🎙️ Voice Note" : "📸 Paper Slip"}
+                                  <span>↗</span>
+                                </a>
+                              )}
                             </td>
 
                             <td className="py-3.5 px-4 whitespace-nowrap">
