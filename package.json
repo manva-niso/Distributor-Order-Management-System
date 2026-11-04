@@ -10,6 +10,6 @@
     "test": "npm run test:app && npm run test:engine && npm run test:catalogue",
     "test:app": "npm --prefix distributor-app run test",
     "test:engine": "npm --prefix engine run test",
-    "test:catalogue": "npm --prefix engine exec -- vitest run ../catalogue/__tests__/realistic-orders.test.ts --root ../"
+    "test:catalogue": "npm --prefix engine exec -- vitest run ../project-curation-and-research/catalogue/__tests__/realistic-orders.test.ts --root ../"
   }
 }

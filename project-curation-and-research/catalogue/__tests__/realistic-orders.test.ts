@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { REALISTIC_ORDER_SCENARIOS } from "../datasets/realistic-orders";
 import { REAL_FMCG_CATALOG } from "../catalog-data";
 import { buildCatalogAliasMap } from "../index";
-import { CascadedOrderParserPipeline } from "../../engine/src/ai/cascaded-parser";
+import { CascadedOrderParserPipeline } from "../../../engine/src/ai/cascaded-parser";
 
 describe("Real-World FMCG Wholesale Order Benchmark Suite", () => {
   const catalogAliases = buildCatalogAliasMap(REAL_FMCG_CATALOG);

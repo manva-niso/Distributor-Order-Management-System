@@ -142,28 +142,43 @@ Need to reset data or test from a clean slate?
 
 ---
 
-## Technical Architecture & Core Modules
+## Technical Architecture & Workspace Organization
 
-The solution is divided into modular, decoupled packages:
+The repository is partitioned into two clean, purpose-driven directory structures:
+
+1. **Operational Application & Decoupled Engine:**
+   - **`distributor-app/`** — The production Next.js 15 PWA web application (34 routes, 121 automated tests, running live).
+   - **`engine/`** — The decoupled, standalone Vernacular Order Parsing Engine (`@isolabs/order-engine`, 67 automated tests) built for modular upgrades and zero-regression experimentation.
+2. **Project Curation, Research & Tracking Archive:**
+   - **`project-curation-and-research/`** — All academic research, linguistic analyses, 36-SKU wholesale FMCG catalog benchmarks, build logs, and problem briefs used to develop and curate the system.
 
 ```
-├── distributor-app/       # Full-Stack Next.js 15 App (PWA, Tailwind CSS, SQLite/Drizzle ORM)
-│   ├── src/app/          # 34 production pages & API routes
-│   └── src/__tests__/    # 14 Vitest suites (121 automated tests)
-├── engine/                # Pure Vernacular Order Parsing Engine (@isolabs/order-engine)
-│   ├── src/pipeline/     # 5-Tier Cascaded Adaptive Order Engine
-│   └── src/__tests__/    # 6 Vitest suites (67 automated tests)
-├── catalogue/             # Authentic 36-SKU FMCG Wholesale Catalog & Benchmarks
-│   ├── catalog-data.ts   # Multi-tier packaging, HSN codes, GST rates, and schemes
-│   ├── datasets/         # 9 real-world Jabalpur WhatsApp/Call test scenarios
-│   └── __tests__/        # Scenario benchmark suite (9 automated tests)
-├── research/              # Comprehensive research document & Hindi NLP benchmark papers
-└── Build Docs/            # Living build documentation, runbooks, and incident logs
-    ├── Laymans_Guide.md  # Plain-English non-technical guide to the Order Engine
-    ├── Modules_And_Features.md # Complete feature registry across 9 modules
-    ├── Assumptions.md    # Verified business & technical assumptions [A1]-[A44]
-    ├── Errors.md         # Incident log with root causes and fixes [ERR-001]-[ERR-030]
-    └── Test_And_Run_Guide.md # Comprehensive test runbook
+IsoLabs/
+├── distributor-app/                               # [Part 1] Live B2B Wholesale Web Application
+│   ├── src/app/                                   # 34 production pages & API routes
+│   └── src/__tests__/                             # 14 Vitest suites (121 automated tests)
+├── engine/                                        # [Part 1] Decoupled Order Capture Engine (@isolabs/order-engine)
+│   ├── src/ai/                                    # 5-Tier Cascaded Adaptive Order Engine
+│   └── src/__tests__/                             # 6 Vitest suites (67 automated tests)
+├── project-curation-and-research/                 # [Part 2] Research, Curation, Benchmarks & Tracking Archive
+│   ├── README.md                                  # Archive guide and directory overview
+│   ├── Build Docs/                                # Living build documentation, runbooks, and incident logs
+│   │   ├── Laymans_Guide.md                       # Plain-English non-technical guide to the Order Engine
+│   │   ├── Modules_And_Features.md                # Feature registry across 9 modules
+│   │   ├── Assumptions.md                         # Verified business & technical assumptions [A1]-[A44]
+│   │   ├── Errors.md                              # Incident log with root causes and fixes [ERR-001]-[ERR-030]
+│   │   └── Test_And_Run_Guide.md                  # Comprehensive test runbook
+│   ├── research/                                  # Academic papers, linguistic analysis & retrieval benchmarks
+│   ├── catalogue/                                 # Authentic 36-SKU FMCG wholesale catalog & WhatsApp benchmarks
+│   │   ├── datasets/                              # 9 real-world Jabalpur WhatsApp/Call test scenarios
+│   │   └── __tests__/                             # Scenario benchmark suite (9 automated tests)
+│   ├── Inital Documents/                          # Original client briefs & problem requirements
+│   ├── structure of inputs for the app/           # Input structures & prompt specifications
+│   ├── UI/                                        # Design mockups & wireframes
+│   ├── PS4_Distributor_Complete_Flow_And_Architecture.md # Complete flow and architecture blueprint
+│   └── deployment.md                              # Deployment guide reference
+├── package.json                                   # Root workspace manifest with universal scripts
+└── README.md                                      # Top-level entry point & first-time user tour
 ```
 
 ---
@@ -242,12 +257,13 @@ npm run build
 
 ---
 
-## Documentation Links
+## Documentation & Research Links
 
-- [Plain-English Guide to the Order Engine](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Laymans_Guide.md) — Simple, non-technical explanation of the engine for any audience.
-- [Research & Architecture Benchmark](file:///V:/Projects/Resume%20Projects/IsoLabs/research/README.md) — Grounding economics, Hindi NLP papers, and retrieval architecture.
-- [Authentic FMCG Wholesale Catalog](file:///V:/Projects/Resume%20Projects/IsoLabs/catalogue/README.md) — 36 SKUs, packaging tiers, and scheme configurations.
-- [Feature & Module Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Modules_And_Features.md) — Comprehensive technical reference for all 9 modules.
-- [Assumptions Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md) — Formal documentation of assumptions `[A1]` through `[A44]`.
-- [Incident & Bug Log](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Errors.md) — Root-cause analysis and resolutions for `[ERR-001]` through `[ERR-030]`.
-- [Step-by-Step Test Runbook](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Test_And_Run_Guide.md) — Comprehensive test guide for every subsystem.
+- [Archive Overview](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/README.md) — Map of all research papers, benchmarks, and build logs.
+- [Plain-English Guide to the Order Engine](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Laymans_Guide.md) — Simple, non-technical explanation of the engine for any audience.
+- [Research & Architecture Benchmark](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/research/README.md) — Grounding economics, Hindi NLP papers, and retrieval architecture.
+- [Authentic FMCG Wholesale Catalog](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/catalogue/README.md) — 36 SKUs, packaging tiers, and scheme configurations.
+- [Feature & Module Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Modules_And_Features.md) — Comprehensive technical reference for all 9 modules.
+- [Assumptions Registry](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Assumptions.md) — Formal documentation of assumptions `[A1]` through `[A44]`.
+- [Incident & Bug Log](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Errors.md) — Root-cause analysis and resolutions for `[ERR-001]` through `[ERR-030]`.
+- [Step-by-Step Test Runbook](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Test_And_Run_Guide.md) — Comprehensive test guide for every subsystem.
