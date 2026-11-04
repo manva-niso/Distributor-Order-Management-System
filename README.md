@@ -144,41 +144,45 @@ Need to reset data or test from a clean slate?
 
 ## Technical Architecture & Workspace Organization
 
-The repository is partitioned into two clean, purpose-driven directory structures:
+The repository is partitioned into the operational codebase, official deliverables, and the curation archive:
 
-1. **Operational Application & Decoupled Engine:**
-   - **`distributor-app/`** — The production Next.js 15 PWA web application (34 routes, 121 automated tests, running live).
+1. **Official Submission Deliverables (In Root):**
+   - **[`TDD.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/TDD.md)** — **Deliverable #1:** Comprehensive Technical Design Document (Executive summary, architecture, 6-layer data model, scheme engine proofs, AI capture pipelines, security/privacy, UI decisions, and known limits).
+   - **[`deployment.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/deployment.md)** — **Deliverable #2:** Step-by-step local and production deployment guide, environment variables reference, and demo logins.
+   - **[`README.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/README.md)** — Interactive first-time user tour, quickstart, and full verification runbook.
+2. **Operational Application & Decoupled Engine:**
+   - **`distributor-app/`** — The production Next.js 15 PWA web application (34 routes, 121 automated tests, running live at `http://localhost:3000`).
    - **`engine/`** — The decoupled, standalone Vernacular Order Parsing Engine (`@isolabs/order-engine`, 67 automated tests) built for modular upgrades and zero-regression experimentation.
-2. **Project Curation, Research & Tracking Archive:**
+3. **Project Curation, Research & Tracking Archive:**
    - **`project-curation-and-research/`** — All academic research, linguistic analyses, 36-SKU wholesale FMCG catalog benchmarks, build logs, and problem briefs used to develop and curate the system.
 
 ```
 IsoLabs/
-├── distributor-app/                               # [Part 1] Live B2B Wholesale Web Application
+├── distributor-app/                               # [Operational App] Live B2B Wholesale Web Application
 │   ├── src/app/                                   # 34 production pages & API routes
 │   └── src/__tests__/                             # 14 Vitest suites (121 automated tests)
-├── engine/                                        # [Part 1] Decoupled Order Capture Engine (@isolabs/order-engine)
+├── engine/                                        # [Operational Engine] Decoupled Order Capture Engine (@isolabs/order-engine)
 │   ├── src/ai/                                    # 5-Tier Cascaded Adaptive Order Engine
 │   └── src/__tests__/                             # 6 Vitest suites (67 automated tests)
-├── project-curation-and-research/                 # [Part 2] Research, Curation, Benchmarks & Tracking Archive
-│   ├── README.md                                  # Archive guide and directory overview
-│   ├── Build Docs/                                # Living build documentation, runbooks, and incident logs
-│   │   ├── Laymans_Guide.md                       # Plain-English non-technical guide to the Order Engine
-│   │   ├── Modules_And_Features.md                # Feature registry across 9 modules
-│   │   ├── Assumptions.md                         # Verified business & technical assumptions [A1]-[A44]
-│   │   ├── Errors.md                              # Incident log with root causes and fixes [ERR-001]-[ERR-030]
-│   │   └── Test_And_Run_Guide.md                  # Comprehensive test runbook
-│   ├── research/                                  # Academic papers, linguistic analysis & retrieval benchmarks
-│   ├── catalogue/                                 # Authentic 36-SKU FMCG wholesale catalog & WhatsApp benchmarks
-│   │   ├── datasets/                              # 9 real-world Jabalpur WhatsApp/Call test scenarios
-│   │   └── __tests__/                             # Scenario benchmark suite (9 automated tests)
-│   ├── Inital Documents/                          # Original client briefs & problem requirements
-│   ├── structure of inputs for the app/           # Input structures & prompt specifications
-│   ├── UI/                                        # Design mockups & wireframes
-│   ├── PS4_Distributor_Complete_Flow_And_Architecture.md # Complete flow and architecture blueprint
-│   └── deployment.md                              # Deployment guide reference
-├── package.json                                   # Root workspace manifest with universal scripts
-└── README.md                                      # Top-level entry point & first-time user tour
+├── TDD.md                                         # [DELIVERABLE #1] Technical Design Document
+├── deployment.md                                  # [DELIVERABLE #2] Deployment & Reviewer Guide
+├── package.json                                   # Universal workspace manifest with test/run scripts
+├── README.md                                      # Top-level first-time user tour & quickstart
+└── project-curation-and-research/                 # [Archive] Research, Curation, Benchmarks & Tracking Archive
+    ├── README.md                                  # Archive guide and directory overview
+    ├── Build Docs/                                # Living build documentation, runbooks, and incident logs
+    │   ├── Laymans_Guide.md                       # Plain-English non-technical guide to the Order Engine
+    │   ├── Modules_And_Features.md                # Feature registry across 9 modules
+    │   ├── Assumptions.md                         # Verified business & technical assumptions [A1]-[A44]
+    │   ├── Errors.md                              # Incident log with root causes and fixes [ERR-001]-[ERR-030]
+    │   └── Test_And_Run_Guide.md                  # Comprehensive test runbook
+    ├── research/                                  # Academic papers, linguistic analysis & retrieval benchmarks
+    ├── catalogue/                                 # Authentic 36-SKU FMCG wholesale catalog & WhatsApp benchmarks
+    │   ├── datasets/                              # 9 real-world Jabalpur WhatsApp/Call test scenarios
+    │   └── __tests__/                             # Scenario benchmark suite (9 automated tests)
+    ├── Inital Documents/                          # Original client briefs & problem requirements
+    ├── structure of inputs for the app/           # Input structures & prompt specifications
+    └── UI/                                        # Design mockups & wireframes
 ```
 
 ---
