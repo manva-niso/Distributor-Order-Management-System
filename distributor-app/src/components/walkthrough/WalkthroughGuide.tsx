@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Compass,
-  ChevronRight,
-  ChevronLeft,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -13,161 +11,113 @@ import {
   Maximize2,
   RotateCcw,
   GripHorizontal,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 
-interface StepData {
-  stepNumber: number;
+interface StepItem {
+  id: number;
   title: string;
-  targetRoute: string;
-  targetLabel: string;
+  route: string;
   summary: string;
-  points: string[];
-  expandDetails: {
-    whyItMatters: string;
-    whatToObserve: string;
-  };
+  actions: string[];
+  whyItMatters: string;
 }
 
-const STEPS: StepData[] = [
+const WALKTHROUGH_STEPS: StepItem[] = [
   {
-    stepNumber: 1,
-    title: "Onboard Products & Retailers",
-    targetRoute: "/setup",
-    targetLabel: "Go to Setup Hub",
-    summary: "Seed the clean slate database from scratch with zero hardcoded reliance.",
-    points: [
+    id: 1,
+    title: "1. Ingest Catalogue & Setup Master",
+    route: "/setup",
+    summary: "Seed the clean slate database from scratch.",
+    actions: [
       "Open the Master Setup Hub (/setup) with a completely empty database.",
-      "Notice the live telemetry counters are at 0 SKUs, 0 Shops, and 0 Orders.",
-      "Drag & drop master_distributor_template_dummy.xlsx or tap 'Load 12 Jabalpur SKUs & 8 Retailers'.",
-      "Observe 10 FMCG SKUs, HSN codes, 50/50 GST rates, and 4 trade schemes auto-ingested.",
-      "Watch the warehouse inventory strip jump to active wholesale telemetry!",
+      "Notice live inventory telemetry is at 0 SKUs, 0 Shops, 0 Orders.",
+      "Upload master_distributor_template_dummy.xlsx (or click 'Load Company A Preset').",
+      "Watch 10 FMCG SKUs, HSN codes, and 4 trade schemes populate instantly.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Proves the platform is not locked to hardcoded data. Any FMCG distributor can upload their arbitrary Excel price list and customer directory without changing code.",
-      whatToObserve:
-        "Instant telemetry update from 0 to 12 SKUs, 8 Kirana accounts, and warehouse inventory valuation.",
-    },
+    whyItMatters: "Proves zero hardcoded reliance. Arbitrary Excel sheets are auto-parsed without touching code.",
   },
   {
-    stepNumber: 2,
-    title: "Verify Order Desk Zero-State",
-    targetRoute: "/desk",
-    targetLabel: "Go to Order Desk",
-    summary: "Check the distributor dispatch desk before any retail orders arrive.",
-    points: [
+    id: 2,
+    title: "2. Verify Order Desk Zero-State",
+    route: "/desk",
+    summary: "Check the distributor dispatch queue before orders arrive.",
+    actions: [
       "Navigate to the distributor Order Desk (/desk).",
-      "Observe the pristine dispatch queue with exactly 0 Pending Orders.",
-      "Inspect the live summary cards: Gross Value, Taxable Amount, and Active Holds at zero.",
-      "Click the 'Dormant Retailers (14+ Days)' tab to see automated churn risk flags.",
-      "Ready to accept fresh omnichannel orders from the Jabalpur retail network!",
+      "Observe the pristine queue with 0 Pending Orders.",
+      "Inspect live summary cards: Gross Value, Taxable Amount, Active Holds at zero.",
+      "Click 'Dormant Retailers (14+ Days)' tab to see automated churn risk flags.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Validates clean queue operations and multi-tenant ledger isolation before business hours begin.",
-      whatToObserve:
-        "Zero-state illustration and live dormant shop monitor highlighting shops requiring salesman visits.",
-    },
+    whyItMatters: "Validates multi-tenant ledger isolation and clean warehouse queue operations.",
   },
   {
-    stepNumber: 3,
-    title: "Retailer OTP Authentication",
-    targetRoute: "/login",
-    targetLabel: "Go to Login",
-    summary: "Log in as a Jabalpur Kirana merchant without complicated passwords.",
-    points: [
+    id: 3,
+    title: "3. Retailer OTP Authentication",
+    route: "/login",
+    summary: "Log in as a Jabalpur Kirana merchant without passwords.",
+    actions: [
       "Navigate to the Retailer Portal login screen (/login).",
       "Enter registered Kirana phone: 9826000001 (Sharma Kirana Store).",
       "Tap 'Send Verification Code' to trigger secure OTP generation.",
-      "Read the 6-digit OTP displayed directly on screen (e.g. 502941).",
-      "Enter the code to sign in instantly as shopkeeper Ramesh Sharma.",
+      "Read the 6-digit OTP displayed directly on screen (e.g. 502941) and sign in.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Kirana shopkeepers order between customers and forget passwords. One-time SMS OTPs offer fast, zero-friction security on low-end smartphones.",
-      whatToObserve:
-        "Development OTP banner for instant evaluator testing without waiting for third-party SMS delivery.",
-    },
+    whyItMatters: "Kirana shopkeepers order between customers; SMS OTP offers zero-friction security on low-end phones.",
   },
   {
-    stepNumber: 4,
-    title: "Catalogue & Scheme Ordering",
-    targetRoute: "/catalogue",
-    targetLabel: "Go to Catalogue",
-    summary: "Order cartons or loose packets with instant promotional scheme math.",
-    points: [
-      "Open the catalogue (/catalogue) showing shop name and credit limit (₹50,000).",
-      "Test brand filter pills: tap 'Parle', 'Ghadi', or 'Wagh Bakri'.",
-      "On Parle Glucose Biscuit (SKU-BS-075), tap '+' under Master Cases until 10 cases.",
-      "Notice the green promotion pill: 'Buy 10 Get 1 Free' automatically unlocked!",
-      "Test loose unit ordering: tap '+' under Loose Packets to order individual packs.",
+    id: 4,
+    title: "4. Catalogue & Scheme Ordering",
+    route: "/catalogue",
+    summary: "Order master cartons or loose cut-packs with live trade schemes.",
+    actions: [
+      "Open catalogue (/catalogue) showing shop name and credit limit (₹50,000).",
+      "Filter by brands: tap 'Parle', 'Ghadi', or 'Wagh Bakri'.",
+      "On Parle Glucose Biscuit (SKU-BS-075), tap '+' until 10 cases to unlock 'Buy 10 Get 1 Free'.",
+      "Tap '+' under Loose Packets to test cut-case ordering with automatic pack pricing.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Supports dual-unit demand (Master Wholesale Cases + Cut-Case Loose Packets) with transparent ex-GST and incl-GST pricing preventing billing disputes.",
-      whatToObserve:
-        "Live scheme progression alerts nudging the shopkeeper to reach the next discount threshold.",
-    },
+    whyItMatters: "Supports dual-unit wholesale demand with transparent ex-GST and incl-GST pricing.",
   },
   {
-    stepNumber: 5,
-    title: "WhatsApp, Photo & Voice AI",
-    targetRoute: "/quick-order",
-    targetLabel: "Go to Quick Order",
-    summary: "Multimodal AI order capture from WhatsApp text, paper slips, or voice notes.",
-    points: [
-      "Open the AI Quick Order hub (/quick-order).",
-      "Mode 1 (Text): Click 'Template 1: Hinglish WhatsApp' and tap 'Parse Order Text'.",
-      "Mode 2 (Photo): Tap 'Slip Photo' tab -> tap '1-Click Kirana Slip Test' (uploaded to Neon Object Storage!).",
-      "Mode 3 (Voice): Tap 'Hindi Voice' tab -> tap '1-Click Hindi Audio Test' with audio player preview.",
+    id: 5,
+    title: "5. WhatsApp, Photo & Voice AI",
+    route: "/quick-order",
+    summary: "Multimodal order capture from text, paper slips, or voice notes.",
+    actions: [
+      "Open AI Quick Order (/quick-order).",
+      "Mode 1: Click 'Template 1: Hinglish WhatsApp' & tap 'Parse Order Text'.",
+      "Mode 2: Switch to 'Slip Photo' tab -> tap '1-Click Kirana Slip Test' (Neon Object Storage!).",
+      "Mode 3: Switch to 'Hindi Voice' tab -> tap '1-Click Hindi Audio Test' with audio preview.",
       "Resolve any ambiguous units (Case vs Pack), then tap 'Review Cart & Schemes'.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Kirana merchants frequently order via messy WhatsApp messages, crumpled paper slips, or spoken Hindi voice notes. The system parses all three and uploads media to cloud storage for desk audit.",
-      whatToObserve:
-        "Context clause pre-processor prevents token collision when merchants write notes like 'case contains 24 pkts'.",
-    },
+    whyItMatters: "Uploads original physical slips and voice notes to cloud object storage for desk verification.",
   },
   {
-    stepNumber: 6,
-    title: "Commercial Cart & Credit Hold",
-    targetRoute: "/cart",
-    targetLabel: "Go to Cart",
+    id: 6,
+    title: "6. Commercial Cart & Credit Hold",
+    route: "/cart",
     summary: "Review commercial invoice math, 50/50 MP GST, and credit headroom.",
-    points: [
-      "View commercial invoice: ex-GST Subtotal, Trade Schemes, and 50/50 CGST + SGST.",
-      "Observe the Free Goods Box showing free cartons unlocked at ₹0.00.",
-      "Review the live Credit Exposure Meter showing available balance headroom.",
-      "Zero Dead Buttons: Exceeding credit switches to 'Place Order (Credit Hold)' without blocking.",
-      "Tap 'Confirm & Place Order' to dispatch order to the warehouse desk!",
+    actions: [
+      "Review commercial invoice: ex-GST Subtotal, Trade Schemes, and 50/50 CGST + SGST.",
+      "Check Promotional Free Goods box showing unlocked bonus cartons at ₹0.00.",
+      "Review Credit Exposure Meter showing available headroom.",
+      "Exceeding credit switches to 'Place Order (Credit Hold)' without blocking (Zero Dead Buttons).",
+      "Tap 'Confirm & Place Order' to dispatch the order to the warehouse desk.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Guarantees compliance with Madhya Pradesh 50/50 GST regulations and ensures retailers never face broken or disabled submit buttons during credit overruns.",
-      whatToObserve:
-        "Stock locking deducts warehouse inventory for both paid goods and promotional free goods atomically.",
-    },
+    whyItMatters: "Guarantees MP 50/50 GST compliance and safe credit overrun handling without broken UI buttons.",
   },
   {
-    stepNumber: 7,
-    title: "Desk Verification & Tally XML",
-    targetRoute: "/desk",
-    targetLabel: "Go to Order Desk",
+    id: 7,
+    title: "7. Desk Verification & Tally XML",
+    route: "/desk",
     summary: "Warehouse clerk verifies orders, checks slips, and exports to Tally ERP.",
-    points: [
-      "Return to the Order Desk (/desk) to see the fresh order in the queue!",
+    actions: [
+      "Return to the Order Desk (/desk) to see the fresh order in the queue.",
       "If Credit Hold triggered: tap 'Release Hold' and enter clerk authorization note.",
-      "Tap 'Verify' to open the order: view attached Kirana slip photo or listen to voice note!",
-      "Click 'Generate Van Manifest' to view driver route delivery and box pick-lists.",
+      "Tap 'Verify' to inspect line items, view paper slip photo, or listen to voice note.",
+      "Click 'Generate Van Manifest' for delivery route pick-lists.",
       "Click 'Export Tally XML' to download the ready-to-import Tally Prime sales voucher.",
     ],
-    expandDetails: {
-      whyItMatters:
-        "Closes the complete FMCG distribution loop: from merchant capture to desk clerk OCC conflict safety, truck loading manifests, and accounting ledger export.",
-      whatToObserve:
-        "Tally XML splits <ACTUALQTY> (paid + free cartons) and <BILLEDQTY> (paid only) exactly to Indian accounting standards.",
-    },
+    whyItMatters: "Closes the complete FMCG loop from merchant capture to warehouse dispatch and ERP ledger sync.",
   },
 ];
 
@@ -175,9 +125,11 @@ export default function WalkthroughGuide() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  // Expanded state per step (towering bars format with expand below each step)
+  const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({ 1: true });
+  const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
+
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [resetting, setResetting] = useState(false);
 
   // Dragging & Positioning State
@@ -200,31 +152,26 @@ export default function WalkthroughGuide() {
     initialH: number;
   }>({ startX: 0, startY: 0, initialW: 330, initialH: 530 });
 
-  // Load persisted state & adapt for mobile
+  // On mount: load persisted state & adjust for mobile
   useEffect(() => {
     try {
-      const savedIndex = localStorage.getItem("isolabs_walkthrough_step");
-      if (savedIndex !== null) {
-        const idx = parseInt(savedIndex, 10);
-        if (!isNaN(idx) && idx >= 0 && idx < STEPS.length) {
-          setCurrentStepIndex(idx);
-        }
-      }
-
       const isMobile = window.innerWidth < 640;
       const savedMinimized = localStorage.getItem("isolabs_walkthrough_minimized");
 
-      // On phones, start minimized by default so it doesn't block the screen
       if (savedMinimized !== null) {
         setIsMinimized(savedMinimized === "true");
       } else if (isMobile) {
         setIsMinimized(true);
       }
 
-      // Default position / dimensions based on screen width
       const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 330;
-      const initialH = isMobile ? 480 : 530;
+      const initialH = isMobile ? 480 : 540;
       setSize({ width: initialW, height: initialH });
+
+      const savedCompleted = localStorage.getItem("isolabs_walkthrough_completed");
+      if (savedCompleted) {
+        setCompletedSteps(JSON.parse(savedCompleted));
+      }
 
       const savedPos = localStorage.getItem("isolabs_walkthrough_pos");
       if (savedPos) {
@@ -235,22 +182,29 @@ export default function WalkthroughGuide() {
           setPosition({ x: clampedX, y: clampedY });
         }
       } else if (isMobile) {
-        // Position at bottom-right corner as a floating pill on mobile
         setPosition({ x: Math.max(8, window.innerWidth - 180), y: window.innerHeight - 130 });
       }
     } catch {}
   }, []);
 
-  const currentStep = STEPS[currentStepIndex];
+  // Toggle individual step expand (expand below each step)
+  const toggleStepExpand = (stepId: number) => {
+    setExpandedSteps((prev) => ({
+      ...prev,
+      [stepId]: !prev[stepId],
+    }));
+  };
 
-  const handleStepChange = (newIndex: number) => {
-    if (newIndex >= 0 && newIndex < STEPS.length) {
-      setCurrentStepIndex(newIndex);
-      setIsExpanded(false);
+  // Toggle step completion
+  const toggleStepComplete = (stepId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCompletedSteps((prev) => {
+      const next = { ...prev, [stepId]: !prev[stepId] };
       try {
-        localStorage.setItem("isolabs_walkthrough_step", newIndex.toString());
+        localStorage.setItem("isolabs_walkthrough_completed", JSON.stringify(next));
       } catch {}
-    }
+      return next;
+    });
   };
 
   const toggleMinimized = () => {
@@ -259,10 +213,6 @@ export default function WalkthroughGuide() {
     try {
       localStorage.setItem("isolabs_walkthrough_minimized", nextVal ? "true" : "false");
     } catch {}
-  };
-
-  const handleNavigateToTarget = () => {
-    router.push(currentStep.targetRoute);
   };
 
   // Master Absolute Zero Reset
@@ -284,8 +234,10 @@ export default function WalkthroughGuide() {
       });
       const data = await res.json();
       if (data.success) {
-        handleStepChange(0);
+        setCompletedSteps({});
+        setExpandedSteps({ 1: true });
         try {
+          localStorage.removeItem("isolabs_walkthrough_completed");
           localStorage.removeItem("isolabs_draft_cart");
           localStorage.removeItem("isolabs_order_media");
         } catch {}
@@ -359,7 +311,7 @@ export default function WalkthroughGuide() {
       const deltaX = clientX - resizeRef.current.startX;
       const deltaY = clientY - resizeRef.current.startY;
 
-      const newW = Math.max(260, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 8));
+      const newW = Math.max(270, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 8));
       const newH = Math.max(380, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 8));
 
       setSize({ width: newW, height: newH });
@@ -373,7 +325,7 @@ export default function WalkthroughGuide() {
     }
   }, [isResizing]);
 
-  // Global Pointer Listeners for Smooth Drag & Resize
+  // Global Pointer Listeners
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) onDragMove(e.clientX, e.clientY);
@@ -388,7 +340,7 @@ export default function WalkthroughGuide() {
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         if (isDragging || isResizing) {
-          e.preventDefault(); // Prevent page scroll while dragging pop-up
+          e.preventDefault();
           const touch = e.touches[0];
           if (isDragging) onDragMove(touch.clientX, touch.clientY);
           if (isResizing) onResizeMove(touch.clientX, touch.clientY);
@@ -416,6 +368,10 @@ export default function WalkthroughGuide() {
     };
   }, [isDragging, isResizing, onDragMove, onEndDrag, onResizeMove, onEndResize]);
 
+  // Total completed progress ratio
+  const completedCount = Object.values(completedSteps).filter(Boolean).length;
+  const progressRatio = (completedCount / WALKTHROUGH_STEPS.length) * 100;
+
   // 1. Minimized Floating Draggable Pill (Mobile-Friendly, Never Blocks View)
   if (isMinimized) {
     return (
@@ -440,7 +396,7 @@ export default function WalkthroughGuide() {
           <div className="flex items-center gap-1.5" onClick={toggleMinimized}>
             <Compass className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold tracking-tight">
-              Tour {currentStep.stepNumber}/{STEPS.length}
+              Tour ({completedCount}/{WALKTHROUGH_STEPS.length})
             </span>
             <Maximize2 className="w-3.5 h-3.5 text-slate-400 hover:text-white ml-0.5" />
           </div>
@@ -449,10 +405,8 @@ export default function WalkthroughGuide() {
     );
   }
 
-  // Active step progress width (no percentage text, pure bar)
-  const progressRatio = ((currentStepIndex + 1) / STEPS.length) * 100;
-
   // 2. Full Draggable & Resizable Pop-Up Window
+  // Towering Bars Format forming a Rectangle with Expand below each Step
   return (
     <aside
       aria-label="Interactive Walkthrough Pop-up"
@@ -472,7 +426,7 @@ export default function WalkthroughGuide() {
         onTouchStart={(e) => {
           if (e.touches.length > 0) onStartDrag(e.touches[0].clientX, e.touches[0].clientY);
         }}
-        className="p-3 pb-2.5 border-b border-slate-800 bg-slate-950/90 cursor-grab active:cursor-grabbing flex flex-col gap-1.5"
+        className="p-3 pb-2 border-b border-slate-800 bg-slate-950/90 cursor-grab active:cursor-grabbing flex flex-col gap-1.5 shrink-0"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -482,10 +436,10 @@ export default function WalkthroughGuide() {
             </div>
             <div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block leading-tight">
-                Walkthrough
+                Evaluation Tour
               </span>
               <h2 className="text-xs font-bold text-white leading-tight">
-                Step {currentStep.stepNumber} of {STEPS.length}
+                {completedCount === WALKTHROUGH_STEPS.length ? "All Steps Completed" : "Step-by-Step Testing"}
               </h2>
             </div>
           </div>
@@ -522,120 +476,143 @@ export default function WalkthroughGuide() {
         <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-1">
           <div
             className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${progressRatio}%` }}
+            style={{ width: `${Math.max(5, progressRatio)}%` }}
           />
         </div>
       </div>
 
-      {/* STEP TITLE & SUMMARY */}
-      <div className="px-3.5 pt-2.5 pb-2 border-b border-slate-800/60 shrink-0">
-        <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-          <span>{currentStep.title}</span>
-        </h3>
-        <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-          {currentStep.summary}
-        </p>
-      </div>
+      {/* TOWERING BARS CONTAINER: Multiple Steps in Bars Format forming a Rectangle */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
+        {WALKTHROUGH_STEPS.map((step) => {
+          const isCurrentRoute = pathname === step.route;
+          const isDone = !!completedSteps[step.id];
+          const isExpanded = !!expandedSteps[step.id];
 
-      {/* POINT-WISE INSTRUCTIONS (4-5 points clearly visible with Expand at Bottom-Right) */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-2 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700">
-        <div className="space-y-1.5 relative pb-6">
-          {currentStep.points.map((pt, idx) => (
-            <div key={idx} className="flex items-start gap-2 text-slate-300 leading-snug">
-              <span className="w-4 h-4 rounded-full bg-slate-800 text-emerald-400 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 border border-slate-700">
-                {idx + 1}
-              </span>
-              <span className="text-[11px] font-normal">{pt}</span>
-            </div>
-          ))}
-
-          {/* Small Expand Button on the Bottom-Right of that portion */}
-          <div className="absolute right-0 bottom-0">
-            <button
-              type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition-colors cursor-pointer shadow-xs"
+          return (
+            <div
+              key={step.id}
+              className={`rounded-xl border transition-all ${
+                isCurrentRoute
+                  ? "border-emerald-500/70 bg-slate-950/90 shadow-sm"
+                  : isDone
+                  ? "border-slate-800 bg-slate-950/40 opacity-85"
+                  : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+              }`}
             >
-              {isExpanded ? (
-                <>
-                  <span>Less</span>
-                  <ChevronUp className="w-3 h-3" />
-                </>
-              ) : (
-                <>
-                  <span>[+] Expand</span>
-                  <ChevronDown className="w-3 h-3" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+              {/* STEP BAR HEADER CARD */}
+              <div
+                onClick={() => toggleStepExpand(step.id)}
+                className="p-2.5 cursor-pointer flex items-center justify-between gap-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* Complete Checkbox */}
+                  <button
+                    type="button"
+                    onClick={(e) => toggleStepComplete(step.id, e)}
+                    title={isDone ? "Mark incomplete" : "Mark completed"}
+                    className="shrink-0 text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Circle className="w-4 h-4" />
+                    )}
+                  </button>
 
-        {/* Expandable Technical Context (Shown when [+] Expand is tapped) */}
-        {isExpanded && (
-          <div className="p-2.5 bg-slate-950/80 rounded-xl border border-emerald-500/30 text-[11px] space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                Why this matters:
-              </span>
-              <p className="text-slate-300 leading-relaxed mt-0.5">
-                {currentStep.expandDetails.whyItMatters}
-              </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-xs font-bold truncate block ${
+                          isDone ? "text-slate-400 line-through" : "text-white"
+                        }`}
+                      >
+                        {step.title}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {step.summary}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right side: Route Pill + Expand toggle below */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                      isCurrentRoute
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {step.route}
+                  </span>
+                  <div className="text-slate-400 hover:text-white">
+                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </div>
+                </div>
+              </div>
+
+              {/* EXPAND AREA BELOW THIS STEP (With detailed points & direct navigation) */}
+              {isExpanded && (
+                <div className="px-3 pb-3 pt-1 border-t border-slate-800/80 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                  {/* Point-wise action list (4-5 points clearly visible) */}
+                  <div className="space-y-1.5 pt-1">
+                    {step.actions.map((act, aIdx) => (
+                      <div key={aIdx} className="flex items-start gap-1.5 text-[11px] text-slate-300 leading-snug">
+                        <span className="w-3.5 h-3.5 rounded-full bg-slate-800 text-emerald-400 font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5 border border-slate-700">
+                          {aIdx + 1}
+                        </span>
+                        <span>{act}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Why it matters note */}
+                  <div className="p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-[10px] text-slate-400 leading-relaxed">
+                    <strong className="text-emerald-400 font-semibold block mb-0.5">Why this matters:</strong>
+                    {step.whyItMatters}
+                  </div>
+
+                  {/* Action row below each step: Direct Jump & Mark Done */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(step.route);
+                      }}
+                      className={`flex-1 py-1 px-2.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                        isCurrentRoute
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                      }`}
+                    >
+                      <span>{isCurrentRoute ? `You're on ${step.route}` : `🚀 Open ${step.route}`}</span>
+                      {!isCurrentRoute && <ExternalLink className="w-3 h-3" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => toggleStepComplete(step.id, e)}
+                      className={`py-1 px-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
+                        isDone
+                          ? "bg-slate-800 border-slate-700 text-slate-300"
+                          : "bg-slate-900 border-slate-700 text-emerald-400 hover:bg-slate-800"
+                      }`}
+                    >
+                      {isDone ? "Completed ✓" : "Mark Done"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Key Observation:
-              </span>
-              <p className="text-slate-400 leading-relaxed mt-0.5">
-                {currentStep.expandDetails.whatToObserve}
-              </p>
-            </div>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* FOOTER CONTROLS & RESIZE HANDLE */}
-      <div className="p-2.5 bg-slate-950/90 border-t border-slate-800 space-y-1.5 shrink-0 relative">
-        {/* Direct Screen Shortcut Button */}
-        <button
-          type="button"
-          onClick={handleNavigateToTarget}
-          className={`w-full py-1.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-            pathname === currentStep.targetRoute
-              ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
-              : "bg-emerald-600 hover:bg-emerald-500 text-white"
-          }`}
-        >
-          <span>
-            {pathname === currentStep.targetRoute
-              ? `You are on ${currentStep.targetRoute}`
-              : `🚀 ${currentStep.targetLabel}`}
-          </span>
-          {pathname !== currentStep.targetRoute && <ExternalLink className="w-3.5 h-3.5 shrink-0" />}
-        </button>
-
-        {/* Prev / Next Controls */}
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => handleStepChange(currentStepIndex - 1)}
-            disabled={currentStepIndex === 0}
-            className="flex-1 py-1 px-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span>Prev</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleStepChange(currentStepIndex + 1)}
-            disabled={currentStepIndex === STEPS.length - 1}
-            className="flex-1 py-1 px-2 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>Next Step</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      {/* FOOTER: Drag Resize Handle */}
+      <div className="px-3 py-1.5 bg-slate-950/95 border-t border-slate-800 flex items-center justify-between shrink-0 relative text-[10px] text-slate-500 font-mono">
+        <span>{completedCount} of {WALKTHROUGH_STEPS.length} Steps Complete</span>
 
         {/* RESIZE HANDLE on bottom-right corner */}
         <div
@@ -646,7 +623,7 @@ export default function WalkthroughGuide() {
             }
           }}
           title="Drag to resize window"
-          className="absolute right-1 bottom-1 w-4 h-4 cursor-nwse-resize flex items-center justify-center text-slate-600 hover:text-emerald-400 transition-colors"
+          className="w-4 h-4 cursor-nwse-resize flex items-center justify-center text-slate-600 hover:text-emerald-400 transition-colors"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
