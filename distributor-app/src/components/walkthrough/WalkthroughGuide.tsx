@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Compass,
@@ -12,9 +12,7 @@ import {
   Minimize2,
   Maximize2,
   RotateCcw,
-  CheckCircle2,
-  Sparkles,
-  Info,
+  GripHorizontal,
 } from "lucide-react";
 
 interface StepData {
@@ -182,7 +180,27 @@ export default function WalkthroughGuide() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  // Load persisted step from localStorage on mount
+  // Dragging & Positioning State
+  const [position, setPosition] = useState({ x: 16, y: 64 });
+  const [size, setSize] = useState({ width: 330, height: 530 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    initialPosX: number;
+    initialPosY: number;
+  }>({ startX: 0, startY: 0, initialPosX: 16, initialPosY: 64 });
+
+  const resizeRef = useRef<{
+    startX: number;
+    startY: number;
+    initialW: number;
+    initialH: number;
+  }>({ startX: 0, startY: 0, initialW: 330, initialH: 530 });
+
+  // Load persisted state & adapt for mobile
   useEffect(() => {
     try {
       const savedIndex = localStorage.getItem("isolabs_walkthrough_step");
@@ -192,9 +210,33 @@ export default function WalkthroughGuide() {
           setCurrentStepIndex(idx);
         }
       }
+
+      const isMobile = window.innerWidth < 640;
       const savedMinimized = localStorage.getItem("isolabs_walkthrough_minimized");
-      if (savedMinimized === "true") {
+
+      // On phones, start minimized by default so it doesn't block the screen
+      if (savedMinimized !== null) {
+        setIsMinimized(savedMinimized === "true");
+      } else if (isMobile) {
         setIsMinimized(true);
+      }
+
+      // Default position / dimensions based on screen width
+      const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 330;
+      const initialH = isMobile ? 480 : 530;
+      setSize({ width: initialW, height: initialH });
+
+      const savedPos = localStorage.getItem("isolabs_walkthrough_pos");
+      if (savedPos) {
+        const parsed = JSON.parse(savedPos);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          const clampedX = Math.max(0, Math.min(parsed.x, window.innerWidth - initialW));
+          const clampedY = Math.max(0, Math.min(parsed.y, window.innerHeight - 80));
+          setPosition({ x: clampedX, y: clampedY });
+        }
+      } else if (isMobile) {
+        // Position at bottom-right corner as a floating pill on mobile
+        setPosition({ x: Math.max(8, window.innerWidth - 180), y: window.innerHeight - 130 });
       }
     } catch {}
   }, []);
@@ -242,7 +284,6 @@ export default function WalkthroughGuide() {
       });
       const data = await res.json();
       if (data.success) {
-        // Reset walkthrough to Step 1
         handleStepChange(0);
         try {
           localStorage.removeItem("isolabs_draft_cart");
@@ -257,43 +298,191 @@ export default function WalkthroughGuide() {
     }
   };
 
-  // Minimized Floating Pill on the Left Edge
+  // DRAG HANDLERS (Mouse & Touch)
+  const onStartDrag = useCallback(
+    (clientX: number, clientY: number) => {
+      setIsDragging(true);
+      dragRef.current = {
+        startX: clientX,
+        startY: clientY,
+        initialPosX: position.x,
+        initialPosY: position.y,
+      };
+    },
+    [position]
+  );
+
+  const onDragMove = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isDragging) return;
+      const deltaX = clientX - dragRef.current.startX;
+      const deltaY = clientY - dragRef.current.startY;
+
+      const currentWidth = isMinimized ? 170 : size.width;
+      const currentHeight = isMinimized ? 44 : size.height;
+
+      const newX = Math.max(0, Math.min(dragRef.current.initialPosX + deltaX, window.innerWidth - currentWidth));
+      const newY = Math.max(0, Math.min(dragRef.current.initialPosY + deltaY, window.innerHeight - currentHeight));
+
+      setPosition({ x: newX, y: newY });
+    },
+    [isDragging, isMinimized, size]
+  );
+
+  const onEndDrag = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      try {
+        localStorage.setItem("isolabs_walkthrough_pos", JSON.stringify(position));
+      } catch {}
+    }
+  }, [isDragging, position]);
+
+  // RESIZE HANDLERS (Mouse & Touch)
+  const onStartResize = useCallback(
+    (clientX: number, clientY: number, e: React.SyntheticEvent) => {
+      e.stopPropagation();
+      setIsResizing(true);
+      resizeRef.current = {
+        startX: clientX,
+        startY: clientY,
+        initialW: size.width,
+        initialH: size.height,
+      };
+    },
+    [size]
+  );
+
+  const onResizeMove = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isResizing) return;
+      const deltaX = clientX - resizeRef.current.startX;
+      const deltaY = clientY - resizeRef.current.startY;
+
+      const newW = Math.max(260, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 8));
+      const newH = Math.max(380, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 8));
+
+      setSize({ width: newW, height: newH });
+    },
+    [isResizing, position]
+  );
+
+  const onEndResize = useCallback(() => {
+    if (isResizing) {
+      setIsResizing(false);
+    }
+  }, [isResizing]);
+
+  // Global Pointer Listeners for Smooth Drag & Resize
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) onDragMove(e.clientX, e.clientY);
+      if (isResizing) onResizeMove(e.clientX, e.clientY);
+    };
+
+    const handleMouseUp = () => {
+      onEndDrag();
+      onEndResize();
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        if (isDragging || isResizing) {
+          e.preventDefault(); // Prevent page scroll while dragging pop-up
+          const touch = e.touches[0];
+          if (isDragging) onDragMove(touch.clientX, touch.clientY);
+          if (isResizing) onResizeMove(touch.clientX, touch.clientY);
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      onEndDrag();
+      onEndResize();
+    };
+
+    if (isDragging || isResizing) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
+      window.addEventListener("touchend", handleTouchEnd);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isDragging, isResizing, onDragMove, onEndDrag, onResizeMove, onEndResize]);
+
+  // 1. Minimized Floating Draggable Pill (Mobile-Friendly, Never Blocks View)
   if (isMinimized) {
     return (
-      <div className="fixed left-3 top-20 z-50">
-        <button
-          type="button"
-          onClick={toggleMinimized}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700 hover:bg-slate-800 transition-all cursor-pointer group"
+      <div
+        style={{
+          position: "fixed",
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          zIndex: 9999,
+          touchAction: "none",
+        }}
+        className="transition-transform duration-75 select-none"
+      >
+        <div
+          onMouseDown={(e) => onStartDrag(e.clientX, e.clientY)}
+          onTouchStart={(e) => {
+            if (e.touches.length > 0) onStartDrag(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          className="flex items-center gap-2 px-3 py-2 bg-slate-900/95 text-white rounded-xl shadow-2xl border border-slate-700 hover:bg-slate-800 transition-colors cursor-grab active:cursor-grabbing backdrop-blur-md"
         >
-          <Compass className="w-4 h-4 text-emerald-400 animate-spin-slow" />
-          <span className="text-xs font-bold tracking-tight">
-            Tour: Step {currentStep.stepNumber}/{STEPS.length}
-          </span>
-          <Maximize2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
-        </button>
+          <GripHorizontal className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5" onClick={toggleMinimized}>
+            <Compass className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-bold tracking-tight">
+              Tour {currentStep.stepNumber}/{STEPS.length}
+            </span>
+            <Maximize2 className="w-3.5 h-3.5 text-slate-400 hover:text-white ml-0.5" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Active step progress width (no percentage text, just the bar)
+  // Active step progress width (no percentage text, pure bar)
   const progressRatio = ((currentStepIndex + 1) / STEPS.length) * 100;
 
+  // 2. Full Draggable & Resizable Pop-Up Window
   return (
     <aside
-      aria-label="Interactive Walkthrough"
-      className="fixed left-3 top-16 z-50 w-80 max-h-[85vh] flex flex-col bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 backdrop-blur-md overflow-hidden transition-all duration-200 select-none"
+      aria-label="Interactive Walkthrough Pop-up"
+      style={{
+        position: "fixed",
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        zIndex: 9999,
+      }}
+      className="flex flex-col bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md overflow-hidden transition-shadow select-none"
     >
-      {/* 1. Header with Step Counter & Progress Bar (No % number, just the bar) */}
-      <div className="p-3.5 pb-2.5 border-b border-slate-800 bg-slate-950/70">
+      {/* HEADER (Draggable Area) */}
+      <div
+        onMouseDown={(e) => onStartDrag(e.clientX, e.clientY)}
+        onTouchStart={(e) => {
+          if (e.touches.length > 0) onStartDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }}
+        className="p-3 pb-2.5 border-b border-slate-800 bg-slate-950/90 cursor-grab active:cursor-grabbing flex flex-col gap-1.5"
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <GripHorizontal className="w-4 h-4 text-slate-500 hover:text-slate-300 transition-colors" />
+            <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <Compass className="w-3.5 h-3.5" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block leading-tight">
-                Evaluation Tour
+                Walkthrough
               </span>
               <h2 className="text-xs font-bold text-white leading-tight">
                 Step {currentStep.stepNumber} of {STEPS.length}
@@ -301,8 +490,12 @@ export default function WalkthroughGuide() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            {/* Reset to Zero Button */}
+          <div
+            className="flex items-center gap-1"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            {/* Absolute Zero Reset */}
             <button
               type="button"
               onClick={handleAbsoluteZeroReset}
@@ -313,11 +506,11 @@ export default function WalkthroughGuide() {
               <RotateCcw className={`w-3.5 h-3.5 ${resetting ? "animate-spin text-red-400" : ""}`} />
             </button>
 
-            {/* Minimize Button */}
+            {/* Minimize Window */}
             <button
               type="button"
               onClick={toggleMinimized}
-              title="Minimize to Left Margin"
+              title="Minimize to Floating Pill"
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <Minimize2 className="w-3.5 h-3.5" />
@@ -325,8 +518,8 @@ export default function WalkthroughGuide() {
           </div>
         </div>
 
-        {/* Progress Bar (Pure bar without percentage text as requested) */}
-        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
+        {/* Progress Bar (Pure bar without percentage number as requested) */}
+        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-1">
           <div
             className="bg-emerald-500 h-full rounded-full transition-all duration-300"
             style={{ width: `${progressRatio}%` }}
@@ -334,9 +527,9 @@ export default function WalkthroughGuide() {
         </div>
       </div>
 
-      {/* 2. Step Title & Subtitle */}
-      <div className="px-3.5 pt-3 pb-2 border-b border-slate-800/60">
-        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+      {/* STEP TITLE & SUMMARY */}
+      <div className="px-3.5 pt-2.5 pb-2 border-b border-slate-800/60 shrink-0">
+        <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
           <span>{currentStep.title}</span>
         </h3>
         <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -344,8 +537,8 @@ export default function WalkthroughGuide() {
         </p>
       </div>
 
-      {/* 3. Rectangular Point-Wise Steps (4-5 points clearly visible with Expand at Bottom-Right) */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-2.5 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700">
+      {/* POINT-WISE INSTRUCTIONS (4-5 points clearly visible with Expand at Bottom-Right) */}
+      <div className="flex-1 overflow-y-auto px-3.5 py-2 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700">
         <div className="space-y-1.5 relative pb-6">
           {currentStep.points.map((pt, idx) => (
             <div key={idx} className="flex items-start gap-2 text-slate-300 leading-snug">
@@ -378,7 +571,7 @@ export default function WalkthroughGuide() {
           </div>
         </div>
 
-        {/* Expandable Technical Context Box (Slides open when [+] Expand is tapped) */}
+        {/* Expandable Technical Context (Shown when [+] Expand is tapped) */}
         {isExpanded && (
           <div className="p-2.5 bg-slate-950/80 rounded-xl border border-emerald-500/30 text-[11px] space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
             <div>
@@ -401,13 +594,13 @@ export default function WalkthroughGuide() {
         )}
       </div>
 
-      {/* 4. Action & Navigation Footer */}
-      <div className="p-3 bg-slate-950/90 border-t border-slate-800 space-y-2">
+      {/* FOOTER CONTROLS & RESIZE HANDLE */}
+      <div className="p-2.5 bg-slate-950/90 border-t border-slate-800 space-y-1.5 shrink-0 relative">
         {/* Direct Screen Shortcut Button */}
         <button
           type="button"
           onClick={handleNavigateToTarget}
-          className={`w-full py-2 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+          className={`w-full py-1.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
             pathname === currentStep.targetRoute
               ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
               : "bg-emerald-600 hover:bg-emerald-500 text-white"
@@ -416,18 +609,18 @@ export default function WalkthroughGuide() {
           <span>
             {pathname === currentStep.targetRoute
               ? `You are on ${currentStep.targetRoute}`
-              : `🚀 ${currentStep.targetLabel} (${currentStep.targetRoute})`}
+              : `🚀 ${currentStep.targetLabel}`}
           </span>
           {pathname !== currentStep.targetRoute && <ExternalLink className="w-3.5 h-3.5 shrink-0" />}
         </button>
 
-        {/* Step Navigation Controls (Prev / Next) */}
-        <div className="flex items-center justify-between gap-2 pt-0.5">
+        {/* Prev / Next Controls */}
+        <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => handleStepChange(currentStepIndex - 1)}
             disabled={currentStepIndex === 0}
-            className="flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            className="flex-1 py-1 px-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             <span>Prev</span>
@@ -437,11 +630,27 @@ export default function WalkthroughGuide() {
             type="button"
             onClick={() => handleStepChange(currentStepIndex + 1)}
             disabled={currentStepIndex === STEPS.length - 1}
-            className="flex-1 py-1.5 px-2 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            className="flex-1 py-1 px-2 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors cursor-pointer"
           >
             <span>Next Step</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* RESIZE HANDLE on bottom-right corner */}
+        <div
+          onMouseDown={(e) => onStartResize(e.clientX, e.clientY, e)}
+          onTouchStart={(e) => {
+            if (e.touches.length > 0) {
+              onStartResize(e.touches[0].clientX, e.touches[0].clientY, e);
+            }
+          }}
+          title="Drag to resize window"
+          className="absolute right-1 bottom-1 w-4 h-4 cursor-nwse-resize flex items-center justify-center text-slate-600 hover:text-emerald-400 transition-colors"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </div>
       </div>
     </aside>
