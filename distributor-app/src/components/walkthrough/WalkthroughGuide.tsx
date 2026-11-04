@@ -125,7 +125,7 @@ export default function WalkthroughGuide() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Expanded state per step (towering bars format with expand below each step)
+  // Expanded state per step
   const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({ 1: true });
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
 
@@ -137,6 +137,9 @@ export default function WalkthroughGuide() {
   const [size, setSize] = useState({ width: 330, height: 530 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Ref to track drag movement distance to prevent accidental expand/click
+  const dragDistanceRef = useRef<number>(0);
 
   const dragRef = useRef<{
     startX: number;
@@ -150,9 +153,10 @@ export default function WalkthroughGuide() {
     startY: number;
     initialW: number;
     initialH: number;
-  }>({ startX: 0, startY: 0, initialW: 330, initialH: 530 });
+    mode: "both" | "horizontal" | "vertical";
+  }>({ startX: 0, startY: 0, initialW: 330, initialH: 530, mode: "both" });
 
-  // On mount: load persisted state & adjust for mobile
+  // Load persisted state & adapt for mobile
   useEffect(() => {
     try {
       const isMobile = window.innerWidth < 640;
@@ -164,9 +168,20 @@ export default function WalkthroughGuide() {
         setIsMinimized(true);
       }
 
-      const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 330;
-      const initialH = isMobile ? 480 : 540;
-      setSize({ width: initialW, height: initialH });
+      // Restore saved size if available
+      const savedSize = localStorage.getItem("isolabs_walkthrough_size");
+      if (savedSize) {
+        const parsedSize = JSON.parse(savedSize);
+        if (parsedSize.width && parsedSize.height) {
+          const clampedW = Math.max(270, Math.min(parsedSize.width, window.innerWidth - 20));
+          const clampedH = Math.max(340, Math.min(parsedSize.height, window.innerHeight - 40));
+          setSize({ width: clampedW, height: clampedH });
+        }
+      } else {
+        const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 330;
+        const initialH = isMobile ? 480 : 530;
+        setSize({ width: initialW, height: initialH });
+      }
 
       const savedCompleted = localStorage.getItem("isolabs_walkthrough_completed");
       if (savedCompleted) {
@@ -177,8 +192,8 @@ export default function WalkthroughGuide() {
       if (savedPos) {
         const parsed = JSON.parse(savedPos);
         if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-          const clampedX = Math.max(0, Math.min(parsed.x, window.innerWidth - initialW));
-          const clampedY = Math.max(0, Math.min(parsed.y, window.innerHeight - 80));
+          const clampedX = Math.max(0, Math.min(parsed.x, window.innerWidth - 180));
+          const clampedY = Math.max(0, Math.min(parsed.y, window.innerHeight - 60));
           setPosition({ x: clampedX, y: clampedY });
         }
       } else if (isMobile) {
@@ -187,8 +202,9 @@ export default function WalkthroughGuide() {
     } catch {}
   }, []);
 
-  // Toggle individual step expand (expand below each step)
+  // Toggle step expand (checks that user did not just drag)
   const toggleStepExpand = (stepId: number) => {
+    if (dragDistanceRef.current > 5) return;
     setExpandedSteps((prev) => ({
       ...prev,
       [stepId]: !prev[stepId],
@@ -207,7 +223,13 @@ export default function WalkthroughGuide() {
     });
   };
 
-  const toggleMinimized = () => {
+  // Toggle minimize/maximize (checks that user did not just drag)
+  const handleToggleMinimized = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (dragDistanceRef.current > 5) {
+      // Ignored: was a drag, not an intentional tap
+      return;
+    }
     const nextVal = !isMinimized;
     setIsMinimized(nextVal);
     try {
@@ -254,6 +276,7 @@ export default function WalkthroughGuide() {
   const onStartDrag = useCallback(
     (clientX: number, clientY: number) => {
       setIsDragging(true);
+      dragDistanceRef.current = 0;
       dragRef.current = {
         startX: clientX,
         startY: clientY,
@@ -269,6 +292,7 @@ export default function WalkthroughGuide() {
       if (!isDragging) return;
       const deltaX = clientX - dragRef.current.startX;
       const deltaY = clientY - dragRef.current.startY;
+      dragDistanceRef.current = Math.hypot(deltaX, deltaY);
 
       const currentWidth = isMinimized ? 170 : size.width;
       const currentHeight = isMinimized ? 44 : size.height;
@@ -287,19 +311,25 @@ export default function WalkthroughGuide() {
       try {
         localStorage.setItem("isolabs_walkthrough_pos", JSON.stringify(position));
       } catch {}
+      // Keep dragDistanceRef briefly so click handlers firing immediately after mouseup can check it
+      setTimeout(() => {
+        dragDistanceRef.current = 0;
+      }, 80);
     }
   }, [isDragging, position]);
 
   // RESIZE HANDLERS (Mouse & Touch)
   const onStartResize = useCallback(
-    (clientX: number, clientY: number, e: React.SyntheticEvent) => {
+    (clientX: number, clientY: number, mode: "both" | "horizontal" | "vertical", e: React.SyntheticEvent) => {
       e.stopPropagation();
+      e.preventDefault();
       setIsResizing(true);
       resizeRef.current = {
         startX: clientX,
         startY: clientY,
         initialW: size.width,
         initialH: size.height,
+        mode,
       };
     },
     [size]
@@ -310,22 +340,33 @@ export default function WalkthroughGuide() {
       if (!isResizing) return;
       const deltaX = clientX - resizeRef.current.startX;
       const deltaY = clientY - resizeRef.current.startY;
+      const mode = resizeRef.current.mode;
 
-      const newW = Math.max(270, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 8));
-      const newH = Math.max(380, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 8));
+      let newW = size.width;
+      let newH = size.height;
+
+      if (mode === "both" || mode === "horizontal") {
+        newW = Math.max(270, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 10));
+      }
+      if (mode === "both" || mode === "vertical") {
+        newH = Math.max(340, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 10));
+      }
 
       setSize({ width: newW, height: newH });
     },
-    [isResizing, position]
+    [isResizing, position, size]
   );
 
   const onEndResize = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
+      try {
+        localStorage.setItem("isolabs_walkthrough_size", JSON.stringify(size));
+      } catch {}
     }
-  }, [isResizing]);
+  }, [isResizing, size]);
 
-  // Global Pointer Listeners
+  // Global Pointer Listeners for Dragging & Resizing
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) onDragMove(e.clientX, e.clientY);
@@ -372,7 +413,7 @@ export default function WalkthroughGuide() {
   const completedCount = Object.values(completedSteps).filter(Boolean).length;
   const progressRatio = (completedCount / WALKTHROUGH_STEPS.length) * 100;
 
-  // 1. Minimized Floating Draggable Pill (Mobile-Friendly, Never Blocks View)
+  // 1. Minimized Floating Draggable Pill (Dragging will NEVER expand it)
   if (isMinimized) {
     return (
       <div
@@ -393,7 +434,10 @@ export default function WalkthroughGuide() {
           className="flex items-center gap-2 px-3 py-2 bg-slate-900/95 text-white rounded-xl shadow-2xl border border-slate-700 hover:bg-slate-800 transition-colors cursor-grab active:cursor-grabbing backdrop-blur-md"
         >
           <GripHorizontal className="w-3.5 h-3.5 text-slate-500" />
-          <div className="flex items-center gap-1.5" onClick={toggleMinimized}>
+          <div
+            className="flex items-center gap-1.5 cursor-pointer"
+            onClick={(e) => handleToggleMinimized(e)}
+          >
             <Compass className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold tracking-tight">
               Tour ({completedCount}/{WALKTHROUGH_STEPS.length})
@@ -463,7 +507,7 @@ export default function WalkthroughGuide() {
             {/* Minimize Window */}
             <button
               type="button"
-              onClick={toggleMinimized}
+              onClick={(e) => handleToggleMinimized(e)}
               title="Minimize to Floating Pill"
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
@@ -610,23 +654,43 @@ export default function WalkthroughGuide() {
         })}
       </div>
 
-      {/* FOOTER: Drag Resize Handle */}
+      {/* RIGHT RESIZE STRIP */}
+      <div
+        onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "horizontal", e)}
+        onTouchStart={(e) => {
+          if (e.touches.length > 0) onStartResize(e.touches[0].clientX, e.touches[0].clientY, "horizontal", e);
+        }}
+        title="Drag edge to adjust width"
+        className="absolute right-0 top-12 bottom-6 w-2 cursor-ew-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20"
+      />
+
+      {/* BOTTOM RESIZE STRIP */}
+      <div
+        onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "vertical", e)}
+        onTouchStart={(e) => {
+          if (e.touches.length > 0) onStartResize(e.touches[0].clientX, e.touches[0].clientY, "vertical", e);
+        }}
+        title="Drag edge to adjust height"
+        className="absolute bottom-0 left-4 right-6 h-2 cursor-ns-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20"
+      />
+
+      {/* FOOTER BAR WITH PROMINENT CORNER RESIZE HANDLE */}
       <div className="px-3 py-1.5 bg-slate-950/95 border-t border-slate-800 flex items-center justify-between shrink-0 relative text-[10px] text-slate-500 font-mono">
         <span>{completedCount} of {WALKTHROUGH_STEPS.length} Steps Complete</span>
 
-        {/* RESIZE HANDLE on bottom-right corner */}
+        {/* Generous Corner Resize Handle (24px Touch Target) */}
         <div
-          onMouseDown={(e) => onStartResize(e.clientX, e.clientY, e)}
+          onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "both", e)}
           onTouchStart={(e) => {
             if (e.touches.length > 0) {
-              onStartResize(e.touches[0].clientX, e.touches[0].clientY, e);
+              onStartResize(e.touches[0].clientX, e.touches[0].clientY, "both", e);
             }
           }}
-          title="Drag to resize window"
-          className="w-4 h-4 cursor-nwse-resize flex items-center justify-center text-slate-600 hover:text-emerald-400 transition-colors"
+          title="Drag corner to adjust width & height"
+          className="w-6 h-6 -mr-1.5 -mb-1 cursor-nwse-resize flex items-center justify-center text-slate-500 hover:text-emerald-400 active:text-emerald-300 transition-colors z-30"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M11 1L1 11M11 5L5 11M11 9L9 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </div>
       </div>
