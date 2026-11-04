@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { parseOrderText } from "@/lib/ai/pipeline";
+import { dbStore } from "@/db/store";
 
 const ParseTextSchema = z.object({
   text: z.string().min(1, "Order text is required"),
@@ -23,7 +24,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { text, retailerId } = parseResult.data;
-    const result = await parseOrderText(text, { retailerId });
+
+    // Load active retailer-specific learned aliases from DB (Tier 0 Feedback Loop)
+    let retailerAliases: Record<string, string> | undefined = undefined;
+    if (retailerId) {
+      const stored = dbStore.getRetailerAliases(retailerId);
+      if (stored && stored.length > 0) {
+        retailerAliases = {};
+        for (const a of stored) {
+          retailerAliases[a.rawPhrase] = a.skuId;
+        }
+      }
+    }
+
+    const result = await parseOrderText(text, { retailerId, retailerAliases });
 
     return NextResponse.json({
       success: true,

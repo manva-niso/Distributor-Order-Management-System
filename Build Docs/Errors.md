@@ -284,3 +284,25 @@ This document records every error, build failure, test failure, runtime issue, a
 - **Resolution / Fix:** Update `@types/node` in `package.json` to `"^22"` (or install with `--legacy-peer-deps`) matching Node 24 runtime.
 - **Prevention:** Match `@types/node` major version to the installed Node LTS version.
 
+- **Date & Time:** 2026-11-04 22:46:00
+- **Module:** Module 5 - Candidate Retriever & RRF
+- **Phase:** Unit Testing / IR Retrieval
+- **Symptoms / Error Message:**
+  ```text
+  AssertionError: expected { id: 'SKU-TE-TT500', name: 'Tata Tea Gold 500 g' } to be null
+  ```
+- **Root Cause Analysis:** Accidental single 3-gram match (`"ata"` in query token `"catalog"` matching `"Tata"`) assigned raw trigram score 0.074. Because `maxRrf = 3.0 / (k + 1)` was statically assuming all 3 rankers were active, ranker gating was absent and items with zero match were getting ranked arbitrarily. Single 3-gram collisions were generating false positive catalog matches for nonsense words.
+- **Resolution / Fix:** Implemented dynamic `numActiveRankers` normalization (`maxRrf = Math.max(1, numActiveRankers) / (k + 1)`) and relevance threshold filters on Trigram ($\ge 0.20$), Keyword ($\ge 0.30$), and Phonetic ($\ge 0.50$). Items below threshold receive 0 reciprocal contribution.
+- **Prevention:** Always enforce minimum relevance floors on individual IR rankers prior to reciprocal rank fusion.
+
+- **Date & Time:** 2026-11-04 22:51:00
+- **Module:** Module 5 - Pipeline Strategy Factory
+- **Phase:** Unit Testing / Pipeline Contract
+- **Symptoms / Error Message:**
+  ```text
+  AssertionError: expected 'cascaded_adaptive' to be 'rules_deterministic'
+  ```
+- **Root Cause Analysis:** Factory function `getActiveParserPipeline()` returned `cascadedOrderParser` on default fallthrough when `ORDER_PARSER_PROVIDER` was unset, conflicting with deterministic baseline contract tests.
+- **Resolution / Fix:** Updated factory switch to explicitly route `"cascade"` and `"adaptive"` to `cascadedOrderParser`, while maintaining `"rules"` and default as `deterministicTextParser` for pure backwards compatibility.
+- **Prevention:** Maintain explicit enum branches for new pipelines without altering the default return of existing baseline tests.
+

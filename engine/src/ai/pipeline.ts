@@ -1,5 +1,6 @@
 import { OrderParserPipeline, ParseResult, ParserContext } from "./types";
 import { deterministicTextParser } from "./text-parser";
+import { cascadedOrderParser } from "./cascaded-parser";
 
 /**
  * Custom Machine Learning Adapter
@@ -34,7 +35,7 @@ export class CustomMlApiAdapter implements OrderParserPipeline {
 
 /**
  * Pipeline Factory: Selects the active parsing engine based on environment configuration
- * Environment: ORDER_PARSER_PROVIDER="rules" | "custom_ml" | "gemini"
+ * Environment: ORDER_PARSER_PROVIDER="rules" | "cascade" | "custom_ml"
  */
 export function getActiveParserPipeline(): OrderParserPipeline {
   const provider = (process.env.ORDER_PARSER_PROVIDER || "rules").toLowerCase();
@@ -42,6 +43,9 @@ export function getActiveParserPipeline(): OrderParserPipeline {
   switch (provider) {
     case "custom_ml":
       return new CustomMlApiAdapter();
+    case "cascade":
+    case "adaptive":
+      return cascadedOrderParser;
     case "rules":
     default:
       return deterministicTextParser;

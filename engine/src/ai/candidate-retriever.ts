@@ -247,30 +247,40 @@ export class CandidateRetriever {
     const keywordRanked = this.rankByKeyword(cleanTokens);
     const phoneticRanked = this.rankByPhonetic(cleanTokens);
 
-    // Build rank maps (1-indexed)
+    // Build rank maps (1-indexed for items that actually had non-zero match)
     const trigramMap = new Map<string, number>();
-    trigramRanked.forEach((item, idx) => trigramMap.set(item.sku.code, idx + 1));
+    trigramRanked
+      .filter((item) => item.rawScore >= 0.20)
+      .forEach((item, idx) => trigramMap.set(item.sku.code, idx + 1));
 
     const keywordMap = new Map<string, number>();
-    keywordRanked.forEach((item, idx) => keywordMap.set(item.sku.code, idx + 1));
+    keywordRanked
+      .filter((item) => item.rawScore >= 0.30)
+      .forEach((item, idx) => keywordMap.set(item.sku.code, idx + 1));
 
     const phoneticMap = new Map<string, number>();
-    phoneticRanked.forEach((item, idx) => phoneticMap.set(item.sku.code, idx + 1));
+    phoneticRanked
+      .filter((item) => item.rawScore >= 0.50)
+      .forEach((item, idx) => phoneticMap.set(item.sku.code, idx + 1));
 
-    // Maximum possible RRF score when an SKU is rank #1 across all 3 rankers:
-    // maxRrf = 3 / (k + 1)
-    const maxRrf = 3.0 / (this.k + 1);
+    // Maximum possible RRF score based on the number of rankers that found matches:
+    const numActiveRankers =
+      (trigramMap.size > 0 ? 1 : 0) +
+      (keywordMap.size > 0 ? 1 : 0) +
+      (phoneticMap.size > 0 ? 1 : 0);
+    const maxRrf = Math.max(1, numActiveRankers) / (this.k + 1);
 
     const candidates: RankedCandidate[] = this.catalog.map((sku) => {
-      const rTrigram = trigramMap.get(sku.code) || 999;
-      const rKeyword = keywordMap.get(sku.code) || 999;
-      const rPhonetic = phoneticMap.get(sku.code) || 999;
+      const rTrigram = trigramMap.get(sku.code);
+      const rKeyword = keywordMap.get(sku.code);
+      const rPhonetic = phoneticMap.get(sku.code);
 
-      const rrfScore =
-        1.0 / (this.k + rTrigram) +
-        1.0 / (this.k + rKeyword) +
-        1.0 / (this.k + rPhonetic);
+      // If an item did not match a ranker, its reciprocal score contribution is 0
+      const scoreTrigram = rTrigram !== undefined ? 1.0 / (this.k + rTrigram) : 0;
+      const scoreKeyword = rKeyword !== undefined ? 1.0 / (this.k + rKeyword) : 0;
+      const scorePhonetic = rPhonetic !== undefined ? 1.0 / (this.k + rPhonetic) : 0;
 
+      const rrfScore = scoreTrigram + scoreKeyword + scorePhonetic;
       const normalizedScore = Math.min(1.0, Math.round((rrfScore / maxRrf) * 100) / 100);
 
       return {
@@ -278,9 +288,9 @@ export class CandidateRetriever {
         score: normalizedScore,
         rrfScore: Math.round(rrfScore * 10000) / 10000,
         ranks: {
-          trigramRank: rTrigram,
-          keywordRank: rKeyword,
-          phoneticRank: rPhonetic,
+          trigramRank: rTrigram || 999,
+          keywordRank: rKeyword || 999,
+          phoneticRank: rPhonetic || 999,
         },
       };
     });

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { dbStore, StoredOrderItem } from "@/db/store";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
+import { parseOrderText } from "@/lib/ai/pipeline";
 
 describe("Module 6 - Order Desk Operations, Verification & OCC Suite", () => {
   beforeEach(() => {
@@ -202,6 +203,30 @@ describe("Module 6 - Order Desk Operations, Verification & OCC Suite", () => {
 
       expect(ret1Aliases.some((a) => a.rawPhrase === "special soap")).toBe(true);
       expect(ret2Aliases.some((a) => a.rawPhrase === "special soap")).toBe(false);
+    });
+
+    it("feeds learned clerk alias into parser context for instant Tier 0 match on subsequent orders", async () => {
+      // Step 1: Clerk saves an idiosyncratic shop phrase mapping
+      dbStore.saveRetailerAlias("RET-0001", "apna wala ghadi packet", "SKU-DT-1KG");
+
+      // Step 2: Extract retailer's alias dictionary
+      const stored = dbStore.getRetailerAliases("RET-0001");
+      const retailerAliases: Record<string, string> = {};
+      for (const a of stored) {
+        retailerAliases[a.rawPhrase] = a.skuId;
+      }
+
+      // Step 3: Retailer places an order with that phrase
+      const parseResult = await parseOrderText("5 peti apna wala ghadi packet", {
+        retailerId: "RET-0001",
+        retailerAliases,
+      });
+
+      expect(parseResult.lines).toHaveLength(1);
+      const line = parseResult.lines[0];
+      expect(line.matchedSku?.code).toBe("SKU-DT-1KG");
+      expect(line.confidence).toBeGreaterThanOrEqual(0.95);
+      expect(line.isAmbiguous).toBe(false);
     });
   });
 });

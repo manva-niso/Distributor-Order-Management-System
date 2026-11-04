@@ -186,6 +186,15 @@ Instead of relying solely on expensive, slow AI models, the Engine works through
   └────────────────────────────────────────────────────────┘
 ```
 
+### The Clerk Learning Loop (How the Engine Gets Smarter Every Day)
+When an order desk clerk in Jabalpur reviews an ambiguous or unrecognized handwriting note and manually selects the correct product (e.g. mapping an odd shop slang like *"bhaiya apna wala ghadi"* to `Ghadi Detergent 1kg`), the Engine **instantly memorizes this mapping in the database for that specific shopkeeper**.
+
+The next time that shopkeeper sends that phrase:
+- It skips all AI and search algorithms.
+- It resolves instantly at **Tier 0** in less than 1 millisecond.
+- It is accepted with 98% certainty.
+- The clerk never has to touch or re-type it again.
+
 ---
 
 ## 7. The Scheme & Tax Calculator Inside the Engine

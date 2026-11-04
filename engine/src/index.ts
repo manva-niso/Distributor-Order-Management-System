@@ -11,6 +11,10 @@
 
 // AI & NLP Demand Parsers
 export * from "./ai/text-parser";
+export * from "./ai/candidate-retriever";
+export * from "./ai/calibrated-scorer";
+export * from "./ai/gemini-chooser";
+export * from "./ai/cascaded-parser";
 export * from "./ai/types";
 export * from "./ai/pipeline";
 export * from "./ai/gemini";

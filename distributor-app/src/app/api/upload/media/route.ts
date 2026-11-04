@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadMediaToS3, isS3Configured } from "@/lib/storage/s3";
 import { extractTextFromMediaWithGemini } from "@/lib/ai/gemini";
 import { parseOrderText } from "@/lib/ai/pipeline";
+import { dbStore } from "@/db/store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +69,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Run extracted text through our universal FMCG deterministic parser
-    const parseResult = await parseOrderText(extractedText, { retailerId });
+    let retailerAliases: Record<string, string> | undefined = undefined;
+    if (retailerId) {
+      const stored = dbStore.getRetailerAliases(retailerId);
+      if (stored && stored.length > 0) {
+        retailerAliases = {};
+        for (const a of stored) {
+          retailerAliases[a.rawPhrase] = a.skuId;
+        }
+      }
+    }
+
+    const parseResult = await parseOrderText(extractedText, { retailerId, retailerAliases });
 
     return NextResponse.json({
       success: true,

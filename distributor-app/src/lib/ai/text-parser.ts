@@ -11,6 +11,7 @@ import {
   BrokenCaseInfo,
 } from "./types";
 import { CandidateRetriever } from "./candidate-retriever";
+import { defaultCalibratedScorer } from "./calibrated-scorer";
 
 // Hindi Devanagari digit translation map
 export const DEVANAGARI_DIGITS: Record<string, string> = {
@@ -735,15 +736,12 @@ export function parseSingleUtterance(
   // 3. Match SKU with Tier 0 Alias Table & Tier 2 RRF Retrieval
   const { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
 
-  // 4. Ambiguity & Broken Case Guardrails (Rules [A16] & [A36])
-  let isAmbiguous = false;
-  let ambiguityReason: AmbiguityReason = null;
+  // 4. Broken Case Pre-Check
+  let isBrokenCase = false;
   let brokenCaseInfo: BrokenCaseInfo | null = null;
 
-  // Broken master case detection (Invariant [A36]):
   if (matched && unit === "PACK" && qty !== null && qty > 0 && (partialIntent !== null || qty < matched.unitsPerCase)) {
-    isAmbiguous = true;
-    ambiguityReason = "BROKEN_CASE";
+    isBrokenCase = true;
     const caseCap = explanatoryCapacity || partialIntent?.caseCapacityMentioned || matched.unitsPerCase;
     brokenCaseInfo = {
       requestedPacks: qty,
@@ -752,55 +750,21 @@ export function parseSingleUtterance(
       loosePackPrice: matched.packPrice,
       fullCasePrice: matched.dealerPrice,
     };
-  } else if (unit === "DABBA") {
-    // "Dabba" Guardrail: In MP FMCG trade, "dabba" is polysemic (Case vs Inner Box vs Oil Tin).
-    // In accordance with [A16] ("Ask, Never Guess"), trigger disambiguation.
-    isAmbiguous = true;
-    ambiguityReason = "AMBIGUOUS_UNIT";
-  } else if (unit === "UNKNOWN") {
-    isAmbiguous = true;
-    ambiguityReason = "MISSING_UNIT";
-  } else if (!aliasHit && candidates.length > 1 && Math.abs(candidates[0].score - candidates[1].score) < 0.12 && candidates[0].score < 0.70) {
-    isAmbiguous = true;
-    ambiguityReason = "MULTIPLE_CANDIDATES";
-  } else if (!matched) {
-    isAmbiguous = true;
-    ambiguityReason = "UNKNOWN_SKU";
   }
 
-  // 5. Tier 3: Calibrated Probabilistic Confidence Scoring
-  let confidence = 0.0;
-  if (aliasHit) {
-    // Exact phrase match from alias dictionary
-    if (unit === "CASE" || unit === "PACK" || unit === "KG") {
-      confidence = qty !== null && qty > 0 ? 0.98 : 0.85;
-    } else if (unit === "DABBA") {
-      // High SKU certainty, but low packaging certainty -> triggers disambiguation card
-      confidence = 0.65;
-    } else {
-      confidence = 0.60;
-    }
-  } else if (matched) {
-    // Candidate retrieved via scoring
-    const topScore = candidates[0]?.score || 0.6;
-    const runnerScore = candidates[1]?.score || 0.0;
-    const margin = topScore - runnerScore;
+  // 5. Tier 3: Calibrated Probabilistic Confidence Scoring via Logistic Sigmoid
+  const scoreResult = defaultCalibratedScorer.score({
+    aliasHit,
+    topCandidateScore: candidates[0]?.score || 0.0,
+    runnerUpScore: candidates[1]?.score || 0.0,
+    unit,
+    quantity: qty,
+    isBrokenCase,
+  });
 
-    const baseProb = Math.min(0.95, Math.max(0.65, topScore * 0.75 + margin * 0.25));
-    if (unit === "CASE" || unit === "PACK" || unit === "KG") {
-      confidence = qty !== null && qty > 0 ? Math.max(0.80, baseProb) : baseProb * 0.8;
-    } else if (unit === "DABBA") {
-      confidence = Math.min(0.65, baseProb * 0.7);
-    } else {
-      confidence = Math.min(0.60, baseProb * 0.65);
-    }
-  } else if (candidates.length > 0) {
-    confidence = Math.min(0.55, candidates[0].score * 0.6);
-  } else {
-    confidence = 0.10;
-  }
-
-  confidence = Math.min(0.98, Math.max(0.05, Math.round(confidence * 100) / 100));
+  const confidence = scoreResult.confidence;
+  const isAmbiguous = scoreResult.isAmbiguous;
+  const ambiguityReason = scoreResult.ambiguityReason;
 
   // 6. Compute resolved quantities for cart
   let resolvedQtyCases = qty || 1;
