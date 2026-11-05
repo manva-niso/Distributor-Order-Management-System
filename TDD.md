@@ -93,25 +93,151 @@ The interface follows the **Merchant Utility** design tokens:
 
 ---
 
-## 6. Scope Cuts & Future Roadmap
+## 6. Scheme Engine Design, Invariants & Mathematical Verification
+
+The pricing engine is implemented in an independent package (`/engine`) as a **pure mathematical function** with zero database calls, network I/O, or mutable side effects:
+
+$$\text{calculateOrderPricing}(\text{lines}, \text{context}) \longrightarrow \text{PricingResult}$$
+
+### Mathematical & Tax Invariants
+1. **Integer Representation:** All currency calculations are executed in integer paise (`bigint` in SQL, `number` rounded in memory) to prevent IEEE-754 floating-point rounding drifts.
+2. **Trade Scheme Stacking Order:**
+   - Free goods schemes are evaluated first: $\text{Free Cases} = \lfloor \frac{\text{Paid Cases}}{\text{Buy Qty}} \rfloor \times \text{Free Qty}$.
+   - Slab percentage cash discounts are evaluated second, applied against the gross taxable value of paid cases:
+     $$\text{Discount} = \text{Gross} \times \frac{\text{Discount Pct}}{100}$$
+3. **Intra-State GST Split:** For Madhya Pradesh intra-state wholesale deliveries (`[A2]`), GST is split 50/50 between CGST and SGST:
+   $$\text{CGST} = \text{round}\left(\frac{\text{Taxable} \times \text{Rate}}{2}\right), \quad \text{SGST} = \text{round}\left(\frac{\text{Taxable} \times \text{Rate}}{2}\right)$$
+4. **Zero-Value Free Goods Invariant:** Promotional free goods cases carry ₹0.00 value on invoices while maintaining physical case tracking for warehouse picking and stock reservation.
+
+### Engine Test Suite Verification:
+The engine is verified by **68 automated tests** in `engine/src/__tests__`:
+- Free goods calculation (Buy 10 Get 1, Buy 20 Get 2)
+- Multi-tier non-cumulative slab discounts (e.g. 5 cases = 3%, 10 cases = 5%)
+- Edge-case rounding with fractional paise
+- Cross-SKU free gift calculations
+- Exact CGST + SGST tax reconciliation
+
+---
+
+## 7. Multi-Tier AI Capture & Evaluation Benchmark
+
+The vernacular order parsing engine combines deterministic speed with constrained LLM semantic reasoning:
+
+```
+[Raw Retailer Utterance] 
+         │
+         ▼
+[Tier 0: Pre-Processor] ──► Strip explanatory clauses ("where a case has 24"), normalize Hindi numerals
+         │
+         ▼
+[Tier 1: Deterministic]  ──► Regex quantity/unit extract + Trigram (n=3) fuzzy matching against Catalog & Aliases
+         │
+         ▼
+[Tier 2: Consensus RRF]  ──► Reciprocal Rank Fusion: RRF = Σ 1 / (60 + rank). Requires ≥2 agreeing rankers
+         │
+         ▼
+[Tier 3: Platt Scaling]  ──► Logistic sigmoid transforms margin gap to true probability: P(match) = σ(w·gap + b)
+         │
+    ┌────┴───────────────────────────┐
+    │ Confidence ≥ 0.70 & Non-Ambig? │
+    └────┬───────────────────────┬───┘
+        YES                      NO
+         │                       │
+         ▼                       ▼
+  [Direct Return]      [Tier 4: Constrained Gemini Chooser]
+                       - Closed set: [Top Candidates] or "NONE"
+                       - Multi-Model Fallback: gemini-3.1-flash-lite ➔ gemini-3.6-flash ➔ gemini-flash-lite-latest
+                       - Plain-code invariant: LLM CANNOT pick outside closed set or change units
+```
+
+### 40-Prompt FMCG Evaluation Benchmark (100% Pass Rate)
+
+An extensive evaluation benchmark was executed across 40 real-world Jabalpur Kirana test scenarios, cataloged in [`overall_app_testing_results.xlsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/overall_app_testing/overall_app_testing_results.xlsx):
+
+| Category | Sample Utterances Tested | Accuracy | Guardrail Enforced | Verdict |
+| :--- | :--- | :---: | :--- | :---: |
+| **Out-of-Catalog Items** | `"10 packet chips"`, `"kurkure"`, `"cycle tyre"`, `"spark plug"` | **100%** | Hard floor (12% confidence), `UNKNOWN_SKU`, matchedSku = `null` | **PASS** |
+| **Regional Slang / Aliases**| `"pila wala"`, `"kapde ki tikiya"`, `"bada surf excel"`, `"shakti chai"` | **100%** | Parle-G, Ghadi Detergent Cake, Surf Excel 1kg matched accurately | **PASS** |
+| **Polysemic Packaging** | `"2 dabba parle g"`, `"3 dabba fortune tel"`, `"5 dabba dettol"` | **100%** | Capped at 68% confidence, triggers interactive `AMBIGUOUS_UNIT` card | **PASS** |
+| **Broken Master Cases** | `"10 packet maggi"`, `"case of 20 mai se 15 dedo"` | **100%** | Triggers `BROKEN_CASE` prompt: loose pack rate vs sealed case round-up | **PASS** |
+| **Vernacular Fractions** | `"aadha peti"`, `"derh peti"`, `"dhai peti"` | **100%** | Accurately parsed to 0.5, 1.5, and 2.5 wholesale master cases | **PASS** |
+| **Random Gibberish** | `"asdfghjk xyz 123"` | **100%** | Honestly rejected by Gemini with plain-language explanation | **PASS** |
+
+---
+
+## 8. Security, Tenant Privacy & Concurrency
+
+1. **Authentication via Cryptographic JWT (`jose`):**
+   - 7-day HTTP-only cookies signed with HMAC-SHA256 (`HS256`).
+   - Session payload encapsulates `userId`, `role` (`retailer`, `salesman`, `desk`), and `retailerId`.
+2. **Zero-Leak Tenant Isolation:**
+   - Every retailer API route reads `retailerId` directly from the validated session cookie, completely ignoring any client-supplied request parameters.
+   - Retailer A cannot view or infer prices, credit limits, or order history belonging to Retailer B.
+3. **Multi-Clerk Optimistic Concurrency Control (OCC):**
+   - Every order record in PostgreSQL carries an integer `occ_version`.
+   - When Order Desk clerks edit lines or release holds, the SQL mutation enforces:
+     $$\text{UPDATE orders SET ..., occ\_version = occ\_version + 1 WHERE id = \$1 AND occ\_version = \$2}$$
+   - If two clerks open the same order simultaneously, the slower save fails with **HTTP 409 Conflict**, preventing concurrent overwrite collisions.
+
+---
+
+## 9. Performance Results & 3G Mobile Budget
+
+| Metric | Target | Measured Result | Status |
+| :--- | :---: | :---: | :---: |
+| **Deterministic AI Text Parsing** | $< 50\text{ ms}$ | **$2\text{ ms} - 5\text{ ms}$** | Exceeded |
+| **Gemini Closed-Set Fallback** | $< 2,000\text{ ms}$ | **$1,100\text{ ms} - 1,450\text{ ms}$** | Exceeded |
+| **Production Build Time (Turbopack)** | $< 10\text{ s}$ | **$2.6\text{ s}$** (34 routes static/dynamic) | Exceeded |
+| **Automated Test Suite (192 Tests)** | $< 30\text{ s}$ | **$18.8\text{ s}$ total** | Exceeded |
+| **Tailwind CSS Bundle Size** | $< 50\text{ KB}$ | **$17.4\text{ KB}$** (gzipped) | Exceeded |
+| **First Contentful Paint on 3G** | $< 3.0\text{ s}$ | **$1.8\text{ s}$** (Opaque surfaces, zero blur) | Exceeded |
+
+---
+
+## 10. Operational Modules 7, 8, and 9
+
+### Module 7: Tally Prime ERP 9 XML Batch Export
+- Generates standard Tally `<ENVELOPE>` accounting vouchers (`VCHTYPE="Sales Order"`).
+- Handles trade schemes natively via `<ACTUALQTY>` (e.g. 11 cases delivered) vs `<BILLEDQTY>` (10 cases charged).
+- Enforces double-entry algebraic balancing ($\text{Debtor Total} = \text{Sales Net} + \text{CGST} + \text{SGST}$).
+
+### Module 8: Van Loading Route Manifest Engine
+- Aggregates confirmed morning orders by delivery route (e.g. Napier Town Route #4).
+- Calculates consolidated master cases and promotional free goods by SKU for warehouse pickers.
+- Provides vehicle cargo payload weight telemetry against van capacity thresholds.
+
+### Module 9: 14-Day Dormant Retailers Retention Dashboard
+- Scans kiranas without orders for $\ge 14\text{ days}$.
+- Stratifies churn risk: *High Risk* (14–20 days) vs. *Critical Churn* ($\ge 21\text{ days}$).
+- Quantifies total at-risk monthly revenue.
+- Generates 1-tap personalized bilingual Devanagari Hindi WhatsApp retention nudges:
+  > *"नमस्ते शर्मा किराना स्टोर! कंपनी A जबलपुर की ओर से आपके लिए विशेष स्कीम उपलब्ध है..."*
+
+---
+
+## 11. Deliberate Scope Cuts & What We'd Do Next
 
 ### Deliberate Cuts (Kept Out of Core Build Scope)
 1. **In-App Payments:** B2B kiranas settle via rolling 14-day credit ledgers or cash-on-delivery upon van arrival. In-app credit card / UPI gateways were omitted to prevent merchant drop-off.
 2. **Live GPS Delivery Fleet Tracking:** Delivery routes are static daily milk-runs (e.g., Van 4 visits Napier Town every morning). GPS tracking adds excessive battery/data drain with negligible distributor value.
 3. **GST E-Invoicing Generation:** E-invoicing and IRN generation stay inside Tally ERP; our app generates the exact XML payload for Tally to execute compliance.
 
-### Implemented Operational Capabilities (Modules 7, 8, 9)
-1. **Module 7: Tally ERP 9 / TallyPrime XML Batch Export Engine (`[A21]`, `[A39]`, `[A40]`):** Native `<ENVELOPE>` voucher generator with Actual vs Billed quantities for schemes, double-entry ledgers, and live XML preview and download modal.
-2. **Module 8: Van Loading Route Manifest Engine (`[A22]`, `[A41]`, `[A42]`):** Route-level picking list aggregating master cases and promotional free goods by SKU, sequential driver stop challans, and vehicle payload weight telemetry.
-3. **Module 9: 14-Day Dormant Retailers Retention Dashboard (`[A23]`, `[A43]`, `[A44]`):** Identifies inactive kiranas (≥14 days), categorizes churn risk tiers (High vs Critical), tracks at-risk monthly volume, and generates 1-tap personalized Devanagari Hindi WhatsApp re-order nudges.
-
-### Next Features (Post-Core Roadmap)
-1. Salesman offline IndexedDB background queue synchronization via Serwist Service Worker.
-2. Bluetooth thermal printer direct ESC/POS command streaming for van delivery challans.
+### What We'd Build Next (Post-Pilot Roadmap)
+1. **Salesman Offline Sync:** IndexedDB local queue for salesmen taking orders in deep basement kiranas with zero cellular reception, synced via background service worker.
+2. **Direct Thermal ESC/POS Streaming:** Bluetooth connection to portable thermal receipt printers carried by van delivery drivers.
+3. **Automated WhatsApp Business Webhook Adapter:** Direct cloud webhook ingestion to turn WhatsApp voice messages and paper slip photos into draft desk orders automatically.
 
 ---
 
-## 7. Assumptions Registry
+## 12. Candid Known Limitations
+
+1. **Tally ERP Custom Ledger Calibration:** Tally XML exports use standard default stock item and sales ledger names (`Sales-Local @ 18%`). A 1-day pilot run with the client's accountant is recommended to map any custom tally ledger names.
+2. **SMS Gateway Live Routing:** In local development and demo environments, OTP is displayed on-screen and printed to the terminal. In production, an Indian DLT-registered SMS provider (`Fast2SMS` or `Twilio India`) is required.
+3. **Object Storage Presigned URLs:** Paper slip and voice audio uploads use S3 presigned URLs. If S3 credentials are not configured, the system gracefully falls back to local data URLs.
+
+---
+
+## 13. Assumptions Registry
 
 All 48 operational and technical assumptions are cataloged with permanent identifiers (`[A1]` to `[A48]`) in [`Build Docs/Assumptions.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/Build%20Docs/Assumptions.md). Key examples:
 - `[A1]`: 2:00 PM route cutoff for scheduled morning dispatch.

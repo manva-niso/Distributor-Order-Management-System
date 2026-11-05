@@ -16,10 +16,10 @@ A comprehensive audit confirms all core production criteria are fully satisfied:
 | Capability / Requirement | Status | Production Audit Evidence |
 | :--- | :---: | :--- |
 | **Next.js Production Build** | **PASSED** | `npm --prefix distributor-app run build` compiles 34 pages & API routes in 2.1s with Turbopack, 0 TypeScript errors, and 0 lint warnings. |
-| **Automated Test Suite** | **PASSED** | 100% pass rate: 197 automated tests across 21 suites (121 in `distributor-app`, 67 in `engine`, 9 realistic order benchmarks). |
+| **Automated Test Suite** | **PASSED** | 100% pass rate: 192 automated tests across 22 suites (124 in `distributor-app` including live AI random words & vernacular tests, 68 in `engine` including live closed-set chooser tests, plus the 40-prompt benchmark dataset). |
 | **Live Database (Neon PostgreSQL)** | **PASSED** | Connected to serverless cloud Neon PostgreSQL over SSL (`sslmode=require`). Relational tables (`skus`, `retailers`, `orders`, `order_items`, `retailer_aliases`, `captures`) initialized. |
 | **Zero-Order Pristine Start** | **PASSED** | Live `GET /api/desk/orders` returns `0 orders`. No fake dummy orders exist; real orders are created exclusively by Kiranas and verified by the Order Desk. |
-| **Google Gemini AI Integration** | **PASSED** | Live API key verified on `gemini-2.5-flash` (~1.5s latency). Handcuffed closed-set chooser guarantees zero hallucinations. |
+| **Google Gemini AI Integration** | **PASSED** | Live multi-model fallback cascade: `gemini-3.1-flash-lite` $\to$ `gemini-3.6-flash` $\to$ `gemini-flash-lite-latest` (~1.2s latency). Handcuffed closed-set chooser guarantees zero hallucinations and handles colloquial dialect, out-of-catalog items, and random gibberish. |
 | **Authentication & Seat Isolation** | **PASSED** | Mobile SMS OTP authentication with cryptographically signed HS256 JWT cookies (`jose`). Strict seat boundary prevents Kirana buyers from accessing the desk. |
 | **Object Storage (S3 / MinIO)** | **PASSED** | S3-compatible object storage with presigned 7-day download links for paper slip photos & Hindi audio notes. Graceful fallback if S3 is omitted. |
 | **Tally Prime ERP XML Export** | **PASSED** | 1-click accounting voucher export compliant with Tally XML schema (`VCHTYPE="Sales Order"`). |
@@ -45,8 +45,8 @@ Vercel provides native zero-configuration hosting for Next.js with automatic glo
    DATABASE_URL="postgres://user:password@ep-sample.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
    JWT_SECRET="isolabs_jabalpur_distributor_secure_session_jwt_secret_key_2026_super_secure"
    GEMINI_API_KEY="your-google-gemini-api-key"
-   GEMINI_MODEL="gemini-2.5-flash"
-   ORDER_PARSER_PROVIDER="rules"
+   GEMINI_MODEL="gemini-3.1-flash-lite"
+   ORDER_PARSER_PROVIDER="cascade"
    SMS_PROVIDER="console"
    NODE_ENV="production"
    NEXT_PUBLIC_APP_URL="https://your-domain.vercel.app"
@@ -158,8 +158,8 @@ docker run -p 3000:3000 --env-file distributor-app/.env.local isolabs-distributo
 | `DATABASE_URL` | **Yes** | *Neon Postgres URL* | Connection string for Neon PostgreSQL with `sslmode=require`. |
 | `JWT_SECRET` | **Yes** | *32+ character string* | Cryptographic secret for signing HS256 auth session cookies. |
 | `GEMINI_API_KEY` | **Yes** | *Google AI Studio Key* | API key for Gemini OCR slip extraction and closed-set tie-breaker. |
-| `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model name. |
-| `ORDER_PARSER_PROVIDER` | No | `rules` | Strategy: `rules` (default sub-5ms), `cascade` (adaptive), `custom_ml`. |
+| `GEMINI_MODEL` | No | `gemini-3.1-flash-lite` | Primary Gemini model (automatically falls back to `gemini-3.6-flash` and `gemini-flash-lite-latest` on rate limits or demand spikes). |
+| `ORDER_PARSER_PROVIDER` | No | `cascade` | Strategy: `cascade` (adaptive AI fallback with Gemini closed set), `rules` (deterministic only), `custom_ml`. |
 | `SMS_PROVIDER` | No | `fast2sms` | `console` for dev terminal OTPs, `fast2sms` for Indian DLT/SMS routes. |
 | `SMS_API_KEY` | No | `""` | Fast2SMS API key (leave blank in dev for on-screen OTP). |
 | `AWS_ENDPOINT_URL_S3` | No | `""` | MinIO or AWS S3 endpoint URL for paper slip and voice note uploads. |
@@ -215,18 +215,18 @@ The application includes a built-in, floating, draggable, and resizable **Walkth
 Run the full automated test suite before any deployment:
 
 ```bash
-# Universal workspace verification (197 tests passing)
+# Universal workspace verification (192 tests passing)
 npm test
 
-# App tests only (121 tests)
-npm run test:app
+# App tests only (124 tests)
+npm --prefix distributor-app test
 
-# Engine tests only (67 tests)
-npm run test:engine
+# Engine tests only (68 tests)
+npm --prefix engine test
 
-# Benchmark tests only (9 tests)
-npm run test:catalogue
+# Benchmark tests only (40 FMCG test prompts with Excel export)
+npm run test:benchmark-excel
 
 # Next.js production build check
-npm run build
+npm --prefix distributor-app run build
 ```

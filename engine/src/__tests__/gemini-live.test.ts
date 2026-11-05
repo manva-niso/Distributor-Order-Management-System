@@ -57,8 +57,8 @@ describe("Live Gemini API Verification", () => {
 
     const chooser = new GeminiClosedSetChooser({
       apiKey,
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      timeoutMs: 8000,
+      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+      timeoutMs: 6000,
     });
 
     const result = await chooser.choose("5 peti pila wala glucose biscuit", candidates);
@@ -67,5 +67,5 @@ describe("Live Gemini API Verification", () => {
     expect(result.source).toBe("gemini");
     expect(result.chosenSkuId).toBe("SKU-BS-PG075");
     expect(result.confidence).toBeGreaterThanOrEqual(0.7);
-  }, 15000);
+  }, 20000);
 });
