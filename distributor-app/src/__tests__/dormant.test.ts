@@ -3,7 +3,7 @@ import { dbStore } from "@/db/store";
 
 describe("Module 9 - 14-Day Dormant Retailers Retention Engine Suite", () => {
   beforeEach(() => {
-    dbStore.reset();
+    dbStore.reset(true);
   });
 
   describe("Inactivity & Churn Detection", () => {

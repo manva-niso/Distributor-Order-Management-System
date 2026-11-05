@@ -162,7 +162,7 @@ class MemoryStore {
   private aliases: Map<string, StoredAlias> = new Map();
 
   constructor() {
-    this.reset();
+    this.reset(false);
   }
 
   public resetToAbsoluteZero() {
@@ -184,7 +184,7 @@ class MemoryStore {
     });
   }
 
-  public reset(includeDefaultOrders: boolean = true) {
+  public reset(includeDefaultOrders: boolean = false) {
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();

@@ -5,7 +5,7 @@ import { parseOrderText } from "@/lib/ai/pipeline";
 
 describe("Module 6 - Order Desk Operations, Verification & OCC Suite", () => {
   beforeEach(() => {
-    dbStore.reset();
+    dbStore.reset(true);
   });
 
   describe("Desk Queue Retrieval & Operational Stats", () => {

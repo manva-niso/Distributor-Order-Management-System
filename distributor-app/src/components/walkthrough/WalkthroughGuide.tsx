@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Compass,
@@ -13,10 +13,15 @@ import {
   GripHorizontal,
   CheckCircle2,
   Circle,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 
-interface StepItem {
+export type StepCategory = "DEMAND" | "EDGE_CASE";
+
+export interface StepItem {
   id: number;
+  category: StepCategory;
   title: string;
   route: string;
   summary: string;
@@ -24,9 +29,11 @@ interface StepItem {
   whyItMatters: string;
 }
 
-const WALKTHROUGH_STEPS: StepItem[] = [
+export const WALKTHROUGH_STEPS: StepItem[] = [
+  // --- PART 1: CUSTOMER DEMANDS IN SEQUENCE ---
   {
     id: 1,
+    category: "DEMAND",
     title: "1. Load Catalog & Kiranas (0 Orders)",
     route: "/setup",
     summary: "Load wholesale FMCG catalog with 0 orders — pristine start.",
@@ -35,11 +42,12 @@ const WALKTHROUGH_STEPS: StepItem[] = [
       "Click '🌟 Master Wholesale FMCG (36 SKUs)' to seed products & 8 Kiranas.",
       "Notice Orders = 0. Real orders are placed only by Kiranas, not pre-seeded.",
     ],
-    whyItMatters: "Proves zero dummy data lock-in. Real distributor workflow.",
+    whyItMatters: "Proves zero dummy data lock-in. Real distributor workflow starting from absolute zero.",
   },
   {
     id: 2,
-    title: "2. Log Out -> Log in as Kirana Store",
+    category: "DEMAND",
+    title: "2. Retailer Login (SMS OTP)",
     route: "/login",
     summary: "Log out of desk and log in as an authorized retail shopkeeper.",
     actions: [
@@ -47,64 +55,152 @@ const WALKTHROUGH_STEPS: StepItem[] = [
       "On /login, 1-click select Sharma Kirana Store (9826000001).",
       "Enter Dev OTP code (716716 or displayed code) to enter buyer portal.",
     ],
-    whyItMatters: "Strict seat isolation: You are now truly experiencing the Kirana buyer seat.",
+    whyItMatters: "Strict seat isolation: You are now truly experiencing the Kirana buyer seat without desk privileges.",
   },
   {
     id: 3,
-    title: "3. Kirana Places WhatsApp Order (Neon DB)",
+    category: "DEMAND",
+    title: "3. Vernacular WhatsApp Order",
     route: "/quick-order",
-    summary: "Order via WhatsApp text & test safe vernacular AI edge cases.",
+    summary: "Order via WhatsApp text in conversational Hinglish/Hindi.",
     actions: [
       "Go to Quick Order (/quick-order).",
-      "Tap '🚫 Chips' -> Cleanly rejected (out of catalog, never matches biscuits!).",
-      "Tap '⚖️ Ghee' -> Disambiguates 1L tin vs 500ml jar.",
-      "Tap '📦 Maggi' -> Prompts 1 full case round-up.",
-      "Confirm & tap 'Place Order' -> Saved live into Neon PostgreSQL database!",
+      "Type or paste: 'bhaiya 5 peti biscuit chhota, 2 peti ghadi powder 1 kg'.",
+      "Tap 'Process Order Text' — see Parle-G & Ghadi 96% confidence matches.",
+      "Tap 'Confirm & Move to Cart' and place order — stored live in Neon PostgreSQL!",
     ],
-    whyItMatters: "Safe AI: Never guesses products or customer money.",
+    whyItMatters: "Kiranas order in informal conversational language; safe AI maps units & quantities instantly.",
   },
   {
     id: 4,
-    title: "4. Log Out -> Relog in as Order Desk",
-    route: "/login",
-    summary: "Switch back to distributor office to verify the incoming order.",
+    category: "DEMAND",
+    title: "4. Catalogue Cart & Scheme Math",
+    route: "/catalogue",
+    summary: "Browse catalog with 48px touch steppers, unlocked trade schemes & MP GST.",
     actions: [
-      "Tap the Log Out icon in the top right header of the orders screen.",
-      "On /login, 1-click select Sunil Clerk (Order Desk: 9826000099).",
-      "Enter Dev OTP code to return to distributor workstation (/desk).",
+      "Open Catalogue (/catalogue) — see 36 SKUs across Food & Personal Care.",
+      "Increase Parle-G 75g to 10 cases — watch '+1 Free Case Unlocked' badge appear.",
+      "Increase Ghadi Powder 1kg to 5 cases — unlocks 3% bulk slab discount.",
+      "View Cart (/cart) — review taxable base, CGST 9% + SGST 9%, and place order.",
     ],
-    whyItMatters: "Shows the true hand-off between retail buyer and wholesale distributor.",
+    whyItMatters: "Transparent trade promotion engine: circular 92/11/2019 compliant ₹0 promotional billing.",
   },
   {
     id: 5,
-    title: "5. Desk Triage & Verification (Neon DB)",
+    category: "DEMAND",
+    title: "5. Desk Triage & Split-Screen",
     route: "/desk",
-    summary: "Verify raw WhatsApp text side-by-side with matched SKUs.",
+    summary: "Switch to desk to verify raw WhatsApp text side-by-side with items.",
     actions: [
-      "On /desk, see the order placed by Sharma Kirana sitting in your live queue!",
-      "Click 'Verify' to inspect raw WhatsApp text side-by-side with items.",
-      "Adjust quantities if needed, then click 'Save & Confirm Order'.",
-      "Confirmation updates live in Neon PostgreSQL database.",
+      "Log out and log in as Sunil Clerk (Order Desk: 9826000099).",
+      "On /desk, see Sharma Kirana's order in the live queue with badge 'AI Text'.",
+      "Click 'Verify' to open split-screen: raw text on left, verified items on right.",
+      "Adjust quantities if needed, then click 'Save & Confirm Order' (updates Neon DB).",
     ],
     whyItMatters: "Human-in-the-loop: Distributor verifies every vernacular order before dispatch.",
   },
   {
     id: 6,
-    title: "6. Van Manifest, Nudges & Tally XML",
+    category: "DEMAND",
+    title: "6. Van Manifest & Tally XML",
     route: "/desk",
-    summary: "Warehouse loading, 14-day retention nudges, and ERP export.",
+    summary: "Warehouse loading sheet by route and 1-click Tally Prime ERP voucher export.",
     actions: [
-      "On /desk, open 'Delivery Van Manifest' tab to view vehicle load & driver stops.",
-      "Open 'Dormant Kiranas' tab to send 1-tap WhatsApp retention deals.",
-      "Click 'Export Tally XML' for 1-click accounting voucher export.",
+      "On /desk, open 'Delivery Van Manifest' tab.",
+      "View Napier Town Route #4 manifest: driver stop sequence, vehicle capacity, and payload kg.",
+      "Switch to 'Orders Queue' and click 'Export Tally XML' for accounting vouchers.",
     ],
-    whyItMatters: "Closes the complete loop from Kirana order to truck dispatch.",
+    whyItMatters: "Closes the complete loop from Kirana phone order to physical truck loading and ERP accounting vouchers.",
   },
+
+  // --- PART 2: RIGOROUS EDGE CASES (AFTER DEMANDS MET) ---
   {
     id: 7,
-    title: "7. Master Delete to Zero",
+    category: "EDGE_CASE",
+    title: "7. Out-of-Catalog ('Chips' Test)",
+    route: "/quick-order",
+    summary: "Kirana orders an item outside the catalog — honest rejection.",
+    actions: [
+      "Go to Quick Order (/quick-order).",
+      "Tap test chip '🚫 Chips' (or type '10 peti chips, 5 peti lays').",
+      "Tap 'Process Order Text' — observe confidence drops to 12% floor.",
+      "Flagged as UNKNOWN_SKU: Never incorrectly matches biscuits or soap!",
+    ],
+    whyItMatters: "Invariant [A16] 'Ask, Never Guess': Safe AI refuses to guess customer money on items not sold.",
+  },
+  {
+    id: 8,
+    category: "EDGE_CASE",
+    title: "8. Polysemic Unit ('Dabba' Test)",
+    route: "/quick-order",
+    summary: "Kirana uses ambiguous packaging word 'dabba' — interactive unit prompt.",
+    actions: [
+      "On /quick-order, tap test chip '⚖️ Ghee' (or type '5 dabba amul ghee').",
+      "Tap 'Process Order Text' — confidence capped at 68% (AMBIGUOUS_UNIT).",
+      "Interactive prompt triggers: 'Did you mean 1L Tin or 500ml Jar?'.",
+      "Select intended unit before order can be finalized.",
+    ],
+    whyItMatters: "Prevents 10x quantity discrepancies caused by ambiguous local Hindi trade terminology.",
+  },
+  {
+    id: 9,
+    category: "EDGE_CASE",
+    title: "9. Loose Cut-Pack ('Maggi' Test)",
+    route: "/quick-order",
+    summary: "Kirana requests loose packets from wholesale master case.",
+    actions: [
+      "On /quick-order, tap test chip '📦 Maggi' (or type '40 packet maggi').",
+      "Tap 'Process Order Text' — detects BROKEN_CASE (case has 96 pkts).",
+      "Prompts choice: Round up to 1 full case (₹1,152 case rate) or 40 loose pkts (₹12 piece rate).",
+    ],
+    whyItMatters: "Wholesale margin protection: prevents broken case losses while offering retail flexibility.",
+  },
+  {
+    id: 10,
+    category: "EDGE_CASE",
+    title: "10. Credit Limit Breach & Hold",
+    route: "/desk",
+    summary: "Shopkeeper exceeding credit limit is placed on CREDIT_HOLD.",
+    actions: [
+      "Log in as Gupta Daily Needs (9826000003, credit available: ₹2,000).",
+      "Place order over ₹25,000 — order is received with status CREDIT_HOLD.",
+      "Relog in as Sunil Clerk (/desk) and open 'Credit Holds' tab.",
+      "Inspect ledger and click 'Release Hold' with authorization note.",
+    ],
+    whyItMatters: "Protects distributor working capital against default while enabling managerial override.",
+  },
+  {
+    id: 11,
+    category: "EDGE_CASE",
+    title: "11. 14-Day Dormant Retention",
+    route: "/desk",
+    summary: "Detect inactive Kiranas and send 1-tap WhatsApp retention deals.",
+    actions: [
+      "On /desk, switch to 'Dormant Kiranas' tab.",
+      "View shops inactive for >14 days with CRITICAL churn risk.",
+      "Click WhatsApp icon to launch pre-composed Hindi offer deal on WhatsApp Web.",
+    ],
+    whyItMatters: "Recovers lapsed revenue before shopkeepers permanently switch to rival wholesale distributors.",
+  },
+  {
+    id: 12,
+    category: "EDGE_CASE",
+    title: "12. Multi-Clerk OCC Locking",
+    route: "/desk",
+    summary: "Optimistic concurrency control prevents two clerks overwriting same order.",
+    actions: [
+      "Simultaneous edits: If Clerk A and Clerk B open Order #ORD-101 at the same time.",
+      "Clerk A saves changes -> occVersion increments from 1 to 2.",
+      "Clerk B attempts to save with stale version -> Server rejects with HTTP 409 Conflict.",
+    ],
+    whyItMatters: "Guarantees zero duplicate dispatch or conflicting pallet picks in busy morning warehouse shifts.",
+  },
+  {
+    id: 13,
+    category: "EDGE_CASE",
+    title: "13. Master Clean Slate (Wipe to 0)",
     route: "/setup",
-    summary: "Wipe everything back to 0 whenever needed.",
+    summary: "Wipe everything back to 0 SKUs, 0 Retailers, 0 Orders anytime.",
     actions: [
       "Go to Setup (/setup) or tap Clean Slate on /desk.",
       "Click 'Master Delete (Wipe All to 0)' button.",
@@ -118,6 +214,9 @@ export default function WalkthroughGuide() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Tab Filter: "ALL" | "DEMAND" | "EDGE_CASE"
+  const [activeTab, setActiveTab] = useState<"ALL" | "DEMAND" | "EDGE_CASE">("ALL");
+
   // Expanded state per step
   const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({ 1: true });
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
@@ -127,7 +226,7 @@ export default function WalkthroughGuide() {
 
   // Dragging & Positioning State
   const [position, setPosition] = useState({ x: 16, y: 64 });
-  const [size, setSize] = useState({ width: 330, height: 530 });
+  const [size, setSize] = useState({ width: 340, height: 550 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -147,7 +246,7 @@ export default function WalkthroughGuide() {
     initialW: number;
     initialH: number;
     mode: "both" | "horizontal" | "vertical";
-  }>({ startX: 0, startY: 0, initialW: 330, initialH: 530, mode: "both" });
+  }>({ startX: 0, startY: 0, initialW: 340, initialH: 550, mode: "both" });
 
   // Load persisted state & adapt for mobile
   useEffect(() => {
@@ -166,13 +265,13 @@ export default function WalkthroughGuide() {
       if (savedSize) {
         const parsedSize = JSON.parse(savedSize);
         if (parsedSize.width && parsedSize.height) {
-          const clampedW = Math.max(270, Math.min(parsedSize.width, window.innerWidth - 20));
-          const clampedH = Math.max(340, Math.min(parsedSize.height, window.innerHeight - 40));
+          const clampedW = Math.max(280, Math.min(parsedSize.width, window.innerWidth - 20));
+          const clampedH = Math.max(360, Math.min(parsedSize.height, window.innerHeight - 40));
           setSize({ width: clampedW, height: clampedH });
         }
       } else {
-        const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 330;
-        const initialH = isMobile ? 480 : 530;
+        const initialW = isMobile ? Math.min(320, window.innerWidth - 24) : 340;
+        const initialH = isMobile ? 480 : 550;
         setSize({ width: initialW, height: initialH });
       }
 
@@ -190,10 +289,41 @@ export default function WalkthroughGuide() {
           setPosition({ x: clampedX, y: clampedY });
         }
       } else if (isMobile) {
-        setPosition({ x: Math.max(8, window.innerWidth - 180), y: window.innerHeight - 130 });
+        setPosition({ x: Math.max(8, window.innerWidth - 200), y: window.innerHeight - 130 });
       }
     } catch {}
   }, []);
+
+  // Filtered steps based on activeTab
+  const filteredSteps = useMemo(() => {
+    if (activeTab === "ALL") return WALKTHROUGH_STEPS;
+    return WALKTHROUGH_STEPS.filter((step) => step.category === activeTab);
+  }, [activeTab]);
+
+  // Statistics
+  const completedCount = useMemo(
+    () => Object.values(completedSteps).filter(Boolean).length,
+    [completedSteps]
+  );
+  const totalCount = WALKTHROUGH_STEPS.length;
+  const progressRatio = (completedCount / totalCount) * 100;
+
+  const demandCount = useMemo(
+    () => WALKTHROUGH_STEPS.filter((s) => s.category === "DEMAND").length,
+    []
+  );
+  const edgeCaseCount = useMemo(
+    () => WALKTHROUGH_STEPS.filter((s) => s.category === "EDGE_CASE").length,
+    []
+  );
+  const completedDemands = useMemo(
+    () => WALKTHROUGH_STEPS.filter((s) => s.category === "DEMAND" && completedSteps[s.id]).length,
+    [completedSteps]
+  );
+  const completedEdgeCases = useMemo(
+    () => WALKTHROUGH_STEPS.filter((s) => s.category === "EDGE_CASE" && completedSteps[s.id]).length,
+    [completedSteps]
+  );
 
   // Toggle step expand (checks that user did not just drag)
   const toggleStepExpand = (stepId: number) => {
@@ -220,7 +350,6 @@ export default function WalkthroughGuide() {
   const handleToggleMinimized = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (dragDistanceRef.current > 5) {
-      // Ignored: was a drag, not an intentional tap
       return;
     }
     const nextVal = !isMinimized;
@@ -287,7 +416,7 @@ export default function WalkthroughGuide() {
       const deltaY = clientY - dragRef.current.startY;
       dragDistanceRef.current = Math.hypot(deltaX, deltaY);
 
-      const currentWidth = isMinimized ? 170 : size.width;
+      const currentWidth = isMinimized ? 200 : size.width;
       const currentHeight = isMinimized ? 44 : size.height;
 
       const newX = Math.max(0, Math.min(dragRef.current.initialPosX + deltaX, window.innerWidth - currentWidth));
@@ -304,7 +433,6 @@ export default function WalkthroughGuide() {
       try {
         localStorage.setItem("isolabs_walkthrough_pos", JSON.stringify(position));
       } catch {}
-      // Keep dragDistanceRef briefly so click handlers firing immediately after mouseup can check it
       setTimeout(() => {
         dragDistanceRef.current = 0;
       }, 80);
@@ -339,10 +467,10 @@ export default function WalkthroughGuide() {
       let newH = size.height;
 
       if (mode === "both" || mode === "horizontal") {
-        newW = Math.max(270, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 10));
+        newW = Math.max(280, Math.min(resizeRef.current.initialW + deltaX, window.innerWidth - position.x - 10));
       }
       if (mode === "both" || mode === "vertical") {
-        newH = Math.max(340, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 10));
+        newH = Math.max(360, Math.min(resizeRef.current.initialH + deltaY, window.innerHeight - position.y - 10));
       }
 
       setSize({ width: newW, height: newH });
@@ -402,11 +530,7 @@ export default function WalkthroughGuide() {
     };
   }, [isDragging, isResizing, onDragMove, onEndDrag, onResizeMove, onEndResize]);
 
-  // Total completed progress ratio
-  const completedCount = Object.values(completedSteps).filter(Boolean).length;
-  const progressRatio = (completedCount / WALKTHROUGH_STEPS.length) * 100;
-
-  // 1. Minimized Floating Draggable Pill (Dragging will NEVER expand it)
+  // 1. Minimized Floating Draggable Pill (Explicitly named "Walkthrough")
   if (isMinimized) {
     return (
       <div
@@ -433,7 +557,7 @@ export default function WalkthroughGuide() {
           >
             <Compass className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold tracking-tight">
-              Tour ({completedCount}/{WALKTHROUGH_STEPS.length})
+              Walkthrough ({completedCount}/{totalCount})
             </span>
             <Maximize2 className="w-3.5 h-3.5 text-slate-400 hover:text-white ml-0.5" />
           </div>
@@ -443,10 +567,9 @@ export default function WalkthroughGuide() {
   }
 
   // 2. Full Draggable & Resizable Pop-Up Window
-  // Towering Bars Format forming a Rectangle with Expand below each Step
   return (
     <aside
-      aria-label="Interactive Walkthrough Pop-up"
+      aria-label="Comprehensive Walkthrough Guide"
       style={{
         position: "fixed",
         left: `${position.x}px`,
@@ -473,10 +596,10 @@ export default function WalkthroughGuide() {
             </div>
             <div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block leading-tight">
-                Evaluation Tour
+                Walkthrough
               </span>
               <h2 className="text-xs font-bold text-white leading-tight">
-                {completedCount === WALKTHROUGH_STEPS.length ? "All Steps Completed" : "Step-by-Step Testing"}
+                {completedCount === totalCount ? "All Demands & Edge Cases Done" : "Customer Demands & Edge Cases"}
               </h2>
             </div>
           </div>
@@ -491,7 +614,7 @@ export default function WalkthroughGuide() {
               type="button"
               onClick={handleAbsoluteZeroReset}
               disabled={resetting}
-              title="Reset Database to Absolute Zero"
+              title="Reset Database to Absolute Zero (0 SKUs, 0 Retailers, 0 Orders)"
               className="p-1 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${resetting ? "animate-spin text-red-400" : ""}`} />
@@ -509,21 +632,72 @@ export default function WalkthroughGuide() {
           </div>
         </div>
 
-        {/* Progress Bar (Pure bar without percentage number as requested) */}
-        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-1">
+        {/* Category Switcher Tabs */}
+        <div className="flex items-center gap-1 pt-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("ALL")}
+            className={`flex-1 py-1 px-1.5 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
+              activeTab === "ALL"
+                ? "bg-slate-800 text-white border border-slate-700 shadow-xs"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+            }`}
+          >
+            <span>All</span>
+            <span className="text-[9px] px-1 py-0.2 rounded-full bg-slate-700/60 text-slate-300">
+              {totalCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("DEMAND")}
+            className={`flex-1 py-1 px-1.5 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
+              activeTab === "DEMAND"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs"
+                : "text-slate-400 hover:text-emerald-300 hover:bg-slate-900/60"
+            }`}
+          >
+            <Sparkles className="w-2.5 h-2.5" />
+            <span>Demands</span>
+            <span className="text-[9px] px-1 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300">
+              {completedDemands}/{demandCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("EDGE_CASE")}
+            className={`flex-1 py-1 px-1.5 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
+              activeTab === "EDGE_CASE"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
+                : "text-slate-400 hover:text-amber-300 hover:bg-slate-900/60"
+            }`}
+          >
+            <ShieldAlert className="w-2.5 h-2.5" />
+            <span>Edge Cases</span>
+            <span className="text-[9px] px-1 py-0.2 rounded-full bg-amber-500/30 text-amber-300">
+              {completedEdgeCases}/{edgeCaseCount}
+            </span>
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-0.5">
           <div
             className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${Math.max(5, progressRatio)}%` }}
+            style={{ width: `${Math.max(4, progressRatio)}%` }}
           />
         </div>
       </div>
 
-      {/* TOWERING BARS CONTAINER: Multiple Steps in Bars Format forming a Rectangle */}
+      {/* TOWERING BARS CONTAINER: Steps in sequence forming a neat scrollable stack */}
       <div className="flex-1 overflow-y-auto p-2.5 space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
-        {WALKTHROUGH_STEPS.map((step) => {
+        {filteredSteps.map((step) => {
           const isCurrentRoute = pathname === step.route;
           const isDone = !!completedSteps[step.id];
           const isExpanded = !!expandedSteps[step.id];
+          const isDemand = step.category === "DEMAND";
 
           return (
             <div
@@ -557,13 +731,23 @@ export default function WalkthroughGuide() {
                   </button>
 
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
                         className={`text-xs font-bold truncate block ${
                           isDone ? "text-slate-400 line-through" : "text-white"
                         }`}
                       >
                         {step.title}
+                      </span>
+                      {/* Badge: Demand vs Edge Case */}
+                      <span
+                        className={`text-[8px] font-bold px-1.5 py-0.2 rounded leading-tight ${
+                          isDemand
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {isDemand ? "DEMAND" : "EDGE CASE"}
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-400 block truncate">
@@ -572,7 +756,7 @@ export default function WalkthroughGuide() {
                   </div>
                 </div>
 
-                {/* Right side: Route Pill + Expand toggle below */}
+                {/* Right side: Route Pill + Expand toggle */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span
                     className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
@@ -589,10 +773,10 @@ export default function WalkthroughGuide() {
                 </div>
               </div>
 
-              {/* EXPAND AREA BELOW THIS STEP (With detailed points & direct navigation) */}
+              {/* EXPAND AREA BELOW THIS STEP */}
               {isExpanded && (
                 <div className="px-3 pb-3 pt-1 border-t border-slate-800/80 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                  {/* Point-wise action list (4-5 points clearly visible) */}
+                  {/* Point-wise action list */}
                   <div className="space-y-1.5 pt-1">
                     {step.actions.map((act, aIdx) => (
                       <div key={aIdx} className="flex items-start gap-1.5 text-[11px] text-slate-300 leading-snug">
@@ -667,11 +851,13 @@ export default function WalkthroughGuide() {
         className="absolute bottom-0 left-4 right-6 h-2 cursor-ns-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20"
       />
 
-      {/* FOOTER BAR WITH PROMINENT CORNER RESIZE HANDLE */}
+      {/* FOOTER BAR WITH SUMMARY AND CORNER RESIZE HANDLE */}
       <div className="px-3 py-1.5 bg-slate-950/95 border-t border-slate-800 flex items-center justify-between shrink-0 relative text-[10px] text-slate-500 font-mono">
-        <span>{completedCount} of {WALKTHROUGH_STEPS.length} Steps Complete</span>
+        <span>
+          {completedCount} of {totalCount} Done ({completedDemands} Demands, {completedEdgeCases} Edge Cases)
+        </span>
 
-        {/* Generous Corner Resize Handle (24px Touch Target) */}
+        {/* Corner Resize Handle */}
         <div
           onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "both", e)}
           onTouchStart={(e) => {

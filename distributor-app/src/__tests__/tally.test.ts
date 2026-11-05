@@ -11,7 +11,7 @@ import {
 
 describe("Module 7 - Tally ERP 9 / TallyPrime XML Batch Export Engine", () => {
   beforeEach(() => {
-    dbStore.reset();
+    dbStore.reset(true);
   });
 
   describe("XML Utility & Formatting Helpers", () => {

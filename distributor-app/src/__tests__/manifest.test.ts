@@ -3,7 +3,7 @@ import { dbStore } from "@/db/store";
 
 describe("Module 8 - Van Loading Route Manifest Engine Suite", () => {
   beforeEach(() => {
-    dbStore.reset();
+    dbStore.reset(true);
   });
 
   describe("Route Manifest Aggregation", () => {
