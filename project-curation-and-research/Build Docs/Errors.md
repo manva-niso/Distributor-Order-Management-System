@@ -374,5 +374,85 @@ This document records every error, build failure, test failure, runtime issue, a
   4. **Multi-Role Checkout Support:** Updated `/api/orders/checkout` and `CheckoutSchema` to allow `desk` and `salesman` users to pass a target `retailerId` in the request body, while tagging `placedBy` (e.g. `Sunil Clerk (Desk WhatsApp)`) and `orderSource`.
 - **Prevention:** Always enforce strict role-based route boundaries in middleware so users remain exclusively within their designated seats ("Whatever you are, you must remain in that seat"). Ingestion tools for office clerks must reside directly inside their desk workstation.
 
+---
+
+### [ERR-036] TypeScript TS5102 `baseUrl` Deprecation Error in `engine/tsconfig.json`
+- **Date & Time:** 2026-11-05 18:00:00
+- **Module:** `@isolabs/order-engine` / TypeScript Configuration
+- **Phase:** Engine Standalone Build & Type Check
+- **Symptoms / Error Message:**
+  ```text
+  Option 'baseUrl' has been removed. Use the 'paths' option without 'baseUrl' instead. ts(5102)
+  engine/tsconfig.json was highlighted red in the IDE.
+  ```
+- **Root Cause Analysis:** TypeScript 5.0+ deprecated `"baseUrl": "."` when using modern `"moduleResolution": "NodeNext"`.
+- **Resolution / Fix:** Removed `"baseUrl": "."` from `engine/tsconfig.json`. TypeScript modern path mapping resolves relative paths seamlessly.
+- **Prevention:** Use TypeScript 5+ standard project configurations without legacy options under `NodeNext`.
+
+---
+
+### [ERR-037] Duplicate Type Export Ambiguity (TS2308) in Engine Catalog
+- **Date & Time:** 2026-11-05 18:10:00
+- **Module:** `@isolabs/order-engine` / `catalog.ts` & `engine/src/index.ts`
+- **Symptoms / Error Message:**
+  ```text
+  TS2308: Module './schemes/engine' has already exported a member named 'SchemeType'. Consider using 'export type { SchemeType as SchemeType1 }'.
+  ```
+- **Root Cause Analysis:** `engine/src/data/catalog.ts` re-declared local `SchemeType` and `SlabTier` types rather than importing them from `engine/src/schemes/engine.ts`. When `engine/src/index.ts` executed wildcard exports (`export * from "./data/catalog"; export * from "./schemes/engine";`), TypeScript flagged duplicate declarations.
+- **Resolution / Fix:** Imported `SchemeType` and `SlabTier` directly in `catalog.ts` from `../schemes/engine` instead of duplicating them.
+- **Prevention:** Maintain single source of truth for core domain types across monorepo packages.
+
+---
+
+### [ERR-038] Missing Node Global & AWS Types in Standalone Engine Package
+- **Date & Time:** 2026-11-05 18:15:00
+- **Module:** `@isolabs/order-engine` / Multimodal & S3 Services
+- **Symptoms / Error Message:**
+  ```text
+  Cannot find name 'process'. Do you need to install type definitions for node? ts(2580)
+  Cannot find name 'Buffer'. ts(2580)
+  ```
+- **Root Cause Analysis:** `engine/package.json` was missing `@types/node` and direct AWS SDK dependencies (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`), relying on parent workspace node_modules hoisting.
+- **Resolution / Fix:** Added `@types/node`, `@aws-sdk/client-s3`, and `@aws-sdk/s3-request-presigner` directly to `engine/package.json` and ran `npm install`.
+- **Prevention:** Every monorepo workspace package must explicitly declare its own runtime and type dependencies.
+
+---
+
+### [ERR-039] In-Memory Dev Server Process Retaining Seeded Orders After SQL Truncate
+- **Date & Time:** 2026-11-05 18:35:00
+- **Module:** Module 4 - Order Management & Neon Database Sync
+- **Phase:** Desk Queue Zero-State Initialization
+- **Symptoms / Error Message:**
+  ```text
+  After running SQL TRUNCATE TABLE order_items, orders CASCADE on Neon PostgreSQL, GET /api/desk/orders still returned 4 dummy orders.
+  ```
+- **Root Cause Analysis:** The Next.js development server cached the in-memory `dbStore` singleton in process RAM. Furthermore, `dbStore.reset()` defaulted `includeDefaultOrders = true` in its constructor.
+- **Resolution / Fix:**
+  1. Updated `dbStore.ts` constructor to `this.reset(false)` so initial load strictly produces **0 orders**.
+  2. Updated test fixtures across 5 test suites to explicitly call `dbStore.reset(true)` so unit tests have sample orders, while the real application starts at pristine zero.
+  3. Truncated Neon database tables `orders` and `order_items` via direct SQL.
+  4. Restarted Next.js dev server daemon. Confirmed live `GET /api/desk/orders` returns `{ success: true, orders: [], totalCount: 0 }`.
+- **Prevention:** Default all production stores to zero initial orders. Separate test fixtures from runtime defaults, and always restart cached process singletons after database resets.
+
+---
+
+### [ERR-040] Gemini 1.5 Deprecation & Reasoning Token Exhaustion with `gemini-2.5-flash`
+- **Date & Time:** 2026-11-05 19:20:00
+- **Module:** Module 5 - Gemini Closed-Set Chooser (Tier 4) & Multimodal Extraction
+- **Phase:** Live AI Key Verification
+- **Symptoms / Error Message:**
+  ```text
+  Calling gemini-1.5-flash returned HTTP 404: "models/gemini-1.5-flash is not found for API version v1beta".
+  Calling gemini-2.5-flash with maxOutputTokens: 20 returned empty text parts with finishReason: "MAX_TOKENS" and thoughtsTokenCount: 16.
+  ```
+- **Root Cause Analysis:**
+  1. `gemini-1.5-flash` was deprecated/unsupported on the current API key/endpoint.
+  2. `gemini-2.5-flash` is a reasoning model that consumes output tokens for internal thought traces. Setting a low `maxOutputTokens` (e.g. 20) caused thinking tokens to exhaust the budget before emitting final JSON.
+- **Resolution / Fix:**
+  1. Updated default model to `"gemini-2.5-flash"` across `gemini-chooser.ts` in both `engine/` and `distributor-app/`.
+  2. Increased `maxOutputTokens` to `1024` and increased default network timeout from `2500ms` to `4000ms`.
+  3. Added live integration test (`engine/src/__tests__/gemini-live.test.ts`) verifying live key resolution with Parle-G (`SKU-BS-PG075`).
+- **Prevention:** When integrating reasoning-capable LLM models, always provide sufficient output token budget for thinking tokens and set timeouts appropriate for remote cloud inference.
+
 
 

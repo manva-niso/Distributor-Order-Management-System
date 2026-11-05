@@ -42,8 +42,8 @@ export class GeminiClosedSetChooser {
 
   constructor(options?: ChooserOptions) {
     this.apiKey = options?.apiKey || process.env.GEMINI_API_KEY || "";
-    this.model = options?.model || process.env.GEMINI_MODEL || "gemini-1.5-flash";
-    this.timeoutMs = options?.timeoutMs ?? 2500; // 2.5s timeout for fast mobile response
+    this.model = options?.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    this.timeoutMs = options?.timeoutMs ?? 4000; // 4.0s timeout for mobile & cloud API response
     this.fetchFn = options?.fetchFn || globalThis.fetch;
   }
 
@@ -102,6 +102,7 @@ Respond in JSON format:
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.0, // Zero temperature for deterministic classification
+            maxOutputTokens: 1024,
             responseMimeType: "application/json",
           },
         }),
