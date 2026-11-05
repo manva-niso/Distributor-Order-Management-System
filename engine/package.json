@@ -16,9 +16,13 @@
   ],
   "author": "IsoLabs",
   "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/s3-request-presigner": "^3.1161.0"
+  },
   "devDependencies": {
-    "@types/node": "^26.6.6",
-    "typescript": "^7.0.2",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.7.0",
     "vitest": "^5.1.0"
   }
 }

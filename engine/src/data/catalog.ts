@@ -1,3 +1,5 @@
+import type { SchemeType, SlabTier } from "../schemes/engine";
+
 export interface SeedRetailer {
   id: string;
   name: string;
@@ -19,13 +21,6 @@ export interface SeedUser {
   role: "retailer" | "salesman" | "desk";
   retailerId?: string;
   active: boolean;
-}
-
-export type SchemeType = "NONE" | "FREE_GOODS" | "SLAB_DISCOUNT" | "FLAT_REBATE";
-
-export interface SlabTier {
-  minCases: number;
-  discountPct: number;
 }
 
 export interface SchemeDetail {
