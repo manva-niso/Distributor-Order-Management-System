@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbStore, StoredOrder, StoredOrderItem } from "@/db/store";
 import { syncSingleOrderToNeon } from "@/db/neon-sync";
+import { getNeonSql } from "@/db/neon";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 
@@ -73,7 +74,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const retailer = dbStore.getRetailerById(targetRetailerId);
+    let retailer = dbStore.getRetailerById(targetRetailerId);
+    if (!retailer) {
+      // Fallback: query Neon database if memory store desynced
+      const sql = getNeonSql();
+      if (sql) {
+        try {
+          const rows = await sql`SELECT * FROM retailers WHERE id = ${targetRetailerId} LIMIT 1;`;
+          if (rows && rows.length > 0) {
+            const row = rows[0];
+            retailer = dbStore.createRetailer({
+              id: row.id,
+              name: row.name,
+              ownerName: row.owner_name || row.ownerName || row.name,
+              phone: row.phone,
+              address: row.address,
+              route: row.route,
+              creditLimit: Number(row.credit_limit || row.creditLimit || 50000),
+              currentBalance: Number(row.current_balance || row.currentBalance || 0),
+              creditHold: Boolean(row.credit_hold || row.creditHold),
+            });
+          }
+        } catch {}
+      }
+    }
+
     if (!retailer) {
       return NextResponse.json(
         { success: false, error: `Retailer record '${targetRetailerId}' not found` },

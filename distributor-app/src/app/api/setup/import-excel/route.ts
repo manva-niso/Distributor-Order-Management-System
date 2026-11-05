@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
 
     if (parseResult.retailers.length > 0) {
       dbStore.importRetailers(parseResult.retailers, mode);
+    } else {
+      // Catalog-only upload: ensure baseline retailers exist so kiranas can order
+      dbStore.getAllRetailers();
     }
 
     // Synchronize newly imported catalog to Neon PostgreSQL
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
         skus: dbStore.getAllSkus(),
         retailers: dbStore.getAllRetailers(),
         users: dbStore.getAllUsers(),
-        wipeFirst: mode === "replace",
+        wipeFirst: mode === "replace" && parseResult.retailers.length > 0,
       });
       if (syncRes.synced) dbSyncMsg = " " + syncRes.message;
     } catch (syncErr) {

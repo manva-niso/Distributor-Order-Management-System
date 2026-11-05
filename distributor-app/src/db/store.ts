@@ -444,16 +444,41 @@ class MemoryStore {
   // --- User Operations ---
   public getUserByPhone(phone: string): SeedUser | undefined {
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-    return Array.from(this.users.values()).find(
+    let user = Array.from(this.users.values()).find(
       (u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone
     );
+    if (!user) {
+      const seedUser =
+        SEED_USERS.find((u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone) ||
+        MASTER_USERS.find((u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone);
+      if (seedUser) {
+        this.users.set(seedUser.id, { ...seedUser });
+        user = seedUser;
+      }
+    }
+    return user;
   }
 
   public getUserById(id: string): SeedUser | undefined {
-    return this.users.get(id);
+    let user = this.users.get(id);
+    if (!user) {
+      const seedUser =
+        SEED_USERS.find((u) => u.id === id) ||
+        MASTER_USERS.find((u) => u.id === id);
+      if (seedUser) {
+        this.users.set(seedUser.id, { ...seedUser });
+        user = seedUser;
+      }
+    }
+    return user;
   }
 
   public getAllUsers(): SeedUser[] {
+    if (this.users.size === 0) {
+      for (const u of SEED_USERS) {
+        this.users.set(u.id, { ...u });
+      }
+    }
     return Array.from(this.users.values());
   }
 
@@ -465,13 +490,33 @@ class MemoryStore {
   // --- Retailer Operations ---
   public getRetailerByPhone(phone: string): SeedRetailer | undefined {
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-    return Array.from(this.retailers.values()).find(
+    let ret = Array.from(this.retailers.values()).find(
       (r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone
     );
+    if (!ret) {
+      const seedRet =
+        SEED_RETAILERS.find((r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone) ||
+        MASTER_RETAILERS.find((r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone);
+      if (seedRet) {
+        this.retailers.set(seedRet.id, { ...seedRet });
+        ret = seedRet;
+      }
+    }
+    return ret;
   }
 
   public getRetailerById(id: string): SeedRetailer | undefined {
-    return this.retailers.get(id);
+    let ret = this.retailers.get(id);
+    if (!ret) {
+      const seedRet =
+        SEED_RETAILERS.find((r) => r.id === id) ||
+        MASTER_RETAILERS.find((r) => r.id === id);
+      if (seedRet) {
+        this.retailers.set(seedRet.id, { ...seedRet });
+        ret = seedRet;
+      }
+    }
+    return ret;
   }
 
   public createRetailer(retailer: SeedRetailer): SeedRetailer {
@@ -480,6 +525,11 @@ class MemoryStore {
   }
 
   public getAllRetailers(): SeedRetailer[] {
+    if (this.retailers.size === 0) {
+      for (const r of SEED_RETAILERS) {
+        this.retailers.set(r.id, { ...r });
+      }
+    }
     return Array.from(this.retailers.values());
   }
 

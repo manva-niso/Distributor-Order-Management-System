@@ -48,16 +48,23 @@ export async function syncDatasetToNeon(params: {
   try {
     // 1. Wipe old records if requested
     if (params.wipeFirst) {
-      try {
-        await sql`TRUNCATE TABLE order_items, orders, captures, capture_lines, retailer_aliases, skus, retailers, users CASCADE;`;
-      } catch (truncErr) {
-        // Fallback delete if truncate encounters permission locks
-        await sql`DELETE FROM order_items;`;
-        await sql`DELETE FROM orders;`;
-        await sql`DELETE FROM retailer_aliases;`;
-        await sql`DELETE FROM skus;`;
-        await sql`DELETE FROM retailers;`;
-        await sql`DELETE FROM users;`;
+      if (params.retailers.length > 0) {
+        try {
+          await sql`TRUNCATE TABLE order_items, orders, captures, capture_lines, retailer_aliases, skus, retailers, users CASCADE;`;
+        } catch (truncErr) {
+          // Fallback delete if truncate encounters permission locks
+          await sql`DELETE FROM order_items;`;
+          await sql`DELETE FROM orders;`;
+          await sql`DELETE FROM retailer_aliases;`;
+          await sql`DELETE FROM skus;`;
+          await sql`DELETE FROM retailers;`;
+          await sql`DELETE FROM users;`;
+        }
+      } else {
+        try {
+          await sql`DELETE FROM order_items;`;
+          await sql`DELETE FROM skus;`;
+        } catch {}
       }
     }
 
