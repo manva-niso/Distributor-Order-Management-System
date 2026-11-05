@@ -42,8 +42,8 @@ export class GeminiClosedSetChooser {
 
   constructor(options?: ChooserOptions) {
     this.apiKey = options?.apiKey || process.env.GEMINI_API_KEY || "";
-    this.model = options?.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    this.timeoutMs = options?.timeoutMs ?? 4000; // 4.0s timeout for mobile & cloud API response
+    this.model = options?.model || process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+    this.timeoutMs = options?.timeoutMs ?? 8000;
     this.fetchFn = options?.fetchFn || globalThis.fetch;
   }
 
@@ -51,12 +51,15 @@ export class GeminiClosedSetChooser {
     utterance: string,
     candidates: CandidateSkuSummary[]
   ): Promise<ChooserDecision> {
+    const activeApiKey = this.apiKey || process.env.GEMINI_API_KEY || "";
+    const activeModel = this.model || process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+
     // If no API key or no candidates, skip cleanly to deterministic fallback
-    if (!this.apiKey || this.apiKey.trim() === "" || candidates.length === 0) {
+    if (!activeApiKey || activeApiKey.trim() === "" || candidates.length === 0) {
       return {
         chosenSkuId: null,
         confidence: 0.1,
-        reasoning: !this.apiKey ? "No GEMINI_API_KEY configured" : "No candidates available for closed set",
+        reasoning: !activeApiKey ? "No GEMINI_API_KEY configured" : "No candidates available for closed set",
         source: "skipped",
       };
     }
@@ -89,90 +92,102 @@ Respond in JSON format:
   "reasoning": "brief explanation"
 }`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    const candidateModels = [
+      activeModel,
+      "gemini-3.1-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-flash-lite-latest",
+    ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
-    try {
-      const response = await this.fetchFn(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
+    let lastErrorReason = "";
+
+    for (const modelToTry of candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToTry}:generateContent?key=${activeApiKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+      try {
+        const payload = {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.0, // Zero temperature for deterministic classification
             maxOutputTokens: 1024,
             responseMimeType: "application/json",
           },
-        }),
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        return {
-          chosenSkuId: null,
-          confidence: 0.1,
-          reasoning: `Gemini API returned status ${response.status}`,
-          source: "fallback",
         };
-      }
 
-      const data = await response.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
+        const response = await this.fetchFn(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify(payload),
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => "");
+          lastErrorReason = `Model ${modelToTry} returned status ${response.status}: ${errBody.slice(0, 100)}`;
+          // Quota exhausted (429), high demand (503), or deprecated (404) -> roll over to next model
+          continue;
+        }
+
+        const data = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) {
+          lastErrorReason = `Model ${modelToTry} returned empty response parts`;
+          continue;
+        }
+
+        let parsed: any;
+        try {
+          let jsonStr = rawText.trim();
+          const firstBrace = jsonStr.indexOf("{");
+          const lastBrace = jsonStr.lastIndexOf("}");
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+          }
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          lastErrorReason = `Failed to parse JSON response from Gemini (${modelToTry})`;
+          continue;
+        }
+
+        const rawChosenId = typeof parsed.chosenSkuId === "string" ? parsed.chosenSkuId.trim() : null;
+
+        // Hard Plain-Code Closed-Set Verification Guardrail:
+        if (!rawChosenId || rawChosenId === "NONE" || !candidateIds.includes(rawChosenId)) {
+          return {
+            chosenSkuId: null,
+            confidence: 0.15,
+            reasoning: parsed.reasoning || "Gemini indicated NONE or chose outside candidate set",
+            source: "gemini",
+          };
+        }
+
+        // Valid candidate picked from closed set
+        const modelConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.75;
+        const calibratedProb = Math.min(0.85, Math.max(0.40, Math.round(modelConfidence * 100) / 100));
+
         return {
-          chosenSkuId: null,
-          confidence: 0.1,
-          reasoning: "Empty response parts from Gemini",
-          source: "fallback",
-        };
-      }
-
-      let parsed: any;
-      try {
-        parsed = JSON.parse(rawText);
-      } catch {
-        return {
-          chosenSkuId: null,
-          confidence: 0.1,
-          reasoning: "Failed to parse JSON response from Gemini",
-          source: "fallback",
-        };
-      }
-
-      const rawChosenId = typeof parsed.chosenSkuId === "string" ? parsed.chosenSkuId.trim() : null;
-
-      // Hard Plain-Code Closed-Set Verification Guardrail:
-      if (!rawChosenId || rawChosenId === "NONE" || !candidateIds.includes(rawChosenId)) {
-        return {
-          chosenSkuId: null,
-          confidence: 0.15,
-          reasoning: parsed.reasoning || "Gemini indicated NONE or chose outside candidate set",
+          chosenSkuId: rawChosenId,
+          confidence: calibratedProb,
+          reasoning: parsed.reasoning || `Gemini selected candidate ${rawChosenId}`,
           source: "gemini",
         };
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        lastErrorReason = err?.name === "AbortError" ? `Model ${modelToTry} timed out` : `Model ${modelToTry} error: ${err?.message}`;
+        continue;
       }
-
-      // Valid candidate picked from closed set
-      const modelConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.75;
-      const calibratedProb = Math.min(0.85, Math.max(0.40, Math.round(modelConfidence * 100) / 100));
-
-      return {
-        chosenSkuId: rawChosenId,
-        confidence: calibratedProb,
-        reasoning: parsed.reasoning || `Gemini selected candidate ${rawChosenId}`,
-        source: "gemini",
-      };
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      return {
-        chosenSkuId: null,
-        confidence: 0.1,
-        reasoning: err?.name === "AbortError" ? "Gemini request timed out" : `Gemini error: ${err?.message}`,
-        source: "fallback",
-      };
     }
+
+    return {
+      chosenSkuId: null,
+      confidence: 0.1,
+      reasoning: lastErrorReason || "All Gemini models in cascade failed",
+      source: "fallback",
+    };
   }
 }
 

@@ -38,18 +38,19 @@ export class CustomMlApiAdapter implements OrderParserPipeline {
  * Environment: ORDER_PARSER_PROVIDER="rules" | "cascade" | "custom_ml"
  */
 export function getActiveParserPipeline(): OrderParserPipeline {
-  const provider = (process.env.ORDER_PARSER_PROVIDER || "rules").toLowerCase();
+  const provider = (process.env.ORDER_PARSER_PROVIDER || "").toLowerCase();
 
-  switch (provider) {
-    case "custom_ml":
-      return new CustomMlApiAdapter();
-    case "cascade":
-    case "adaptive":
-      return cascadedOrderParser;
-    case "rules":
-    default:
-      return deterministicTextParser;
+  if (provider === "custom_ml") {
+    return new CustomMlApiAdapter();
   }
+  if (provider === "rules") {
+    return deterministicTextParser;
+  }
+  // Default to cascaded adaptive parser (with Gemini fallback) when GEMINI_API_KEY is present or cascade is requested
+  if (process.env.GEMINI_API_KEY || provider === "cascade" || provider === "adaptive") {
+    return cascadedOrderParser;
+  }
+  return deterministicTextParser;
 }
 
 /**

@@ -57,27 +57,30 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
           line.ambiguityReason === "MULTIPLE_CANDIDATES" ||
           line.ambiguityReason === "UNKNOWN_SKU";
 
-        if (!this.enableLLM || !needsEscalation || line.candidates.length === 0) {
+        if (!this.enableLLM || !needsEscalation) {
           return line;
         }
 
-        const candidateSummaries = line.candidates.slice(0, 5).map((c) => ({
-          id: c.sku.id,
-          name: c.sku.name,
-          brand: c.sku.brand,
-          category: c.sku.category,
-          packSize: c.sku.packSize,
+        // If candidates were retrieved by RRF, pass them.
+        // If candidates is empty (e.g. random or colloquial words), provide catalog SKUs so Gemini can answer!
+        const candidatePool =
+          line.candidates.length > 0
+            ? line.candidates.map((c) => c.sku)
+            : activeSkus.slice(0, 16);
+
+        const candidateSummaries = candidatePool.slice(0, 15).map((sku) => ({
+          id: sku.id,
+          name: sku.name,
+          brand: sku.brand,
+          category: sku.category,
+          packSize: sku.packSize,
         }));
 
         const decision = await this.chooser.choose(line.rawUtterance, candidateSummaries);
 
         if (decision.chosenSkuId) {
-          const matchedCandidate = line.candidates.find(
-            (c) => c.sku.id === decision.chosenSkuId
-          );
-          if (matchedCandidate) {
-            const matchedSku = matchedCandidate.sku;
-
+          const matchedSku = activeSkus.find((s) => s.id === decision.chosenSkuId);
+          if (matchedSku) {
             // Tier 5: Enforce Plain Code Guardrails (Never let LLM override unit invariants)
             let updatedAmbiguityReason: AmbiguityReason = null;
             let updatedIsAmbiguous = false;
@@ -112,11 +115,18 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
               ambiguityReason: updatedAmbiguityReason,
               resolvedQtyCases,
               resolvedQtyPacks,
+              reasoning: decision.reasoning,
+              source: decision.source,
             };
           }
         }
 
-        return line;
+        return {
+          ...line,
+          confidence: decision.confidence ?? line.confidence,
+          reasoning: decision.reasoning || line.reasoning,
+          source: decision.source || "rules",
+        };
       })
     );
 

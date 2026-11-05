@@ -757,33 +757,42 @@ export default function QuickOrderPage() {
 
                     {/* Matched SKU Details */}
                     {sku ? (
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            {sku.brand}
-                          </span>
-                          <h3 className="text-sm font-bold text-slate-900 mt-1 leading-snug">
-                            {sku.name}
-                          </h3>
-                          <p className="text-xs text-slate-500">
-                            ₹{sku.dealerPrice.toFixed(2)}/case • {sku.unitsPerCase} packs/case
-                          </p>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              {sku.brand}
+                            </span>
+                            <h3 className="text-sm font-bold text-slate-900 mt-1 leading-snug">
+                              {sku.name}
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                              ₹{sku.dealerPrice.toFixed(2)}/case • {sku.unitsPerCase} packs/case
+                            </p>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-bold font-mono text-slate-900 block">
+                              ₹
+                              {Math.round(
+                                (line.resolvedQtyCases || 0) * sku.dealerPrice +
+                                  (line.resolvedQtyPacks || 0) * sku.packPrice
+                              ).toLocaleString("en-IN")}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {(line.resolvedQtyCases || 0) > 0 && `${line.resolvedQtyCases} cases`}
+                              {(line.resolvedQtyCases || 0) > 0 && (line.resolvedQtyPacks || 0) > 0 && " + "}
+                              {(line.resolvedQtyPacks || 0) > 0 && `${line.resolvedQtyPacks} packs`}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="text-right shrink-0">
-                          <span className="text-sm font-bold font-mono text-slate-900 block">
-                            ₹
-                            {Math.round(
-                              (line.resolvedQtyCases || 0) * sku.dealerPrice +
-                                (line.resolvedQtyPacks || 0) * sku.packPrice
-                            ).toLocaleString("en-IN")}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {(line.resolvedQtyCases || 0) > 0 && `${line.resolvedQtyCases} cases`}
-                            {(line.resolvedQtyCases || 0) > 0 && (line.resolvedQtyPacks || 0) > 0 && " + "}
-                            {(line.resolvedQtyPacks || 0) > 0 && `${line.resolvedQtyPacks} packs`}
-                          </span>
-                        </div>
+                        {line.reasoning && (
+                          <div className="flex items-start gap-1.5 text-[11px] text-emerald-900 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span><strong className="font-semibold text-emerald-700">AI Match:</strong> {line.reasoning}</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-lg p-3 text-xs space-y-2">
@@ -791,6 +800,14 @@ export default function QuickOrderPage() {
                           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                           <span>Could not match product for "{line.rawUtterance}". Select an SKU below:</span>
                         </div>
+
+                        {line.reasoning && (
+                          <div className="text-[11px] text-amber-900 bg-amber-100/60 p-2 rounded border border-amber-200">
+                            <span className="font-bold text-amber-800">💡 Gemini AI Analysis: </span>
+                            <span>{line.reasoning}</span>
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap gap-1.5 pt-1">
                           {allSkus.slice(0, 6).map((s) => (
                             <button

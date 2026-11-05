@@ -36,6 +36,8 @@ export interface ParsedLineItem {
   resolvedQtyCases: number;
   resolvedQtyPacks?: number;
   brokenCaseInfo?: BrokenCaseInfo | null;
+  reasoning?: string;
+  source?: "rules" | "gemini" | "fallback";
 }
 
 export interface ParseResult {
