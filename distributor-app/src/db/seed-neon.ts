@@ -7,9 +7,9 @@ import * as schema from "./schema";
 import { SEED_RETAILERS, SEED_USERS, SEED_SKUS } from "./seed-data";
 
 async function runSeed() {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!url || url.includes("ep-sample-pool")) {
-    console.error("No valid DATABASE_URL configured in .env.local");
+    console.error("No valid DATABASE_URL or POSTGRES_URL configured in .env.local");
     process.exit(1);
   }
 
