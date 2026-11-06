@@ -20,8 +20,8 @@ npm run dev
 
 ### Run Tests:
 ```bash
-npm test          # Run app test suite (121 tests)
-npm run test:all  # Run universal test suite across app & engine (198 tests)
+npm test          # Run app test suite (124 tests)
+npm run test:all  # Run universal test suite across app & engine (192 tests)
 ```
 
 ---
@@ -95,7 +95,7 @@ JWT_SECRET="isolabs_jabalpur_distributor_secure_session_jwt_secret_key_2026"
 
 # Google Gemini AI (Optional - for slip OCR and closed-set tie-breaker)
 GEMINI_API_KEY=""
-GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_MODEL="gemini-3.1-flash-lite"
 
 # S3 / MinIO Storage (Optional - falls back to local preview if empty)
 AWS_ENDPOINT_URL_S3=""

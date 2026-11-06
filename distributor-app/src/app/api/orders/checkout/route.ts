@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       const sql = getNeonSql();
       if (sql) {
         try {
-          const rows = await sql`SELECT * FROM retailers WHERE id = ${targetRetailerId} LIMIT 1;`;
+          const rows = (await sql`SELECT * FROM retailers WHERE id = ${targetRetailerId} LIMIT 1;`) as any[];
           if (rows && rows.length > 0) {
             const row = rows[0];
             retailer = dbStore.createRetailer({

@@ -3,7 +3,7 @@ import { dbStore } from "@/db/store";
 import { z } from "zod";
 
 const ReleaseHoldSchema = z.object({
-  expectedOccVersion: z.number().int().positive(),
+  expectedOccVersion: z.number().int().positive().optional(),
   authorizedBy: z.string().default("Sunil Clerk"),
   approvalNote: z.string().default("Customer promised cash payment on van delivery"),
 });

@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       phone: user.phone,
       name: user.name,
       role: user.role,
+      retailerId: user.retailerId,
     },
     retailer,
   });

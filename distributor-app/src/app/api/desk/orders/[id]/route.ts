@@ -6,13 +6,24 @@ import { z } from "zod";
 
 const PatchOrderSchema = z.object({
   action: z.enum(["CONFIRM", "SAVE_CHANGES", "REJECT", "RELEASE_HOLD"]).default("SAVE_CHANGES"),
-  expectedOccVersion: z.number().int().positive(),
-  items: z.array(
-    z.object({
-      skuId: z.string().min(1),
-      quantityCases: z.number().int().min(1),
-    })
-  ).min(1, "Order must contain at least one line item"),
+  expectedOccVersion: z.number().int().positive().optional(),
+  occVersion: z.number().int().positive().optional(),
+  items: z
+    .array(
+      z.object({
+        skuId: z.string().min(1),
+        quantityCases: z.number().int().min(1),
+      })
+    )
+    .optional(),
+  lines: z
+    .array(
+      z.object({
+        skuId: z.string().min(1),
+        quantityCases: z.number().int().min(1),
+      })
+    )
+    .optional(),
   newAliases: z
     .array(
       z.object({
@@ -89,7 +100,23 @@ export async function PATCH(
       );
     }
 
-    const { action, expectedOccVersion, items: updatedItemsInput, newAliases, authorizedBy, approvalNote } = parsed.data;
+    const effectiveOcc = parsed.data.expectedOccVersion ?? parsed.data.occVersion;
+    if (effectiveOcc === undefined) {
+      return NextResponse.json(
+        { success: false, error: "expectedOccVersion (or occVersion) is required for OCC validation" },
+        { status: 400 }
+      );
+    }
+
+    const { action, newAliases, authorizedBy, approvalNote } = parsed.data;
+    const updatedItemsInput = parsed.data.items || parsed.data.lines || [];
+
+    if (updatedItemsInput.length === 0 && action !== "REJECT") {
+      return NextResponse.json(
+        { success: false, error: "Order must contain at least one line item" },
+        { status: 400 }
+      );
+    }
 
     const existing = dbStore.getOrderById(id);
     if (!existing) {
@@ -99,12 +126,12 @@ export async function PATCH(
     const { order: currentOrder } = existing;
 
     // 1. Concurrency Check (Rule [A19]: Reject if modified by another clerk)
-    if (currentOrder.occVersion !== expectedOccVersion) {
+    if (currentOrder.occVersion !== effectiveOcc) {
       return NextResponse.json(
         {
           success: false,
           conflict: true,
-          error: `OCC Conflict: Order #${id} was modified by another clerk. Expected version ${expectedOccVersion}, but current version is ${currentOrder.occVersion}. Please reload the record.`,
+          error: `OCC Conflict: Order #${id} was modified by another clerk. Expected version ${effectiveOcc}, but current version is ${currentOrder.occVersion}. Please reload the record.`,
           currentVersion: currentOrder.occVersion,
         },
         { status: 409 }
@@ -113,8 +140,8 @@ export async function PATCH(
 
     // 2. Handle Rejection / Cancellation
     if (action === "REJECT") {
-      const result = dbStore.updateOrderStatus(id, "CANCELLED", expectedOccVersion);
-      syncOrderStatusToNeon(id, "CANCELLED", result.order?.occVersion || expectedOccVersion + 1).catch((err) =>
+      const result = dbStore.updateOrderStatus(id, "CANCELLED", effectiveOcc);
+      syncOrderStatusToNeon(id, "CANCELLED", result.order?.occVersion || effectiveOcc + 1).catch((err) =>
         console.warn("Neon status sync warning:", err)
       );
       return NextResponse.json({
@@ -193,7 +220,7 @@ export async function PATCH(
       storedItems,
       totals,
       nextStatus,
-      expectedOccVersion
+      effectiveOcc
     );
 
     if (!updateResult.success) {
@@ -210,7 +237,7 @@ export async function PATCH(
     }
 
     // Sync status to Neon PostgreSQL
-    syncOrderStatusToNeon(id, nextStatus, updateResult.order?.occVersion || expectedOccVersion + 1).catch((err) =>
+    syncOrderStatusToNeon(id, nextStatus, updateResult.order?.occVersion || effectiveOcc + 1).catch((err) =>
       console.warn("Neon status sync warning:", err)
     );
 
@@ -245,3 +272,5 @@ export async function PATCH(
     );
   }
 }
+
+export const PUT = PATCH;
