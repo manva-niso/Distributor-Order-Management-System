@@ -99,3 +99,24 @@ In accordance with user requirements:
 - Result: **0 SKUs, 0 Retailers, 0 Orders, 0 Aliases**.
 - First-time users are never forced into pre-existing dummy data. They can onboard retailers and catalogs themselves or click **"🌟 Master Wholesale FMCG Database (36 SKUs)"** to seed the complete catalog with 1 click.
 - The interactive **Walkthrough Guide (`WalkthroughGuide.tsx`)** pops up and guides the user through testing all features and edge cases step-by-step.
+
+---
+
+## 4. Comprehensive Metrics, Latency Decomposition & Industry Benchmarks
+
+The automated benchmark spreadsheet `overall_app_testing_results.xlsx` contains **8 dedicated sheets**:
+1. **Executive Summary**: High-level test summary, accuracy KPIs, and verified defect resolutions.
+2. **Full Benchmark Database**: The 40 authentic Jabalpur Mandi FMCG prompts with expected vs actual routing.
+3. **Edge Case Diagnostics**: Out-of-catalog rejections, *dabba* packaging polysemy, broken-case cut packs.
+4. **Latency Decomposition ("Click to Glass")**: Complete 5-stage lifecycle breakdown (pure CPU vs server route vs network RTT across Broadband, 4G, 3G, and 2G vs client DOM paint).
+5. **Bandwidth & Payloads**: Raw vs optimized payload sizes (e.g. 8.2MB camera snap compressed to 118KB via client HTML5 canvas, 60KB Opus audio notes, 3.79KB catalogue API).
+6. **Portability & Ergonomics**: Responsive testing across 360px (JioPhone/Redmi), 390px (iPhone/Galaxy), 768px (Tablet POS), and 1920px (Desktop Order Desk) with WCAG 2.5.5 touch target compliance.
+7. **Usability & Kirana Trade UX**: Zero-AI Mandi transliteration (0.006ms), authentic slang, broken-case margin protection, OCC multi-user collision safety, and sunlight readability (7.8:1 contrast).
+8. **Industry Benchmarks Matrix**: Empirical comparisons against Google Core Web Vitals (LCP, INP, CLS, TTFB), Google RAIL (<100ms response), Flipkart ACL 2023 vernacular catalog search (+15.1% accuracy gain), and ITU-T / 3GPP cellular constraints.
+
+### How to Regenerate All Reports & Benchmarks:
+```bash
+# Regenerate 8-sheet Excel workbook and JSON database:
+npx --prefix distributor-app tsx --tsconfig distributor-app/tsconfig.json "project-curation-and-research/overall_app_testing/generate-benchmark-excel.ts"
+```
+

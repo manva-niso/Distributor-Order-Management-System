@@ -355,3 +355,20 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
 | **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
 | **Total Test Coverage** | `npm run test` | **All 20 test suites executing collectively** | **153 tests (100% Passing)** |
+
+---
+
+## 6. Comprehensive Metrics, Latency & Benchmark Verification Runner
+
+To run the complete empirical benchmark suite covering **Portability, Usability, Speed & Latency (Click to Glass decomposition across Broadband, 4G, 3G, 2G), Bandwidth Payloads, and Industry Benchmark Comparisons**:
+
+```bash
+# Run the 8-sheet benchmark generator from distributor-app:
+npx --prefix distributor-app tsx --tsconfig distributor-app/tsconfig.json "project-curation-and-research/overall_app_testing/generate-benchmark-excel.ts"
+```
+
+### Outputs Generated:
+1. **Excel Spreadsheet (8 Sheets):** `project-curation-and-research/overall_app_testing/overall_app_testing_results.xlsx`
+2. **Structured JSON Database:** `project-curation-and-research/overall_app_testing/overall_app_testing_database.json`
+3. **Master Report Artifact:** `C:\Users\Asus\.gemini\antigravity-cli\brain\e1f855bc-1984-4de0-835a-e6aab71aae9e\comprehensive_metrics_and_benchmarks_report.md`
+
