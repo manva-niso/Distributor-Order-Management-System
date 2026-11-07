@@ -69,34 +69,29 @@ export class GeminiClosedSetChooser {
       .map((c) => `- ID: "${c.id}" | Name: "${c.name}" | Brand: "${c.brand}" | Pack: "${c.packSize}"`)
       .join("\n");
 
-    const prompt = `You are an expert FMCG kirana wholesale order resolution assistant for Jabalpur, Madhya Pradesh.
-A retailer sent this colloquial/vernacular order line:
-"${utterance}"
+    const prompt = `You are an FMCG wholesale order item matcher for a Jabalpur catalog.
+Customer query: "${utterance}"
 
-Here are the retrieved catalog candidates:
+Catalog Candidates:
 ${candidateList}
 
-Your Task:
-Pick the EXACT single SKU ID from the candidate list that matches the retailer's request.
-If none of the candidates match, or if you are not at least 70% sure, you MUST select "NONE".
+Task:
+Check if any candidate matches closely or remotely based on the query written.
+- If a candidate matches remotely or closely, return its single SKU ID from [${candidateIds.map((id) => `"${id}"`).join(", ")}].
+- If nothing matches remotely, you MUST choose "NONE".
+Keep reasoning under 8 words. Use minimal tokens.
 
-Rules:
-1. You are strictly a closed-set chooser. You MUST choose an ID from [${candidateIds.map((id) => `"${id}"`).join(", ")}, "NONE"].
-2. You MUST NEVER invent or hallucinate any SKU ID not in that list.
-3. You MUST NEVER decide quantities or packaging units.
-
-Respond in JSON format:
+JSON Format:
 {
   "chosenSkuId": "SKU_ID_OR_NONE",
   "confidence": 0.85,
-  "reasoning": "brief explanation"
+  "reasoning": "brief match explanation"
 }`;
 
     const candidateModels = [
       activeModel,
+      "gemini-2.5-flash",
       "gemini-3.1-flash-lite",
-      "gemini-3.6-flash",
-      "gemini-flash-lite-latest",
     ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
     let lastErrorReason = "";
@@ -111,7 +106,7 @@ Respond in JSON format:
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.0, // Zero temperature for deterministic classification
-            maxOutputTokens: 1024,
+            maxOutputTokens: 100, // Minimal tokens for fast, concise responses
             responseMimeType: "application/json",
           },
         };

@@ -112,6 +112,51 @@ describe("Deterministic Guardrails & Fallback Threshold Suite", () => {
     expect(line.source).toBe("gemini");
   });
 
+  it("escalates remote 15%-20% candidate matches to Gemini and resolves with concise reasoning", async () => {
+    const mockChoose = vi.fn().mockResolvedValue({
+      chosenSkuId: "SKU-BS-GD120",
+      confidence: 0.82,
+      reasoning: "Matches remote cookie query",
+      source: "gemini",
+    });
+    const mockChooser = { choose: mockChoose } as unknown as GeminiClosedSetChooser;
+
+    const pipeline = new CascadedOrderParserPipeline({
+      geminiChooser: mockChooser,
+    });
+
+    const res = await pipeline.parseText("5 peti namkeen biscuit");
+    expect(res.success).toBe(true);
+    const line = res.lines[0];
+    expect(mockChoose).toHaveBeenCalled();
+    expect(line.matchedSku?.code).toBe("SKU-BS-GD120");
+    expect(line.source).toBe("gemini");
+    expect(line.reasoning).toBe("Matches remote cookie query");
+  });
+
+  it("returns honest no match with UNKNOWN_SKU when Gemini decides NONE for remote query", async () => {
+    const mockChoose = vi.fn().mockResolvedValue({
+      chosenSkuId: null,
+      confidence: 0.15,
+      reasoning: "No remote match in catalog",
+      source: "gemini",
+    });
+    const mockChooser = { choose: mockChoose } as unknown as GeminiClosedSetChooser;
+
+    const pipeline = new CascadedOrderParserPipeline({
+      geminiChooser: mockChooser,
+    });
+
+    const res = await pipeline.parseText("5 peti namkeen biscuit");
+    expect(res.success).toBe(true);
+    const line = res.lines[0];
+    expect(mockChoose).toHaveBeenCalled();
+    expect(line.matchedSku).toBeNull();
+    expect(line.isAmbiguous).toBe(true);
+    expect(line.ambiguityReason).toBe("UNKNOWN_SKU");
+    expect(line.source).toBe("gemini");
+  });
+
   it("processes media audio via multimodal fallback pipeline", async () => {
     const dummyAudioBuffer = Buffer.from("dummy_audio_bytes_mandi_speech");
     const result = await processMediaOrder({

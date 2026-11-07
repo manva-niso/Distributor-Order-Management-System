@@ -48,12 +48,13 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
     // Tier 4: For lines requiring escalation to Chooser, invoke Gemini in parallel
     const resolvedLines = await Promise.all(
       initialParsedLines.map(async (line) => {
-        // 1. Deterministic Out-of-Catalog Rejection
-        // If candidate retriever found no plausible candidates (or top candidate score < 0.20),
+        // 1. Deterministic Out-of-Catalog Rejection (Threshold relaxed to 0.15 / 15%)
+        // If candidate retriever found no plausible candidates (or top candidate score < 0.15),
         // we deterministically know the requested item is NOT in the wholesale catalog.
         // Zero cloud latency, zero LLM cost, instant local rejection with informative reasoning.
+        const FALLBACK_THRESHOLD = 0.15;
         const topCandidateScore = line.candidates[0]?.score || 0;
-        const hasPlausibleCandidates = line.candidates.length > 0 && topCandidateScore >= 0.20;
+        const hasPlausibleCandidates = line.candidates.length > 0 && topCandidateScore >= FALLBACK_THRESHOLD;
 
         if (line.matchedSku === null && !hasPlausibleCandidates) {
           const kg = fmcgKnowledgeGraph.getSmartSuggestions({
@@ -88,8 +89,8 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
           };
         }
 
-        // 3. High Confidence Deterministic Matches (Confidence >= 0.75 and not ambiguous)
-        if (line.confidence >= 0.75 && line.matchedSku !== null && !line.isAmbiguous) {
+        // 3. High Confidence Deterministic Matches (Confidence >= 0.85 and not ambiguous)
+        if (line.confidence >= 0.85 && line.matchedSku !== null && !line.isAmbiguous) {
           return {
             ...line,
             source: "rules" as const,
@@ -97,15 +98,17 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
         }
 
         // 4. True LLM Fallback (Tier 4):
-        // Only escalate when:
+        // Escalate when:
         // - LLM is enabled
-        // - Plausible candidate SKUs exist in the catalog that compete closely (MULTIPLE_CANDIDATES)
-        //   or when local regex could not resolve a single winner from a colloquial description
+        // - Plausible candidate SKUs exist in the catalog (score >= 0.15, including 15%-20% remote matches)
+        // - Item is unmatched, ambiguous, has multiple candidates, or confidence is under 0.85
         const needsEscalation =
           this.enableLLM &&
           hasPlausibleCandidates &&
           (line.ambiguityReason === "MULTIPLE_CANDIDATES" ||
-            (line.confidence < 0.70 && line.matchedSku === null));
+            line.matchedSku === null ||
+            line.isAmbiguous ||
+            line.confidence < 0.85);
 
         if (!needsEscalation) {
           return {
@@ -154,12 +157,16 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
           }
         }
 
-        // If Gemini did not find a match in the closed candidate set
+        // If Gemini did not find a match in the closed candidate set ("NONE" or outside set):
+        // Return honest "no match" cleanly with guardrails
         return {
           ...line,
-          confidence: decision.confidence ?? line.confidence,
-          reasoning: decision.reasoning || line.reasoning,
-          source: decision.source || "fallback",
+          matchedSku: null,
+          confidence: decision.confidence ?? 0.15,
+          isAmbiguous: true,
+          ambiguityReason: "UNKNOWN_SKU",
+          reasoning: decision.reasoning || `No match found in wholesale catalog for "${line.rawUtterance}".`,
+          source: decision.source === "gemini" ? "gemini" : "rules",
         };
       })
     );

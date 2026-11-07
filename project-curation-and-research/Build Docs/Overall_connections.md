@@ -697,7 +697,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### G. Test Suite (`src/__tests__/` — 22 Suites, 165 Tests)
+### G. Test Suite (`src/__tests__/` — 22 Suites, 167 Tests)
 - **`src/__tests__/auth.test.ts`**: 13 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, JWT signature verification, and B2B kirana self-registration.
 - **`src/__tests__/session-lock.test.ts`**: 6 automated unit tests verifying single-writer concurrency acquisition, HTTP 409 conflict blocking, deferred OTP consumption, and force-logout purge (`[A49]`).
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
@@ -717,7 +717,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/dormant.test.ts`**: 4 automated unit tests verifying 14-day inactivity threshold filtering, churn risk tiers (High vs Critical), credit headroom analytics, and Devanagari Hindi WhatsApp nudge formatting (`[A23]`, `[A43]`, `[A44]`).
 - **`src/__tests__/realtime-stock.test.ts`**: 5 automated unit tests verifying inventory versioning, SSE subscriber broadcasts, and out-of-stock stepper locks (`[A52]`).
 - **`src/__tests__/cart-storage.test.ts`**: 7 automated unit tests verifying Kirana cart isolation (`[A50]`), zero-drop dual writes, and fallback auto-migration (`[A53]`).
-- **`src/__tests__/deterministic-guardrails.test.ts`**: 6 automated unit tests verifying deterministic packaging guardrail isolation, 0ms negative catalog rejection floor (`[A59]`), ARTPARK-IISc Vaani Hindi ASR cascade (`[A58]`), and offline multimodal fallback execution.
+- **`src/__tests__/deterministic-guardrails.test.ts`**: 8 automated unit tests verifying deterministic packaging guardrail isolation, 15% fallback threshold, ultra-low token Gemini escalation (`[A59]`), ARTPARK-IISc Vaani Hindi ASR cascade (`[A58]`), and offline multimodal fallback execution.
 - **`src/__tests__/knowledge-graph.test.ts`**: 5 automated unit tests verifying 12-domain categorization, longest-phrase-first compound resolution (`[A61]`), category-grounded suggestions, zero biscuit hallucinations, and honest out-of-domain rejections.
 - **`src/__tests__/reset-sync-and-auth.test.ts`**: 7 automated unit tests verifying universal Kirana client storage purge (`[A62]`), cross-tab `DATABASE_RESET` and `CATALOG_SYNC` SSE broadcasts, Absolute Zero store isolation, and dev sandbox master OTP reliability (`[A64]`).
 

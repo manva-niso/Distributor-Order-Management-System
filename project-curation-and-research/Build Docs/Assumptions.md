@@ -464,13 +464,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   2. **Tier 2 (Fallback):** Google Gemini 2.5 Flash Multimodal Audio transcription when Hugging Face tokens are omitted or during serverless cold starts.
   3. **Tier 3 (Offline Simulation):** Deterministic Mandi Hindi voice note transcript generator for offline demo simulations.
 
-#### `[A59]` Mostly Deterministic Text Parsing & Strict Fallback Thresholds
-- **Context:** Calling cloud LLMs for every unstructured text query causes 1.5–4.0s latency, per-token cloud costs, and non-deterministic behavior. LLMs must act purely as an edge-case fallback, not as the primary engine.
-- **Core Architectural Assumption:** **At least 95% of all Kirana order texts must resolve deterministically via local heuristics (Tiers 0–3) in <20ms; LLM escalation is strictly forbidden for packaging invariants and out-of-catalog items.**
-- **Guardrail Enforcement Specifications (`cascaded-parser.ts`):**
+#### `[A59]` Mostly Deterministic Text Parsing, 15% Fallback Threshold & Ultra-Low Token Gemini Escalation
+- **Context:** Calling cloud LLMs for every unstructured text query causes 1.5–4.0s latency, per-token cloud costs, and non-deterministic behavior. LLMs must act purely as an edge-case fallback, not as the primary engine. Conversely, over-aggressive rejection floors (>20%) prematurely reject colloquial queries with 15%-20% candidate relevance without giving the LLM an opportunity to evaluate remote matches.
+- **Core Architectural Assumption:** **Local heuristics (Tiers 0–3) resolve exact and packaging cases deterministically in <20ms; if no exact match exists but candidates have a 15%-20% match (score $\ge 0.15$), Gemini is escalated with strict token caps (max 100 output tokens, reasoning $<8$ words) and closed-set guardrails to evaluate remote matches. If no match exists, it returns 'no match'.**
+- **Guardrail Enforcement Specifications (`cascaded-parser.ts` & `gemini-chooser.ts`):**
   1. **Packaging Guardrail Isolation:** Packaging ambiguities (`DABBA`, `MISSING_UNIT`, `BROKEN_CASE`) are resolved 100% locally via plain-code UI Disambiguation Cards. Gemini is never called to guess pack sizes.
-  2. **Deterministic Out-of-Catalog Rejection:** When local candidate retrieval finds no plausible catalog SKU (top candidate score < 0.20, e.g. "chips", "sabun"), the system immediately returns `UNKNOWN_SKU` with a plain-code explanation with 0ms delay.
-  3. **Constrained Closed-Set Escalation:** Gemini is only invoked when plausible catalog candidates exist but compete closely (`MULTIPLE_CANDIDATES`), acting strictly as a closed-set chooser over warehouse items.
+  2. **Calibrated 15% Fallback Threshold:** When top candidate score $< 0.15$ (or candidate set is empty), the engine rejects the line in 0ms locally with `UNKNOWN_SKU` and plain-code reasoning.
+  3. **Ultra-Low Token Closed-Set Escalation:** If top candidate score $\ge 0.15$ and the line is not deterministically confirmed, Gemini evaluates the candidate set with `maxOutputTokens: 100` and prompt instructions to keep reasoning under 8 words.
+  4. **Strict Closed-Set & Remote Match Guardrails:** Gemini can only choose an ID from the candidate set, or `"NONE"`. If Gemini selects `"NONE"` or fails closed-set validation, the system cleanly returns `UNKNOWN_SKU` ("no match") with zero hallucinations.
 
 #### `[A60]` Low-Bandwidth (<3G) Client-Side Canvas Media Compression
 - **Context:** Kirana retailers taking camera photos of handwritten paper slips (*parchi*) on low-end smartphones generate 5MB–10MB raw JPEGs, which time out or fail on patchy 3G/2G mandi networks.
