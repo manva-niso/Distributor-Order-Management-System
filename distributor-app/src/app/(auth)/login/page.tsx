@@ -235,6 +235,36 @@ export default function LoginPage() {
     }
   };
 
+  // Step 2b: Force Logout All Other Active Sessions
+  const handleForceLogoutSessions = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const clean = phone.replace(/\D/g, "").slice(-10);
+      const res = await fetch("/api/auth/force-logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: clean }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAlreadyLoggedIn(false);
+        setSuccessMsg(
+          lang === "hi"
+            ? "अन्य सभी सत्र सफलतापूर्वक लॉगआउट कर दिए गए हैं। कृपया प्रवेश करने के लिए नीचे 'सत्यापित कर लॉगिन करें' पर क्लिक करें।"
+            : "All other sessions have been logged out. Please click 'Verify & Login' below to enter."
+        );
+      } else {
+        setErrorMsg(data.error || "Failed to log out other sessions.");
+      }
+    } catch {
+      setErrorMsg("Network error while logging out other sessions.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900 font-sans antialiased">
       {/* Top Bar: Distributor Identity & Bilingual Switch */}
@@ -591,7 +621,7 @@ export default function LoginPage() {
               </p>
               <button
                 type="button"
-                onClick={() => handleVerifyOtp(undefined, true)}
+                onClick={handleForceLogoutSessions}
                 disabled={loading}
                 className="mt-1 w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
@@ -601,7 +631,7 @@ export default function LoginPage() {
                   <LogOut className="w-3.5 h-3.5" />
                 )}
                 <span>
-                  {lang === "hi" ? "दूसरे सत्र को लॉगआउट कर लॉगिन करें" : "Force Logout Existing Session & Login"}
+                  {lang === "hi" ? "अन्य सभी सत्र लॉगआउट करें" : "Log Out All Other Sessions"}
                 </span>
               </button>
             </div>

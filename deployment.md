@@ -15,8 +15,8 @@ A comprehensive audit confirms all core production criteria are fully satisfied:
 
 | Capability / Requirement | Status | Production Audit Evidence |
 | :--- | :---: | :--- |
-| **Next.js Production Build** | **PASSED** | `npm --prefix distributor-app run build` compiles 34 pages & API routes in 2.5s with Turbopack, 0 TypeScript errors, and 0 lint warnings. |
-| **Automated Test Suite** | **PASSED** | 100% pass rate: 197 automated tests across 23 suites (129 in `distributor-app` including session lock, live AI random words & vernacular tests, 68 in `engine` including live closed-set chooser tests, plus the 40-prompt benchmark dataset). |
+| **Next.js Production Build** | **PASSED** | `npm --prefix distributor-app run build` compiles 35 pages & API routes in 3.0s with Turbopack, 0 TypeScript errors, and 0 lint warnings. |
+| **Automated Test Suite** | **PASSED** | 100% pass rate: 198 automated tests across 23 suites (130 in `distributor-app` including session lock, live AI random words & vernacular tests, 68 in `engine` including live closed-set chooser tests, plus the 40-prompt benchmark dataset). |
 | **Live Database (Neon PostgreSQL)** | **PASSED** | Connected to serverless cloud Neon PostgreSQL over SSL (`sslmode=require`). Relational tables (`skus`, `retailers`, `orders`, `order_items`, `retailer_aliases`, `captures`, `active_sessions`) initialized. |
 | **Single-Writer Concurrency Lock ([A49])** | **PASSED** | Only 1 user/session can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 Conflict ("User already logged in"). Eliminates credit headroom corruption and double bookings. |
 | **Kirana Session & Cart Isolation ([A50])** | **PASSED** | Store-scoped cart keys (`isolabs_draft_cart_${retailerId}`) prevent unplaced items from leaking across accounts on shared devices. |

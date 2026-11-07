@@ -526,6 +526,35 @@ This document records every error, build failure, test failure, runtime issue, a
 - **Resolution / Fix:** Removed the `allR[0]` fallback and fallback object. If no target retailer is authenticated or specified, `retailer` strictly returns `null`. Added dynamic Neon lookup if a valid `retailerId` exists in session but is missing from memory.
 - **Prevention:** Endpoints must return `null` or 401/404 for unauthenticated callers rather than silently impersonating a default customer account.
 
+---
+
+### [ERR-045] Premature OTP Consumption on Concurrency Conflict Causing "No active OTP request found" During Force Logout
+- **Date & Time:** 2026-11-07 12:05:00
+- **Module:** Module 1 - Authentication, OTP Verification & Session Concurrency Lock
+- **Phase:** Multi-Device Concurrency & Active Session Purge
+- **Symptoms / Error Message:**
+  ```text
+  User 1 is logged in as Sharma Kirana Store.
+  User 2 enters phone number and valid OTP, clicks "Verify & Login".
+  Screen displays amber alert: "User already logged in" with a button to force logout.
+  User clicks force logout and attempts to submit OTP again.
+  Server returns HTTP 401: "No active OTP request found for this number. Please click 'Send OTP'."
+  ```
+- **Root Cause Analysis:**
+  1. `verifyOtp(phone, otp)` in `src/lib/auth/otp.ts` previously executed `dbStore.markOtpVerified(activeOtp.id)` immediately upon verifying code equality.
+  2. Next, `src/app/api/auth/verify-otp/route.ts` checked `acquireRetailerSession(retailerId)`. When a concurrent session was detected, the route returned HTTP 409 Conflict (`USER_ALREADY_LOGGED_IN`).
+  3. However, because `verifyOtp` had already marked the OTP as `verified: true`, subsequent re-verification or force-logout re-submission failed because `dbStore.getLatestActiveOtp(phone)` specifically filters for `verified: false`.
+  4. Furthermore, in serverless cloud environments (or across local and deployed Vercel instances sharing the same Neon database), orphaned rows in Neon `active_sessions` could block logins unless explicitly purged by a dedicated endpoint.
+- **Resolution / Fix:**
+  1. **Deferred OTP Consumption:** Refactored `verifyOtp` to accept `options: { consume: boolean }`, defaulting to `true` for standard consumers but called with `{ consume: false }` during preliminary verification in `verify-otp/route.ts`.
+  2. **Dedicated `consumeOtp(otpId)`:** Added an explicit consumption step that is invoked *only after* `acquireRetailerSession` returns `allowed: true`. If a 409 conflict occurs, the OTP remains valid and unburned.
+  3. **Dedicated Force-Logout Endpoint:** Created `POST /api/auth/force-logout` accepting `{ phone, retailerId? }`, which calls `forceReleaseRetailerSession` and deletes all matching rows directly from Neon PostgreSQL `active_sessions` table.
+  4. **Preserved UI Input State:** Updated `login/page.tsx` so clicking `"Log Out All Other Sessions"` purges the remote session lock without clearing the 6-digit OTP input boxes. A green confirmation banner instructs the user to click `"Verify & Login"` to enter.
+  5. **Sandbox Master Code Resilience:** Added fallback matching for dev master code `"716716"` and unconsumed active OTPs in dev sandbox mode.
+  6. Added automated unit tests in `src/__tests__/session-lock.test.ts` verifying OTP preservation during 409 conflicts and single-consumption enforcement.
+- **Prevention:** Never mark credentials or single-use verification tokens as consumed until all transactional preconditions (including concurrency locks and tenancy validation) are completely met.
+
+
 
 
 

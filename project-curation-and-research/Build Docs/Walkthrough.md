@@ -245,9 +245,9 @@ flowchart TD
 
 ---
 
-### Step 14: Single-Writer Kirana Concurrency Lock (Invariant [A49])
+### Step 14: Single-Writer Kirana Concurrency Lock & Force-Logout Hand-off (Invariant [A49])
 - **Route:** [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
-- **The Edge Case:** Multiple family members, partners, or shop assistants attempt to place orders simultaneously for the same Kirana retail account.
+- **The Edge Case:** Multiple family members, partners, or shop assistants attempt to place orders simultaneously for the same Kirana retail account, or a shopkeeper switched phones with an active session running on their previous device.
 - **Action:**
   1. Open a browser window and log in as **Sharma Kirana Store (`9826000001`)**.
   2. Open an Incognito window or second browser. Attempt to log in as **Sharma Kirana Store (`9826000001`)** with the valid SMS OTP.
@@ -257,8 +257,15 @@ flowchart TD
   - A prominent amber alert banner is displayed:  
     **`"User already logged in"`** (Devanagari: **`"उपयोगकर्ता पहले से लॉगिन है"`**).
   - Explicit notification explains: *"An active session is currently open for this Kirana store on another device or tab. Only one concurrent user is permitted."*
-  - A dedicated **`[ Force Logout Existing Session & Login ]`** action is available to allow an intentional device transfer if the merchant left a previous session open.
-- **Why It Matters:** Guarantees single-writer integrity (`[A49]`), eliminating concurrent write race conditions against available credit headroom (`currentBalance`) and preventing duplicate van load orders.
+  - The OTP is **not consumed or burned** during the concurrency conflict.
+  4. Click **"Log Out All Other Sessions"**.
+  - A request is dispatched to `POST /api/auth/force-logout`, which purges any orphaned or active sessions from Neon PostgreSQL and memory cache.
+  - The banner turns green with confirmation: *"All other sessions have been logged out. Please click 'Verify & Login' below to enter."* (Devanagari: *"अन्य सभी सत्र सफलतापूर्वक लॉगआउट कर दिए गए हैं। कृपया प्रवेश करने के लिए नीचे 'सत्यापित कर लॉगिन करें' पर क्लिक करें।"*).
+  - The 6-digit OTP code remains preserved in the input boxes!
+  5. Tap **"Verify & Login"**.
+  - Verifies the unconsumed OTP and acquires the single-writer session lock.
+  - Seamlessly redirects to `/catalogue`.
+- **Why It Matters:** Guarantees single-writer integrity (`[A49]`), eliminating concurrent write race conditions against available credit headroom (`currentBalance`) and preventing duplicate van load orders while providing a frictionless, zero-frustration handoff for the shopkeeper.
 
 ---
 

@@ -356,7 +356,10 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
     { "success": false, "error": "User already logged in", "code": "USER_ALREADY_LOGGED_IN", "activeSince": "2026-11-07T..." }
     ```
   - The login interface surfaces a high-visibility warning: **`"User already logged in"`** (in Devanagari Hindi: **`"उपयोगकर्ता पहले से लॉगिन है"`**).
-  - A prominent **`[ Force Logout Existing Session & Login ]`** action is provided (`force: true`), ensuring that if a shopkeeper closed a previous browser tab or switched phones, they can deliberately claim the active writer seat without waiting 30 minutes.
+  - A prominent **`[ Log Out All Other Sessions ]`** action is provided (`POST /api/auth/force-logout`), ensuring that if a shopkeeper closed a previous browser tab or switched phones, they can deliberately claim the active writer seat without waiting 30 minutes.
+  - **Deferred OTP Consumption Protocol:** Verification is executed with `{ consume: false }` during preliminary validation. If the concurrency guard blocks the login (HTTP 409 Conflict), the OTP is **not burned or invalidated**.
+  - Clicking `"Log Out All Other Sessions"` purges all active sessions from Neon PostgreSQL and memory cache, displays a confirmation banner (*"All other sessions have been logged out. Please click 'Verify & Login' below to enter."* / *"अन्य सभी सत्र सफलतापूर्वक लॉगआउट कर दिए गए हैं। कृपया प्रवेश करने के लिए नीचे 'सत्यापित कर लॉगिन करें' पर क्लिक करें।"*), and **preserves the entered OTP in the 6-digit input boxes**.
+  - The shopkeeper then taps `"Verify & Login"` to immediately enter with the existing unburned OTP.
   - Normal logout (`POST /api/auth/logout`) releases the lock immediately via `releaseRetailerSession`.
 
 #### `[A50]` Kirana-Scoped Cart & Multi-Tenant Session Isolation

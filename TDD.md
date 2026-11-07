@@ -311,12 +311,14 @@ The complete 15-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 - **Tally ERP Preview:** [`/api/tally/preview`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/tally/preview/route.ts) supports both `GET` (queue batch preview) and `POST` (targeted `{ orderIds }`), returning structured `<ENVELOPE>` snippets and validation flags.
 - **Credit Hold Release:** [`/api/desk/orders/[id]/release-hold`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/desk/orders/[id]/release-hold/route.ts) treats `expectedOccVersion` as optional, automatically reading the latest version from the stored order if omitted by external scripts.
 
-### Invariant 4: Single-Writer Kirana Concurrency Lock ([A49])
-- **Problem:** Simultaneous checkout write operations from multiple users accessing the same Kirana retail account corrupt credit headroom balance, oversell physical stock, and create duplicate delivery van loads.
+### Invariant 4: Single-Writer Kirana Concurrency Lock & Force-Logout Hand-off ([A49])
+- **Problem:** Simultaneous checkout write operations from multiple users accessing the same Kirana retail account corrupt credit headroom balance, oversell physical stock, and create duplicate delivery van loads. Furthermore, prematurely burning OTP credentials during a concurrency block locked out legitimate shopkeepers trying to hand off sessions.
 - **Architectural Guard:**
-  - Backed by `active_sessions` in Neon PostgreSQL and memory cache.
-  - Subsequent logins within the 30-minute active rolling inactivity window return **HTTP 409 Conflict** with `"User already logged in"`.
-  - Dedicated force override (`force: true`) enables deliberate device handoffs without waiting for timeout expiration.
+  - Backed by `active_sessions` in Neon PostgreSQL and memory cache with 30-minute rolling inactivity windows.
+  - Subsequent logins within the active window return **HTTP 409 Conflict** with `"User already logged in"`.
+  - **Deferred OTP Consumption Protocol:** `verifyOtp(..., { consume: false })` tests validity without burning the token during 409 collisions. Single-use consumption via `consumeOtp(otpId)` is executed strictly after the concurrency lock is awarded.
+  - Dedicated `POST /api/auth/force-logout` purges all active session rows from Neon PostgreSQL and memory store.
+  - Login UI preserves entered 6-digit OTP codes across the handoff, transitioning the collision alert into an approval notice and permitting immediate 1-tap entry upon session purge.
 
 ### Invariant 5: Neon PostgreSQL Durable Order Re-hydration Across Cold Starts ([A51])
 - **Problem:** Ephemeral serverless container recycling on cloud platforms (e.g. Vercel) clears in-process memory caches, causing orders to vanish upon relogin.

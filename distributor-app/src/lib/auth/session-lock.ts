@@ -46,7 +46,8 @@ async function ensureActiveSessionsTable(): Promise<void> {
 export async function acquireRetailerSession(
   retailerId: string,
   userId: string,
-  phone: string
+  phone: string,
+  force: boolean = false
 ): Promise<{
   allowed: boolean;
   sessionId?: string;
@@ -57,54 +58,57 @@ export async function acquireRetailerSession(
   const now = new Date();
   const cutoff = new Date(now.getTime() - SESSION_INACTIVITY_TIMEOUT_MS);
 
-  // 1. Check in-memory cache first
-  const cached = inMemoryActiveSessions.get(retailerId);
-  if (cached && cached.lastActiveAt > cutoff) {
-    const retailer = dbStore.getRetailerById(retailerId);
-    return {
-      allowed: false,
-      error: "User already logged in",
-      code: "USER_ALREADY_LOGGED_IN",
-      activeSince: cached.createdAt,
-    };
-  }
+  if (force) {
+    await forceReleaseRetailerSession(retailerId, phone);
+  } else {
+    // 1. Check in-memory cache first
+    const cached = inMemoryActiveSessions.get(retailerId);
+    if (cached && cached.lastActiveAt > cutoff) {
+      return {
+        allowed: false,
+        error: "User already logged in",
+        code: "USER_ALREADY_LOGGED_IN",
+        activeSince: cached.createdAt,
+      };
+    }
 
-  // 2. Check Neon database if configured (cross-instance Vercel check)
-  if (isNeonConfigured()) {
-    const sql = getNeonSql();
-    if (sql) {
-      await ensureActiveSessionsTable();
-      try {
-        const rows = (await sql`
-          SELECT * FROM active_sessions 
-          WHERE retailer_id = ${retailerId}
-          LIMIT 1;
-        `) as any[];
+    // 2. Check Neon database if configured (cross-instance Vercel check)
+    if (isNeonConfigured()) {
+      const sql = getNeonSql();
+      if (sql) {
+        await ensureActiveSessionsTable();
+        try {
+          const rows = (await sql`
+            SELECT * FROM active_sessions 
+            WHERE retailer_id = ${retailerId}
+            LIMIT 1;
+          `) as any[];
 
-        if (rows && rows.length > 0) {
-          const row = rows[0];
-          const lastActive = new Date(row.last_active_at || row.lastActiveAt);
-          if (lastActive > cutoff) {
-            // Populate in-memory cache so subsequent local checks are instant
-            inMemoryActiveSessions.set(retailerId, {
-              retailerId,
-              userId: row.user_id,
-              sessionId: row.session_id,
-              phone: row.phone,
-              createdAt: new Date(row.created_at),
-              lastActiveAt: lastActive,
-            });
+          if (rows && rows.length > 0) {
+            const row = rows[0];
+            const lastActive = new Date(row.last_active_at || row.lastActiveAt);
+            if (lastActive > cutoff) {
+              // Populate in-memory cache so subsequent local checks are instant
+              inMemoryActiveSessions.set(retailerId, {
+                retailerId,
+                userId: row.user_id,
+                sessionId: row.session_id,
+                phone: row.phone,
+                createdAt: new Date(row.created_at),
+                lastActiveAt: lastActive,
+              });
 
-            return {
-              allowed: false,
-              error: "User already logged in",
-              code: "USER_ALREADY_LOGGED_IN",
-              activeSince: new Date(row.created_at),
-            };
+              return {
+                allowed: false,
+                error: "User already logged in",
+                code: "USER_ALREADY_LOGGED_IN",
+                activeSince: new Date(row.created_at),
+              };
+            }
           }
+        } catch (err) {
+          console.warn("Active session lookup error in Neon:", err);
         }
-      } catch (err) {
-        console.warn("Active session lookup error in Neon:", err);
       }
     }
   }
@@ -186,8 +190,29 @@ export async function releaseRetailerSession(
 /**
  * Force release session for a retailer (used when admin or owner overrides)
  */
-export async function forceReleaseRetailerSession(retailerId: string): Promise<void> {
-  await releaseRetailerSession(retailerId);
+export async function forceReleaseRetailerSession(retailerId: string, phone?: string): Promise<void> {
+  inMemoryActiveSessions.delete(retailerId);
+  if (isNeonConfigured()) {
+    const sql = getNeonSql();
+    if (sql) {
+      try {
+        if (phone) {
+          const clean = phone.replace(/\D/g, "").slice(-10);
+          await sql`
+            DELETE FROM active_sessions 
+            WHERE retailer_id = ${retailerId} OR phone = ${clean};
+          `;
+        } else {
+          await sql`
+            DELETE FROM active_sessions 
+            WHERE retailer_id = ${retailerId};
+          `;
+        }
+      } catch (err) {
+        console.warn("Failed to force delete active session from Neon:", err);
+      }
+    }
+  }
 }
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyOtp } from "@/lib/auth/otp";
+import { verifyOtp, consumeOtp } from "@/lib/auth/otp";
 import { signSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/jwt";
 import { acquireRetailerSession, forceReleaseRetailerSession } from "@/lib/auth/session-lock";
 
@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { phone, otp, force } = parseResult.data;
-    const verifyResult = await verifyOtp(phone, otp);
+    // Verify without immediately consuming, so concurrency conflict doesn't burn the OTP
+    const verifyResult = await verifyOtp(phone, otp, { consume: false });
 
     if (!verifyResult.success || !verifyResult.user) {
       return NextResponse.json(
@@ -41,9 +42,9 @@ export async function POST(request: NextRequest) {
     // Concurrency Lock: If multiple users access as the same Kirana store, block access
     if (user.role === "retailer" && user.retailerId) {
       if (force) {
-        await forceReleaseRetailerSession(user.retailerId);
+        await forceReleaseRetailerSession(user.retailerId, user.phone);
       }
-      const lock = await acquireRetailerSession(user.retailerId, user.id, user.phone);
+      const lock = await acquireRetailerSession(user.retailerId, user.id, user.phone, Boolean(force));
       if (!lock.allowed) {
         return NextResponse.json(
           {
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
       }
       sessionId = lock.sessionId;
     }
+
+    // Mark OTP as consumed now that session is successfully granted
+    await consumeOtp(verifyResult.otpId);
 
     // Issue signed JWT token
     const token = await signSessionToken({

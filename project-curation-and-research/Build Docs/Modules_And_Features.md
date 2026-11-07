@@ -69,30 +69,33 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Strict single-writer constraint: only 1 user/session can place orders for a specific Kirana store at any time.
   - Backed by `active_sessions` in Neon PostgreSQL and memory cache with 30-minute rolling inactivity timeout.
   - Blocks concurrent logins for the same retailer with HTTP 409 Conflict and error `"User already logged in"`.
-  - Visible login banner: `"User already logged in"` (Devanagari: `"उपयोगकर्ता पहले से लॉगिन है"`) with a `[ Force Logout Existing Session & Login ]` action (`force: true`).
+  - Visible login banner: `"User already logged in"` (Devanagari: `"उपयोगकर्ता पहले से लॉगिन है"`) with a `[ Log Out All Other Sessions ]` button triggering `POST /api/auth/force-logout`.
+  - **Deferred OTP Consumption Protocol:** Verification is executed with `{ consume: false }` during concurrency check; OTP is only consumed via `consumeOtp(otpId)` once session lock acquisition succeeds.
+  - Clicking `"Log Out All Other Sessions"` purges all active sessions from Neon PostgreSQL and memory cache without wiping the 6-digit OTP input boxes, allowing immediate 1-click login with the existing unburned OTP.
   - Automatic session heartbeat via `touchRetailerSession` on authenticated requests (`/api/auth/me`).
   - Instant session lock release via `releaseRetailerSession` on logout (`/api/auth/logout`).
 
 ### 2. Files Created / Modified
 - `distributor-app/`
-  - `src/db/schema.ts` - Database tables & relations (including `active_sessions`)
+  - `src/db/schema.ts` - Database tables & relations (including `active_sessions` and `otps`)
   - `src/db/store.ts` - In-memory and PostgreSQL persistent repository
   - `src/lib/auth/jwt.ts` - Signed JWT session utilities with `jose` (including `sessionId`)
-  - `src/lib/auth/otp.ts` - OTP generation, SMS provider interface, verification
+  - `src/lib/auth/otp.ts` - OTP generation, SMS provider interface, deferred verification & explicit consumption (`consumeOtp`)
   - `src/lib/auth/session-lock.ts` - Single-writer concurrency lock & Neon `active_sessions` management
   - `src/app/api/auth/send-otp/route.ts` - API endpoint to request OTP
-  - `src/app/api/auth/verify-otp/route.ts` - API endpoint to verify OTP, acquire concurrency lock & issue cookie
+  - `src/app/api/auth/verify-otp/route.ts` - API endpoint to verify OTP, acquire concurrency lock & issue cookie (with deferred consumption)
+  - `src/app/api/auth/force-logout/route.ts` - Dedicated endpoint to purge active sessions from Neon and memory for a retailer/phone
   - `src/app/api/auth/lookup-phone/route.ts` - Phone identity & credit lookup endpoint
   - `src/app/api/auth/register/route.ts` - B2B Retailer onboarding & provisional credit allocation
   - `src/app/api/auth/me/route.ts` - Active session profile endpoint with activity touch
   - `src/app/api/auth/logout/route.ts` - Session termination & session lock release endpoint
-  - `src/app/(auth)/login/page.tsx` - Login screen with OTP input, Hindi toggle & "User already logged in" collision banner
+  - `src/app/(auth)/login/page.tsx` - Login screen with OTP input, Hindi toggle, OTP-preserving "Log Out All Other Sessions" collision action
   - `src/app/(auth)/register/page.tsx` - B2B Kirana registration page with beat routing
   - `src/middleware.ts` - Route protection & role enforcement
 
 ### 3. Verification & Tests
-- **Vitest Suite:** `src/__tests__/auth.test.ts` (13 tests) & `src/__tests__/session-lock.test.ts` (5 tests)
-  - 18/18 unit tests passing covering:
+- **Vitest Suite:** `src/__tests__/auth.test.ts` (13 tests) & `src/__tests__/session-lock.test.ts` (6 tests)
+  - 19/19 unit tests passing covering:
     - 6-digit numeric cryptographic generation.
     - 10-digit Indian mobile number validation.
     - 30-second rate-limiting between re-sends.
@@ -104,10 +107,12 @@ This document tracks each Core Build Module step by step, its features, implemen
     - New B2B kirana self-registration and ₹25,000 provisional credit limit allocation (`[A5]`).
     - Kirana single-writer active session acquisition and timeout calculation (`[A49]`).
     - Blocking second concurrent login for the same Kirana store with `"User already logged in"`.
+    - Preserving OTP validity during 409 concurrency conflicts (`consume: false`) and burning strictly on successful session lock acquisition.
     - Cross-store independence: multiple distinct Kirana stores logging in concurrently without blocking (`[A50]`).
     - Session lock release on logout.
-    - Force logout override execution.
-- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, all routes statically optimized or server-rendered dynamic.
+    - Force logout override execution and session table purging.
+- **Full Suite Status:** 16 test files passed, 130/130 tests passed in `distributor-app` (198/198 across whole monorepo).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 35/35 routes statically optimized or server-rendered dynamic.
 
 ---
 

@@ -68,4 +68,28 @@ describe("Kirana Concurrency Lock & Session Isolation", () => {
     const second = await acquireRetailerSession("RET-0001", "usr_2", "9826000001");
     expect(second.allowed).toBe(true);
   });
+
+  it("preserves OTP validity when verifyOtp is called with consume: false during concurrency block", async () => {
+    const { createAndSendOtp, verifyOtp, consumeOtp } = await import("../lib/auth/otp");
+    const sendRes = await createAndSendOtp("9826000001");
+    expect(sendRes.success).toBe(true);
+    const otpCode = sendRes.devOtp!;
+
+    // Initial check without consuming (as done in verify-otp route)
+    const check1 = await verifyOtp("9826000001", otpCode, { consume: false });
+    expect(check1.success).toBe(true);
+    expect(check1.otpId).toBeDefined();
+
+    // Re-verify with same OTP still succeeds because it wasn't burned
+    const check2 = await verifyOtp("9826000001", otpCode, { consume: false });
+    expect(check2.success).toBe(true);
+
+    // Consume OTP once session is granted
+    await consumeOtp(check2.otpId);
+
+    // Now OTP is consumed
+    const check3 = await verifyOtp("9826000001", otpCode, { consume: true });
+    // Should fail as burnt or no active request
+    expect(check3.success).toBe(false);
+  });
 });
