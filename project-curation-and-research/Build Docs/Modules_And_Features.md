@@ -38,8 +38,8 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 8** | Van Loading Route Manifest & Warehouse Picking | Desk Clerk / Warehouse | ✅ Completed | Route & stop sequencing, aggregate SKU case picking lists (`[A22]`, `[A41]`), vehicle payload weight tally (`[A42]`), printable loading sheet |
 | **Module 9** | 14-Day Dormant Retailers Dashboard & WhatsApp Nudge | Owner / Desk Clerk | ✅ Completed | Dormancy filtering (≥14 days, `[A23]`), churn risk tiers (`[A43]`), credit exposure, 1-tap Hindi WhatsApp nudge (`[A44]`) |
 | **Module 10** | Multi-Store Real-Time Stock Synchronization & Zero-Drop Cart | Retailer, Desk | ✅ Completed | Live SSE stream (`[A52]`), instant OOS lock, BroadcastChannel, zero-drop dual-writes (`[A53]`) |
-| **Module 11** | Version 2.0 (V2) UI Polish, Ergonomics & Walkthrough Expansion | All Roles | ✅ Completed | Centered smartphone container, mobile drag & resize controls, removal of AI star icons, 18 walkthrough steps |
-| **Module 12** | Zero-AI Bilingual Engine, Persistent Context & Universal Transliteration | Retailer, Desk, All | ✅ Completed | 3-tier cascade (`[A54]`, `[A55]`), persistent cross-tab context (`[A56]`), dynamic Excel & registration transliteration, responsive fluid grids (`[A57]`) |
+| **Module 11** | Version 3.0 (V3) UI Polish, Ergonomics & Walkthrough Expansion | All Roles | ✅ Completed | Centered smartphone container, mobile drag & resize controls, removal of AI star icons, 18 walkthrough steps |
+| **Module 12** | Version 3.0 (V3) Zero-AI Bilingual Engine, Persistent Context & Universal Transliteration | Retailer, Desk, All | ✅ Completed | 3-tier cascade (`[A54]`, `[A55]`), persistent cross-tab context (`[A56]`), dynamic Excel & registration transliteration, responsive fluid grids (`[A57]`) |
 
 ---
 
@@ -704,7 +704,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ---
 
-## Module 11: Version 2.0 (V2) UI Polish, Ergonomics & Walkthrough Expansion
+## Module 11: Version 3.0 (V3) UI Polish, Ergonomics & Walkthrough Expansion
 
 ### 1. Features Implemented
 - [x] **Mobile-First Phone Layout on Laptop:**
@@ -728,7 +728,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ---
 
-## Module 12: Zero-AI Bilingual Localization, Persistent Language Context & Universal Transliteration
+## Module 12: Version 3.0 (V3) Zero-AI Bilingual Localization, Persistent Language Context & Universal Transliteration
 
 ### 1. Features Implemented
 - [x] **Zero-AI Vernacular Hindi Localization & Mandi Lexicon (`[A54]`):**
