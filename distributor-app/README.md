@@ -2,7 +2,7 @@
 
 > **Wholesale FMCG Order Management System for Company A, Jabalpur**  
 > Serving 1,800 Kirana stores across Jabalpur routes with conversational WhatsApp ordering, trade scheme calculation, split-screen human verification, and Tally Prime ERP export.  
-> **Release: Version 3.0 (V3)** — Includes Zero-AI Vernacular Hindi Localization, Persistent Cross-Tab Language Sync, Real-Time Stock Contention, and Fluid Responsive Ergonomics.
+> **Release: Version 3.1 (V 3.1)** — Includes Deterministic Guardrails (>=95% local resolution), ARTPARK-IISc Vaani Hindi ASR, Low-Bandwidth 3G Offscreen Canvas Compression (98.6% payload reduction), and Comprehensive 8-Sheet Industry Benchmarks.
 
 ---
 
