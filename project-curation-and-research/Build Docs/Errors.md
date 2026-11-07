@@ -713,6 +713,31 @@ This document records every error, build failure, test failure, runtime issue, a
 - **Resolution / Fix:** Updated `splitOrderTextIntoLines` to pre-strip explanatory clauses from the full text before splitting segments.
 - **Prevention:** Pre-process and strip non-transactional descriptive clauses across the entire message before tokenizing or segmenting lines.
 
+---
+
+### [ERR-056] Order Desk and Portal Log Out Buttons Inoperative Due to Next.js Client Router Cache and Cookie Attribute Discrepancies
+- **Date & Time:** 2026-11-07 17:35:00
+- **Module:** Authentication & Session Management (Order Desk & Portal)
+- **Symptoms / Error Message:**
+  ```text
+  User clicks the "Log Out" icon button in Order Desk (/desk), but nothing happens,
+  or the browser flickers and remains on /desk.
+  In addition, Order Verification screen (/desk/orders/[id]) completely lacked a logout action.
+  ```
+- **Root Cause Analysis:**
+  1. **Next.js Client Router Cache:** Client components used `router.push("/login")`. Next.js 15/16 App Router caches RSC route payloads in the browser's memory. When `/login` had been visited or prefetched while the user was authenticated, the client router used the cached redirect response (`redirect("/desk")`), immediately bouncing the user back to the desk instead of un-mounting the workstation.
+  2. **Cookie Attribute Inconsistency:** `verify-otp` sets `auth_token` with `sameSite: "lax"`, `path: "/"`, and `maxAge: 604800`. However, `POST /api/auth/logout` previously omitted `maxAge: 0` and `sameSite: "lax"`. Under RFC 6265, strict modern browsers (Chrome/Edge) ignore deletion headers when flag attributes mismatch the original cookie.
+  3. **Missing Visual Feedback:** The button lacked `cursor-pointer`, `disabled` state, and loading spinners during the network call.
+  4. **Omission on Child Desk Routes:** `/desk/orders/[id]` had no logout button in its command header.
+- **Resolution / Fix:**
+  1. Updated `handleLogout` across `/desk`, `/desk/orders/[id]`, `/cart`, `/catalogue`, `/orders`, and `/quick-order` to perform hard document navigation: `window.location.href = "/login"` inside a `finally` block with `credentials: "include"`, purging all RSC caches and in-memory state.
+  2. Hardened `POST /api/auth/logout` with `response.cookies.delete(SESSION_COOKIE_NAME)` and explicit `response.cookies.set` with matching `maxAge: 0, expires: new Date(0), sameSite: "lax", secure: process.env.NODE_ENV === "production"`.
+  3. Added `GET /api/auth/logout` redirecting directly to `/login` with cleared cookies.
+  4. Added `loggingOut` state with `Loader2` spinning icon and `disabled` state to all logout buttons.
+  5. Added a dedicated Log Out button to the header of `/desk/orders/[id]`.
+- **Prevention:** Always use hard document navigation (`window.location.href`) for authentication boundary crossings to bust SPA client caches, and mirror exact cookie scope attributes on deletion.
+
+
 
 
 

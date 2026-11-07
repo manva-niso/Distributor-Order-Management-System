@@ -36,6 +36,7 @@ import {
   Tag,
   Plus,
   Minus,
+  Loader2,
 } from "lucide-react";
 import AddProductModal from "@/components/desk/AddProductModal";
 import { SeedSku } from "@/db/seed-data";
@@ -91,6 +92,7 @@ export default function OrderDeskPage() {
   const [orders, setOrders] = useState<DeskOrder[]>([]);
   const [stats, setStats] = useState<DeskStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Catalogue & Inventory State (Order Desk Fills & Manages the Catalog)
@@ -385,8 +387,18 @@ export default function OrderDeskPage() {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    try {
+      setLoggingOut(true);
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.warn("Logout request failed:", err);
+    } finally {
+      // Force full document reload to bust Next.js client-side router & RSC cache
+      window.location.href = "/login";
+    }
   };
 
   const filteredSkus = catalogueSkus.filter((sku) => {
@@ -470,10 +482,16 @@ export default function OrderDeskPage() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors"
-                title="Log out"
+                disabled={loggingOut}
+                className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+                title={lang === "hi" ? "लॉग आउट करें" : "Log out"}
+                aria-label="Log out"
               >
-                <LogOut className="w-4 h-4" />
+                {loggingOut ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

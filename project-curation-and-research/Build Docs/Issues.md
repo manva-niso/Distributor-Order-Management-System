@@ -50,6 +50,7 @@ Every single issue recorded below was addressed, architecturally hardened, and v
 | **`[ISSUE-022]`** | Localization & Ingestion | Uploaded arbitrary catalogues and store names remaining in English in Hindi mode | Kirana Retailer / Desk | **Resolved** |
 | **`[ISSUE-023]`** | Responsive UI | Laptop screens constrained to narrow vertical phone tube and text clipping inside buttons | Laptop / Desktop User | **Resolved** |
 | **`[ISSUE-024]`** | Concurrency & Real-Time | Competing retailers simultaneously ordering scarce inventory causing checkout crashes | Kirana Retailer | **Resolved** |
+| **`[ISSUE-025]`** | Auth & Session Navigation | Order Desk and Portal Log Out buttons inoperative due to Next.js client router cache | Order Desk Clerk / Retailer | **Resolved** |
 
 ---
 
@@ -470,6 +471,23 @@ Every single issue recorded below was addressed, architecturally hardened, and v
      - The checkout button is dynamically disabled with label: *"Remove Out of Stock Items to Order"*.
   3. **Atomic Backend Deduction:** Checkout route executes atomic stock deduction (`GREATEST(0, stock_cases - ${cases})`), cleanly rejecting sub-millisecond race attempts with HTTP 400.
 - **Verification & Outcome:** Verified. Tested concurrently; inventory updates stream live and out-of-stock items block checkout proactively with high clarity.
+
+---
+
+### `[ISSUE-025]` Order Desk and Portal Log Out Buttons Inoperative Due to SPA Router Cache
+- **Date & Phase:** 2026-11-07 | Release Version 3.0 (V3) Verification
+- **User Persona Affected:** Order Desk Clerk (`Sunil Clerk`), Kirana Retailers
+- **User Experience & Pain Point:**
+  When working in the Order Desk terminal (`/desk`) or reviewing an order (`/desk/orders/[id]`), clicking the "Log Out" button appeared to do nothing, or momentarily reloaded the page and remained on `/desk`. The user could not return to the `/login` screen to switch accounts or end their shift. Furthermore, `/desk/orders/[id]` lacked a logout button in its command bar entirely.
+- **Why It Happened (User Perspective):**
+  1. Handlers used Next.js soft client navigation `router.push("/login")`. The Next.js 16 App Router cached the authenticated RSC route payload for `/login` (which instructed the browser to redirect to `/desk`), trapping the user in an SPA cache loop.
+  2. The server-side logout route `POST /api/auth/logout` did not match the original cookie's `SameSite=Lax` and `maxAge: 0` deletion attributes, causing strict browsers to reject the cookie expiration header.
+- **UX & Functional Resolution:**
+  1. Replaced `router.push("/login")` with authoritative hard document navigation (`window.location.href = "/login"`) across all portal and desk screens, completely flushing client SPA router caches and in-memory state.
+  2. Hardened `POST /api/auth/logout` and added `GET /api/auth/logout` with explicit `response.cookies.delete()` and matching `maxAge: 0, expires: new Date(0), sameSite: "lax"`.
+  3. Added interactive `loggingOut` state with spinning `Loader2` feedback and disabled states to prevent repeated rapid clicks.
+  4. Added a dedicated Log Out button to the header of `/desk/orders/[id]`.
+- **Verification & Outcome:** Verified. Clicking Log Out immediately shows the spinner, purges the session cookie, and navigates cleanly to `/login`.
 
 ---
 

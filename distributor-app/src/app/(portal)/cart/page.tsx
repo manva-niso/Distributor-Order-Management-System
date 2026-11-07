@@ -248,8 +248,13 @@ export default function CartPage() {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch (err) {
+      console.warn("Logout error:", err);
+    } finally {
+      window.location.href = "/login";
+    }
   };
 
   const t = TRADE_DICT[lang];

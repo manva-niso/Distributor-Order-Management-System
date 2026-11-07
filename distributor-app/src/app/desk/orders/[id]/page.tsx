@@ -20,6 +20,8 @@ import {
   Wallet,
   ShieldAlert,
   ChevronDown,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 import { SeedSku } from "@/db/seed-data";
@@ -76,6 +78,7 @@ export default function DeskOrderVerificationPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -116,6 +119,20 @@ export default function DeskOrderVerificationPage() {
       setErrorMsg("Network error loading order record.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.warn("Logout request failed:", err);
+    } finally {
+      window.location.href = "/login";
     }
   };
 
@@ -364,11 +381,26 @@ export default function DeskOrderVerificationPage() {
             <button
               type="button"
               onClick={loadOrder}
-              className="h-8 px-2.5 text-xs font-bold border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1"
+              className="h-8 px-2.5 text-xs font-bold border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
               title="Reload fresh data"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+              title={lang === "hi" ? "लॉग आउट करें" : "Log out"}
+              aria-label="Log out"
+            >
+              {loggingOut ? (
+                <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+              ) : (
+                <LogOut className="w-4 h-4" />
+              )}
             </button>
           </div>
         </div>
