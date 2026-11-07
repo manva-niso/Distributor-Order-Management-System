@@ -14,11 +14,13 @@ The active application code remains strictly partitioned into two operational ro
 project-curation-and-research/
 ├── Build Docs/                                    # Technical logs, incident tracking & operational guides
 │   ├── Laymans_Guide.md                          # Plain-English non-technical explanation of the Order Engine
-│   ├── Modules_And_Features.md                   # Feature registry across all 9 core build modules
-│   ├── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A44])
-│   ├── Errors.md                                 # Root cause incident log for all build/runtime issues ([ERR-001] - [ERR-030])
+│   ├── Modules_And_Features.md                   # Feature registry across all 10 core build modules
+│   ├── Assumptions.md                            # Comprehensive assumption registry ([A1] - [A53])
+│   ├── Issues.md                                 # User-facing problems & UX friction registry ([ISSUE-001] - [ISSUE-020])
+│   ├── Errors.md                                 # Root cause technical incident log ([ERR-001] - [ERR-047])
 │   ├── Overall_connections.md                    # File roles & end-to-end data flow breakdown
 │   ├── Test_And_Run_Guide.md                     # Step-by-step testing runbook
+│   ├── Walkthrough.md                            # End-to-end user verification walkthrough
 │   ├── TDD.md / TDD_Draft.md                     # Technical Design Document
 │   └── deployment.md                             # Step-by-step local & cloud deployment guide
 ├── research/                                      # Academic papers, linguistic research & retrieval benchmarks
@@ -65,6 +67,8 @@ Contains authentic distributor catalog data and realistic stress-test scenarios:
 
 ## 3. Build Documentation & Incident Logs (`Build Docs/`)
 - **[`Laymans_Guide.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Laymans_Guide.md):** Plain-English explanation strictly explaining what the vernacular order engine does, why it was decoupled into `engine/`, and how it stops guesswork.
-- **[`Modules_And_Features.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Modules_And_Features.md):** Complete registry of all 9 modules and 34 production routes.
-- **[`Errors.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Errors.md):** Exhaustive root-cause incident log covering all 30 resolved issues (`[ERR-001]` through `[ERR-030]`).
-- **[`Assumptions.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Assumptions.md):** Verified assumptions `[A1]` through `[A44]`.
+- **[`Modules_And_Features.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Modules_And_Features.md):** Complete registry of all 10 modules and 35 production routes.
+- **[`Issues.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Issues.md):** Comprehensive registry of all 20 end-user facing issues and UX frictions faced from project inception to completion (`[ISSUE-001]` through `[ISSUE-020]`).
+- **[`Errors.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Errors.md):** Exhaustive root-cause technical incident log covering all 47 resolved code/build errors (`[ERR-001]` through `[ERR-047]`).
+- **[`Assumptions.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Assumptions.md):** Verified commercial and architectural assumptions `[A1]` through `[A53]`.
+- **[`Walkthrough.md`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/Build%20Docs/Walkthrough.md):** 17-step end-to-end user verification walkthrough matrix.
