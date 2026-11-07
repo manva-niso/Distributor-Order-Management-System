@@ -40,6 +40,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 10** | Multi-Store Real-Time Stock Synchronization & Zero-Drop Cart | Retailer, Desk | ✅ Completed | Live SSE stream (`[A52]`), instant OOS lock, BroadcastChannel, zero-drop dual-writes (`[A53]`) |
 | **Module 11** | Version 3.0 (V3) UI Polish, Ergonomics & Walkthrough Expansion | All Roles | ✅ Completed | Centered smartphone container, mobile drag & resize controls, removal of AI star icons, 18 walkthrough steps |
 | **Module 12** | Version 3.0 (V3) Zero-AI Bilingual Engine, Persistent Context & Universal Transliteration | Retailer, Desk, All | ✅ Completed | 3-tier cascade (`[A54]`, `[A55]`), persistent cross-tab context (`[A56]`), dynamic Excel & registration transliteration, responsive fluid grids (`[A57]`) |
+| **Module 13** | Version 3.1 (V 3.1) Deterministic Guardrails, ARTPARK-IISc Vaani Hindi ASR, 3G Compression & Benchmarks | All Roles | ✅ Completed | Deterministic packaging & OOC isolation (`[A59]`), ARTPARK-IISc Vaani Hindi speech models (`[A58]`), low-bandwidth 3G canvas compression (`[A60]`), comprehensive 8-sheet Excel benchmarks |
 
 ---
 
@@ -434,13 +435,16 @@ This document tracks each Core Build Module step by step, its features, implemen
   - `src/lib/ai/candidate-retriever.ts` - Synchronized candidate retriever
   - `src/lib/ai/calibrated-scorer.ts` - Synchronized Platt calibrated scorer
   - `src/lib/ai/gemini-chooser.ts` - Synchronized Gemini closed-set chooser
-  - `src/lib/ai/cascaded-parser.ts` - Synchronized 5-tier cascaded pipeline
+  - `src/lib/ai/cascaded-parser.ts` - Synchronized 5-tier cascaded pipeline overhauled with deterministic packaging isolation and out-of-catalog rejection
+  - `src/lib/ai/vaani-asr.ts` - ARTPARK-IISc Vaani Hindi speech-to-text module (Whisper Large v3 Vaani & FastConformer)
+  - `src/lib/ai/multimodal.ts` - Unified multimodal ingestion dispatcher (Vaani Hindi ASR, Gemini Vision OCR, offline simulation)
   - `src/lib/ai/pipeline.ts` - Factory supporting `"cascade"`, `"rules"`, and `"custom_ml"`
   - `src/lib/ai/text-parser.ts` - Synchronized app parser calling calibrated scorer
   - `src/lib/ai/types.ts` - Synchronized types
   - `src/app/api/capture/parse-text/route.ts` - Injects active `retailerAliases` from DB store
-  - `src/app/api/upload/media/route.ts` - Injects active `retailerAliases` into media parsing
-  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card and multi-modal upload triggers
+  - `src/app/api/upload/media/route.ts` - Dispatches via `processMediaOrder` with Vaani Hindi ASR and Gemini Vision
+  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card, honest source badging (Direct Match vs AI Match), and client-side <3G canvas image compression (<120KB)
+  - `src/__tests__/deterministic-guardrails.test.ts` - 6 unit tests verifying deterministic packaging guardrails, out-of-catalog rejection, and multimodal audio pipeline
   - `src/__tests__/candidate-retriever.test.ts` - 11 unit tests in distributor-app
   - `src/__tests__/calibrated-scorer.test.ts` - 7 unit tests in distributor-app
   - `src/__tests__/gemini-chooser.test.ts` - 6 unit tests in distributor-app
@@ -780,3 +784,46 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### 3. Verification & Tests
 - **Vitest Suite:** 147/147 tests passing across all 19 test files (`npm --prefix distributor-app test`).
 - **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
+
+---
+
+## Module 13: Version 3.1 (V 3.1) Deterministic Guardrails, ARTPARK-IISc Vaani Hindi ASR, 3G Canvas Compression & Comprehensive Metrics
+
+### 1. Features Implemented
+- [x] **Mostly Deterministic Parsing & Strict Fallbacks (`[A59]`):**
+  - Isolated packaging invariants (`DABBA`, `MISSING_UNIT`, `BROKEN_CASE`) from cloud LLM invocations $\implies$ 100% deterministic local resolution in 0ms (`source: "rules"`).
+  - Implemented 0ms negative catalog verification. Non-inventory queries (`topScore < 0.20`, e.g. "chips", "asdfghjk") return honest rejection reasoning with zero cloud tokens.
+  - Gemini Closed-Set Chooser is invoked *only* when legitimate warehouse SKUs compete closely (`MULTIPLE_CANDIDATES`).
+- [x] **ARTPARK-IISc Vaani Hindi Speech Recognition Integration (`[A58]`):**
+  - Integrated `ARTPARK-IISc/whisper-large-v3-vaani-hindi` and `ARTPARK-IISc/Vaani-FastConformer-Hindi` via Hugging Face Inference API with an 8-second circuit-breaker timeout.
+  - 3-tier multimodal audio ingestion: Vaani Hindi Whisper $\to$ Gemini Audio $\to$ Offline simulated Mandi fallback.
+  - 2-tier handwritten kirana slip OCR: Gemini 2.5 Flash Vision OCR $\to$ Offline simulated slip fallback.
+- [x] **Low-Bandwidth 3G Offscreen Canvas Compression (`[A60]`):**
+  - Added client-side HTML5 offscreen canvas downscaling in `quick-order/page.tsx`.
+  - Automatically downsizes 8MB-12MB phone camera photos to $\le 1280$px JPEG (~118KB, 98.6% payload reduction) in <100ms.
+  - Cuts 3G mobile upload duration from $>8.5$ minutes (timeout failure) to $\approx 7.3$ seconds (<0.8s on 4G).
+- [x] **Comprehensive 8-Sheet Metrics & Benchmarking Suite:**
+  - Automated benchmark script `overall_app_testing/generate-benchmark-excel.ts` generating an 8-sheet Excel workbook (`overall_app_testing_results.xlsx`) and structured JSON database (`overall_app_testing_database.json`).
+  - Covers Speed & Latency (Click-to-Glass 5-stage lifecycle across Broadband, 4G, 3G, 2G), Bandwidth & Payloads, Portability (360px-1920px, WCAG 2.5.5 touch targets), Usability (Mandi slang, OCC collision safety), and Industry Benchmarks (Google Core Web Vitals, Google RAIL, Flipkart ACL 2023, ITU-T 3G cellular constraints).
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/ai/cascaded-parser.ts` - Deterministic packaging guardrail isolation, 0ms negative catalog rejection floor
+  - `src/lib/ai/vaani-asr.ts` - ARTPARK-IISc Vaani Hindi ASR client with circuit-breaker timeout
+  - `src/lib/ai/multimodal.ts` - Unified 3-tier audio and 2-tier vision ingestion
+  - `src/app/api/upload/media/route.ts` - Process media order with mediaSource attribution
+  - `src/app/(portal)/quick-order/page.tsx` - Client-side HTML5 canvas compression, honest catalog check badges
+  - `src/__tests__/deterministic-guardrails.test.ts` - 6 unit tests verifying deterministic rules and multimodal pipeline
+- `project-curation-and-research/`
+  - `overall_app_testing/generate-benchmark-excel.ts` - Expanded 8-sheet benchmark generator
+  - `overall_app_testing/overall_app_testing_results.xlsx` - 8-sheet Excel workbook
+  - `overall_app_testing/overall_app_testing_database.json` - Comprehensive JSON metrics database
+  - `overall_app_testing/README.md` - Documentation of 8 sheets and benchmark commands
+  - `Build Docs/Test_And_Run_Guide.md` - Section 6 benchmark runner instructions
+  - `Build Docs/Assumptions.md` - Registered `[A58]`, `[A59]`, `[A60]`
+  - `Build Docs/Issues.md` - Registered `[ISSUE-026]`
+
+### 3. Verification & Tests
+- **Vitest Suite:** 153/153 tests passing across all 20 test files (`npm --prefix distributor-app test`).
+- **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
+- **FMCG Prompts Benchmark:** 40/40 prompts passing (100% Pass Rate, 100% Out-of-Catalog AI Rejection Rate).

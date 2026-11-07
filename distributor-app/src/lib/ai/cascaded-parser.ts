@@ -47,28 +47,68 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
     // Tier 4: For lines requiring escalation to Chooser, invoke Gemini in parallel
     const resolvedLines = await Promise.all(
       initialParsedLines.map(async (line) => {
-        // Only escalate to Gemini if:
-        // 1. LLM escalation is enabled
-        // 2. Line confidence is below threshold (< 0.70) or SKU is unknown / multiple candidates
-        // 3. Retrieved candidate set is non-empty
-        const needsEscalation =
-          line.confidence < 0.70 ||
-          line.matchedSku === null ||
-          line.ambiguityReason === "MULTIPLE_CANDIDATES" ||
-          line.ambiguityReason === "UNKNOWN_SKU";
+        // 1. Deterministic Out-of-Catalog Rejection
+        // If candidate retriever found no plausible candidates (or top candidate score < 0.20),
+        // we deterministically know the requested item is NOT in the wholesale catalog.
+        // Zero cloud latency, zero LLM cost, instant local rejection with informative reasoning.
+        const topCandidateScore = line.candidates[0]?.score || 0;
+        const hasPlausibleCandidates = line.candidates.length > 0 && topCandidateScore >= 0.20;
 
-        if (!this.enableLLM || !needsEscalation) {
-          return line;
+        if (line.matchedSku === null && !hasPlausibleCandidates) {
+          return {
+            ...line,
+            isAmbiguous: true,
+            ambiguityReason: "UNKNOWN_SKU" as AmbiguityReason,
+            confidence: 0.15,
+            reasoning: `The requested item "${line.rawUtterance}" is not available in Company A's wholesale catalog.`,
+            source: "rules" as const,
+          };
         }
 
-        // If candidates were retrieved by RRF, pass them.
-        // If candidates is empty (e.g. random or colloquial words), provide catalog SKUs so Gemini can answer!
-        const candidatePool =
-          line.candidates.length > 0
-            ? line.candidates.map((c) => c.sku)
-            : activeSkus.slice(0, 16);
+        // 2. Packaging & Business Guardrails (Invariant [A16] "Ask, Never Guess")
+        // NEVER escalate packaging ambiguities (Dabba, Missing Unit, Broken Case) to LLM.
+        // These are strictly business choices resolved via plain-code UI Disambiguation Cards in 0ms.
+        const isPackagingGuardrail =
+          line.extractedUnit === "DABBA" ||
+          (line.extractedUnit === "UNKNOWN" && line.matchedSku !== null) ||
+          Boolean(line.brokenCaseInfo);
 
-        const candidateSummaries = candidatePool.slice(0, 15).map((sku) => ({
+        if (isPackagingGuardrail) {
+          return {
+            ...line,
+            source: "rules" as const,
+          };
+        }
+
+        // 3. High Confidence Deterministic Matches (Confidence >= 0.75 and not ambiguous)
+        if (line.confidence >= 0.75 && line.matchedSku !== null && !line.isAmbiguous) {
+          return {
+            ...line,
+            source: "rules" as const,
+          };
+        }
+
+        // 4. True LLM Fallback (Tier 4):
+        // Only escalate when:
+        // - LLM is enabled
+        // - Plausible candidate SKUs exist in the catalog that compete closely (MULTIPLE_CANDIDATES)
+        //   or when local regex could not resolve a single winner from a colloquial description
+        const needsEscalation =
+          this.enableLLM &&
+          hasPlausibleCandidates &&
+          (line.ambiguityReason === "MULTIPLE_CANDIDATES" ||
+            (line.confidence < 0.70 && line.matchedSku === null));
+
+        if (!needsEscalation) {
+          return {
+            ...line,
+            source: "rules" as const,
+          };
+        }
+
+        // Pass top candidate SKUs to Gemini Closed-Set Chooser
+        const candidatePool = line.candidates.map((c) => c.sku);
+        const candidateSummaries = candidatePool.slice(0, 8).map((sku) => ({
           id: sku.id,
           name: sku.name,
           brand: sku.brand,
@@ -81,21 +121,6 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
         if (decision.chosenSkuId) {
           const matchedSku = activeSkus.find((s) => s.id === decision.chosenSkuId);
           if (matchedSku) {
-            // Tier 5: Enforce Plain Code Guardrails (Never let LLM override unit invariants)
-            let updatedAmbiguityReason: AmbiguityReason = null;
-            let updatedIsAmbiguous = false;
-
-            if (line.extractedUnit === "DABBA") {
-              updatedIsAmbiguous = true;
-              updatedAmbiguityReason = "AMBIGUOUS_UNIT";
-            } else if (line.extractedUnit === "UNKNOWN") {
-              updatedIsAmbiguous = true;
-              updatedAmbiguityReason = "MISSING_UNIT";
-            } else if (line.brokenCaseInfo) {
-              updatedIsAmbiguous = true;
-              updatedAmbiguityReason = "BROKEN_CASE";
-            }
-
             // Re-calculate cart quantities based on chosen SKU
             let resolvedQtyCases = line.extractedQty || 1;
             let resolvedQtyPacks = 0;
@@ -111,8 +136,8 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
               ...line,
               matchedSku,
               confidence: decision.confidence,
-              isAmbiguous: updatedIsAmbiguous,
-              ambiguityReason: updatedAmbiguityReason,
+              isAmbiguous: false,
+              ambiguityReason: null,
               resolvedQtyCases,
               resolvedQtyPacks,
               reasoning: decision.reasoning,
@@ -121,11 +146,12 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
           }
         }
 
+        // If Gemini did not find a match in the closed candidate set
         return {
           ...line,
           confidence: decision.confidence ?? line.confidence,
           reasoning: decision.reasoning || line.reasoning,
-          source: decision.source || "rules",
+          source: decision.source || "fallback",
         };
       })
     );

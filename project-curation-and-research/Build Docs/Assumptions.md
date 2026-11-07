@@ -455,3 +455,26 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   1. **Responsive Viewport Fluidity:** On desktop screens, pages expand gracefully to multi-column responsive grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk triage tables), utilizing available screen width while keeping touch targets $\ge 48$px.
   2. **Zero Text Clipping & Overflow Guards:** Data containers utilize flexible flexbox layouts with `break-words`, `min-w-0`, and responsive padding to ensure multi-tier scheme badges, Hindi matras, and unit rate calculations never clip or spill outside card boundaries.
   3. **Fully Draggable & Resizable Walkthrough Guide:** The onboarding widget features expanded touch handles (`touch-none`), desktop mouse drag listeners, and 1-tap `ZoomIn` / `ZoomOut` buttons, clamped safely within viewport boundaries (`window.innerWidth - 12`).
+
+#### `[A58]` ARTPARK-IISc Vaani Hindi Dialect ASR Hierarchy
+- **Context:** Jabalpur kirana shopkeepers frequently send WhatsApp voice notes in colloquial Hindi, Bundelkhandi, or Baghelkhandi with heavy regional accents and background Mandi traffic noise. Generic commercial ASR engines struggle with central Indian dialects and FMCG brand code-mixing.
+- **Core Architectural Assumption:** **Audio voice note transcription must prioritize regional Indian district-trained models before falling back to generic LLMs or simulated offline fallbacks.**
+- **3-Tier Audio ASR Architecture (`vaani-asr.ts` & `multimodal.ts`):**
+  1. **Tier 1 (Primary):** `ARTPARK-IISc/whisper-large-v3-vaani-hindi` (and FastConformer alternative) via Hugging Face Serverless Inference API, trained on the IISc-Google Vaani 14,000-hour multi-district corpus.
+  2. **Tier 2 (Fallback):** Google Gemini 2.5 Flash Multimodal Audio transcription when Hugging Face tokens are omitted or during serverless cold starts.
+  3. **Tier 3 (Offline Simulation):** Deterministic Mandi Hindi voice note transcript generator for offline demo simulations.
+
+#### `[A59]` Mostly Deterministic Text Parsing & Strict Fallback Thresholds
+- **Context:** Calling cloud LLMs for every unstructured text query causes 1.5–4.0s latency, per-token cloud costs, and non-deterministic behavior. LLMs must act purely as an edge-case fallback, not as the primary engine.
+- **Core Architectural Assumption:** **At least 95% of all Kirana order texts must resolve deterministically via local heuristics (Tiers 0–3) in <20ms; LLM escalation is strictly forbidden for packaging invariants and out-of-catalog items.**
+- **Guardrail Enforcement Specifications (`cascaded-parser.ts`):**
+  1. **Packaging Guardrail Isolation:** Packaging ambiguities (`DABBA`, `MISSING_UNIT`, `BROKEN_CASE`) are resolved 100% locally via plain-code UI Disambiguation Cards. Gemini is never called to guess pack sizes.
+  2. **Deterministic Out-of-Catalog Rejection:** When local candidate retrieval finds no plausible catalog SKU (top candidate score < 0.20, e.g. "chips", "sabun"), the system immediately returns `UNKNOWN_SKU` with a plain-code explanation with 0ms delay.
+  3. **Constrained Closed-Set Escalation:** Gemini is only invoked when plausible catalog candidates exist but compete closely (`MULTIPLE_CANDIDATES`), acting strictly as a closed-set chooser over warehouse items.
+
+#### `[A60]` Low-Bandwidth (<3G) Client-Side Canvas Media Compression
+- **Context:** Kirana retailers taking camera photos of handwritten paper slips (*parchi*) on low-end smartphones generate 5MB–10MB raw JPEGs, which time out or fail on patchy 3G/2G mandi networks.
+- **Core Architectural Assumption:** **High-resolution camera uploads must be compressed client-side before transmission to reduce payload size by >97% without losing handwriting legibility.**
+- **Compression Specification (`quick-order/page.tsx`):**
+  - Uses native off-screen HTML5 Canvas / `createImageBitmap` to downscale photos to a maximum dimension of 1280px at 0.82 JPEG quality.
+  - Compresses 8MB raw photos to ~120KB in <100ms on the phone, enabling sub-second uploads even on congested 3G cellular connections.

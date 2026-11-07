@@ -10,7 +10,7 @@ From the `distributor-app/` directory:
 
 | What You Want To Do | Command | What It Verifies |
 | :--- | :--- | :--- |
-| **Run all tests collectively** | `npm run test` | Executes all 19 Vitest test suites (147 tests) across all modules in <2 seconds. |
+| **Run all tests collectively** | `npm run test` | Executes all 20 Vitest test suites (153 tests) across all modules in <2 seconds. |
 | **Run tests in watch mode** | `npm run test:watch` | Reruns tests on every file save during development. |
 | **Test Module 1 (Auth) only** | `npx vitest run src/__tests__/auth.test.ts` | Runs the 13 isolated auth, cryptographic OTP, and JWT tests. |
 | **Test Concurrency Lock only** | `npx vitest run src/__tests__/session-lock.test.ts` | Runs 6 single-writer concurrency lock & force-logout tests (`[A49]`). |
@@ -328,7 +328,7 @@ All integrations can be flipped between **Development Mode** (console output) an
 
 ---
 
-## 5. Comprehensive Automated Test Suite (147 Tests across 19 Suites)
+## 5. Comprehensive Automated Test Suite (153 Tests across 20 Suites)
 
 All test suites are fully automated and pass in <2 seconds with zero network dependencies:
 
@@ -341,6 +341,7 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 10: Scoped Carts** | `npx vitest run src/__tests__/cart-storage.test.ts` | Kirana draft cart isolation (`[A50]`), zero-drop dual-writes, auto-migration (`[A53]`) | 7 tests |
 | **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 floor division, 3% slab tiers, Rule 46 50/50 GST formulas | 13 tests |
 | **Module 12: Transliteration**| `npx vitest run src/__tests__/dynamic-transliteration.test.ts` | 3-tier cascade, Mandi lexicon mapping, phonetic syllable conversion, Excel enrichment (`[A55]`) | 5 tests |
+| **Module 5: Deterministic Guardrails** | `npx vitest run src/__tests__/deterministic-guardrails.test.ts` | Strictly deterministic packaging isolation (`[A59]`), zero-Gemini out-of-catalog rejection, Vaani ASR fallback (`[A58]`) | 6 tests |
 | **Module 4: Cart & Orders** | `npx vitest run src/__tests__/orders.test.ts` | Atomic stock reservation, ledger credit headroom ceiling check, OCC versioning | 4 tests |
 | **Master Setup (Excel)** | `npx vitest run src/__tests__/excel-import.test.ts` | Excel workbook parsing, column synonym tolerance, dynamic catalog replacement | 4 tests |
 | **Module 5: Text Parser** | `npx vitest run src/__tests__/text-parser.test.ts` | Devanagari numerals, Hinglish extraction, unit ambiguity guardrails, broken case handling | 14 tests |
@@ -353,4 +354,21 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime XML `<ENVELOPE>`, Actual vs Billed quantities, double-entry balance | 8 tests |
 | **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
 | **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
-| **Total Test Coverage** | `npm run test` | **All 19 test suites executing collectively** | **147 tests (100% Passing)** |
+| **Total Test Coverage** | `npm run test` | **All 20 test suites executing collectively** | **153 tests (100% Passing)** |
+
+---
+
+## 6. Comprehensive Metrics, Latency & Benchmark Verification Runner
+
+To run the complete empirical benchmark suite covering **Portability, Usability, Speed & Latency (Click to Glass decomposition across Broadband, 4G, 3G, 2G), Bandwidth Payloads, and Industry Benchmark Comparisons**:
+
+```bash
+# Run the 8-sheet benchmark generator from distributor-app:
+npx --prefix distributor-app tsx --tsconfig distributor-app/tsconfig.json "project-curation-and-research/overall_app_testing/generate-benchmark-excel.ts"
+```
+
+### Outputs Generated:
+1. **Excel Spreadsheet (8 Sheets):** `project-curation-and-research/overall_app_testing/overall_app_testing_results.xlsx`
+2. **Structured JSON Database:** `project-curation-and-research/overall_app_testing/overall_app_testing_database.json`
+3. **Master Report Artifact:** `C:\Users\Asus\.gemini\antigravity-cli\brain\e1f855bc-1984-4de0-835a-e6aab71aae9e\comprehensive_metrics_and_benchmarks_report.md`
+

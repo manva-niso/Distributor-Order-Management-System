@@ -2,7 +2,7 @@
 
 > **Wholesale FMCG Order Management System for Company A, Jabalpur**  
 > Serving 1,800 Kirana stores across Jabalpur routes with conversational WhatsApp ordering, trade scheme calculation, split-screen human verification, and Tally Prime ERP export.  
-> **Release: Version 3.0 (V3)** — Includes Zero-AI Vernacular Hindi Localization, Persistent Cross-Tab Language Sync, Real-Time Stock Contention, and Fluid Responsive Ergonomics.
+> **Release: Version 3.1 (V 3.1)** — Includes Deterministic Guardrails (>=95% local resolution), ARTPARK-IISc Vaani Hindi ASR, Low-Bandwidth 3G Offscreen Canvas Compression (98.6% payload reduction), and Comprehensive 8-Sheet Industry Benchmarks.
 
 ---
 
@@ -21,8 +21,8 @@ npm run dev
 
 ### Run Tests:
 ```bash
-npm test          # Run app test suite (147 tests across 19 suites)
-npm run test:all  # Run universal test suite across app & engine (215 tests)
+npm test          # Run app test suite (153 tests across 20 suites)
+npm run test:all  # Run universal test suite across app & engine (221 tests)
 ```
 
 ---
