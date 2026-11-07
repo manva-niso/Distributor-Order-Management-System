@@ -33,10 +33,13 @@ export async function GET(request: NextRequest) {
       retailer = {
         id: r.id,
         name: r.name,
+        nameHi: r.nameHi,
         ownerName: r.ownerName,
+        ownerNameHi: r.ownerNameHi,
         phone: r.phone,
         address: r.address,
         route: r.route,
+        routeHi: r.routeHi,
         creditLimit: r.creditLimit,
         currentBalance: r.currentBalance,
         availableCredit: r.creditLimit - r.currentBalance,

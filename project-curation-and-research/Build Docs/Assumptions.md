@@ -405,3 +405,53 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   2. **Tiered Fallback Resolution:** On cart hydration (`loadScopedCart`), the system checks the scoped key first; if null or empty, it automatically reads from the universal fallback key and silently migrates the draft into the scoped key.
   3. **Optimistic 0ms Render:** The `/cart` and `/catalogue` pages mount with immediate synchronous draft cart hydration from local storage, eliminating race conditions where waiting for `/api/catalogue` network responses would display a flash of empty cart state.
   4. **Retailer ID Cache:** The current retailer ID is cached in `localStorage("isolabs_current_retailer_id")` upon successful session retrieval, enabling instant scoped key derivation on subsequent page navigations.
+
+---
+
+### Module 12: Zero-AI Bilingual Localization, Persistent Language Context & Universal Transliteration
+
+#### `[A54]` Zero-AI Vernacular Hindi Localization & Mandi Lexicon
+- **Context:** Kirana store merchants and Mandi traders in Jabalpur, Katni, and Mahakoshal communicate and transact exclusively in Hindi and local market terminology (मंडी शब्दावली).
+- **Core Architectural Assumption:** **All vernacular localization across the application MUST be 100% deterministic, zero-AI, and instantaneous ($\le 0.05$ms). Generative AI (LLMs) MUST NEVER be used for runtime UI translation or invoice line conversion.**
+- **Why Zero-AI Was Decided (Architectural Rationale):**
+  1. **Zero Runtime Latency:** LLM API roundtrips introduce 1,500ms to 4,000ms latency per page navigation, crippling 3G mobile performance for Kirana store owners. Deterministic dictionary lookups execute in $<0.05$ milliseconds.
+  2. **Zero Hallucination Risk on Commercial Invoices:** Generative models unpredictably hallucinate numbers, prices, tax percentages, or commercial terms (e.g. translating "Peti" into "Box" or altering ₹777.60). Legal commercial invoices under Madhya Pradesh Rule 46 GST cannot tolerate probabilistic non-determinism.
+  3. **Zero Token Cost & Offline Resilience:** Eliminates recurring per-token cloud translation API bills. Operates entirely client-side and in local memory with zero external network dependencies.
+  4. **Authentic Mandi Trade Terminology:** Generic translation engines produce formal literary Hindi (e.g. translating "Cart" to "शॉपिंग कार्ट" or "Wholesale Case" to "थोक डिब्बा"). IsoLabs enforces authentic Mandi terms:
+     - Master Wholesale Case $\to$ **पूरी पेटी**
+     - Loose Packets $\to$ **खुले पैकेट**
+     - Out of Stock $\to$ **स्टॉक समाप्त**
+     - Credit Limit $\to$ **उधार सीमा**
+     - Outstanding Balance $\to$ **बकाया राशि**
+     - Place Order $\to$ **ऑर्डर दर्ज करें**
+     - Slab Discount $\to$ **थोक स्लैब छूट**
+     - Free Scheme Goods $\to$ **मुफ्त माल (स्कीम)**
+
+#### `[A55]` Universal Deterministic Transliteration Fallback for Arbitrary Catalogues
+- **Context:** Distributors upload custom Excel workbooks (`.xlsx`) containing arbitrary new brands, un-indexed product descriptions (e.g. *"Kisan Chana Dal 1kg"*, *"Rajesh Masala 50g"*), and new retail store accounts (e.g. *"Raju Kirana & General Store"*).
+- **Core Architectural Assumption:** **The system must dynamically and accurately render any arbitrary product, category, or shop name in Devanagari Hindi WITHOUT requiring manual database translation or static dictionary hardcoding.**
+- **The 3-Tier Cascade Transliteration Protocol (`transliterateToHindi`):**
+  - **Tier 1 (Explicit Schema Attribute):** If the entity provides an explicit `nameHi`, `categoryHi`, or `shopNameHi`, the system renders the ground-truth field with zero alteration.
+  - **Tier 2 (Curated Mandi Lexicon Match):** Scans the curated trade dictionary (`mandiTradeDict`) for exact token or multi-word matches across FMCG commodity words, brands, package units, and shop naming prefixes.
+  - **Tier 3 (Universal Phonetic Syllable Transliteration):** An algorithmic English-to-Devanagari phonetic converter parses input tokens into consonant-vowel syllable clusters, maps phonetic phonemes to Devanagari characters, handles aspirated consonants (`bh` $\to$ भ, `dh` $\to$ ध, `kh` $\to$ ख), conjunct ligatures, and converts English numerals (`0-9`) into Devanagari numerals (`०-९`).
+- **Ingestion-Time Pre-Computation:**
+  - In `importer.ts` (Excel ingestion), if an uploaded catalogue row lacks Hindi fields, `transliterateToHindi(name)` and `transliterateToHindi(category)` pre-populate `nameHi` and `categoryHi` at import time.
+  - In `AddProductModal.tsx` (Desk additions), entering an English product name auto-computes and displays the Devanagari equivalent in real time.
+  - In `register/route.ts` (Kirana onboarding), `shopName` is automatically transliterated to `shopNameHi` and persisted to Neon PostgreSQL.
+
+#### `[A56]` Single-Source Persistent Cross-Tab Language Context
+- **Context:** Kirana merchants toggling language on `/catalogue` expect the entire application (/cart, /quick-order, /orders, /setup, /desk, and the Walkthrough Guide) to remain in Hindi across all tabs, page navigations, and browser restarts.
+- **Core Architectural Assumption:** **Language state must be managed as a singleton application-wide context with multi-layer persistence and instant cross-tab synchronization.**
+- **Multi-Layer Synchronization Architecture (`LanguageContext.tsx`):**
+  1. **React Context Tree:** Top-level provider in `layout.tsx` exposes `{ lang, setLang, t }` to all client components.
+  2. **Local Storage Persistence:** Stores `localStorage.setItem("isolabs_lang", lang)`, restoring user preference upon page reload or browser restart.
+  3. **1-Year SameSite=Lax Cookie:** Writes `document.cookie = "isolabs_lang=${lang}; path=/; max-age=31536000; SameSite=Lax"`, enabling server components and middleware to align with the user's language preference and preventing hydration mismatches.
+  4. **Cross-Tab Broadcast Synchronization:** Listens to `window.addEventListener("storage", ...)` and dispatches `CustomEvent("isolabs_language_change")`, guaranteeing that switching language in Tab A updates Tab B and the Walkthrough modal in 0ms without page reloads.
+
+#### `[A57]` Responsive Desktop Fluid Grid & Multi-Column Ergonomics
+- **Context:** Kirana retailers use budget mobile phones in retail shops, while distributor clerks and warehouse supervisors use 1080p desktop monitors and laptops.
+- **Core Architectural Assumption:** **The interface must provide native smartphone ergonomics on mobile devices without artificially compressing desktop and laptop viewports into narrow vertical tubes or causing text overflow in data containers.**
+- **Ergonomic Specifications:**
+  1. **Responsive Viewport Fluidity:** On desktop screens, pages expand gracefully to multi-column responsive grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk triage tables), utilizing available screen width while keeping touch targets $\ge 48$px.
+  2. **Zero Text Clipping & Overflow Guards:** Data containers utilize flexible flexbox layouts with `break-words`, `min-w-0`, and responsive padding to ensure multi-tier scheme badges, Hindi matras, and unit rate calculations never clip or spill outside card boundaries.
+  3. **Fully Draggable & Resizable Walkthrough Guide:** The onboarding widget features expanded touch handles (`touch-none`), desktop mouse drag listeners, and 1-tap `ZoomIn` / `ZoomOut` buttons, clamped safely within viewport boundaries (`window.innerWidth - 12`).

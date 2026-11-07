@@ -18,14 +18,14 @@ import {
   FileText,
 } from "lucide-react";
 import { AVAILABLE_ROUTES } from "@/app/api/auth/register/route";
-
-type Language = "en" | "hi";
+import { ROUTE_HINDI_MAP, Language } from "@/lib/i18n/trade-dict";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [lang, setLang] = useState<Language>("en");
+  const { lang, setLang } = useLanguage();
   const [phone, setPhone] = useState("");
   const [shopName, setShopName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -109,19 +109,19 @@ function RegisterContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
-      <div className="w-full max-w-md min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 sm:shadow-2xl sm:border-x sm:border-slate-200/80 relative">
+      <div className="w-full max-w-md md:max-w-lg min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 md:shadow-xl md:border-x md:border-slate-200/80 relative">
         {/* Top Header */}
-        <header className="max-w-md w-full mx-auto flex items-center justify-between pb-4">
+        <header className="max-w-md md:max-w-lg w-full mx-auto flex items-center justify-between pb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 bg-emerald-700 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">
             CA
           </div>
           <div>
             <h1 className="text-base font-bold text-slate-900 leading-tight">
-              Company A • Jabalpur
+              {lang === "hi" ? "कंपनी ए • जबलपुर" : "Company A • Jabalpur"}
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              FMCG & Home Care Wholesale
+              {lang === "hi" ? "थोक एफएमसीजी सामान वितरण" : "FMCG & Home Care Wholesale"}
             </p>
           </div>
         </div>
@@ -259,7 +259,7 @@ function RegisterContent() {
               >
                 {AVAILABLE_ROUTES.map((r) => (
                   <option key={r} value={r}>
-                    {r}
+                    {lang === "hi" ? (ROUTE_HINDI_MAP[r] || r) : r}
                   </option>
                 ))}
               </select>
@@ -338,8 +338,10 @@ function RegisterContent() {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-md w-full mx-auto text-center pt-4 text-[11px] text-slate-500">
-        Company A • Jabalpur Authorized B2B FMCG Distribution Network
+      <footer className="max-w-md md:max-w-lg w-full mx-auto text-center pt-4 text-[11px] text-slate-500">
+        {lang === "hi"
+          ? "कंपनी ए • जबलपुर अधिकृत थोक वितरण नेटवर्क"
+          : "Company A • Jabalpur Authorized B2B FMCG Distribution Network"}
       </footer>
       </div>
     </div>

@@ -40,12 +40,16 @@ import {
 import AddProductModal from "@/components/desk/AddProductModal";
 import { SeedSku } from "@/db/seed-data";
 import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getSkuDisplay, getRetailerDisplay, RETAILER_NAME_FALLBACK_MAP, ROUTE_HINDI_MAP } from "@/lib/i18n/trade-dict";
 
 interface DeskOrder {
   id: string;
   retailerId: string;
   retailerName: string;
+  retailerNameHi?: string;
   route?: string;
+  routeHi?: string;
   retailerPhone?: string;
   placedBy: string;
   orderSource?: string;
@@ -78,6 +82,7 @@ type TabType = "QUEUE" | "CREDIT_HOLDS" | "CATALOGUE" | "VAN_MANIFEST" | "DORMAN
 
 export default function OrderDeskPage() {
   const router = useRouter();
+  const { lang, setLang, toggleLang } = useLanguage();
   const { stockMap, stockVersion, getStock } = useLiveStock();
 
   const [activeTab, setActiveTab] = useState<TabType>("QUEUE");
@@ -437,8 +442,19 @@ export default function OrderDeskPage() {
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <Database className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Catalog & Excel Hub</span>
+              <span>{lang === "hi" ? "कैटलॉग व एक्सेल" : "Catalog & Excel Hub"}</span>
             </Link>
+
+            {/* Global Language Switcher */}
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="h-8 px-2.5 text-xs font-bold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+              title={lang === "hi" ? "Switch to English" : "हिन्दी में बदलें"}
+            >
+              <span className={lang === "hi" ? "text-emerald-700" : "text-slate-400"}>अ/A</span>
+              <span>{lang === "en" ? "हिंदी" : "English"}</span>
+            </button>
 
 
 
@@ -749,11 +765,17 @@ export default function OrderDeskPage() {
 
                             <td className="py-3.5 px-4">
                               <span className="font-bold text-slate-900 block leading-tight">
-                                {ord.retailerName}
+                                {lang === "hi"
+                                  ? ord.retailerNameHi || RETAILER_NAME_FALLBACK_MAP[ord.retailerName] || ord.retailerName
+                                  : ord.retailerName}
                               </span>
                               <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                                 <Truck className="w-3 h-3 text-slate-400 shrink-0" />
-                                <span>{ord.route || "General Beat"}</span>
+                                <span>
+                                  {lang === "hi"
+                                    ? ord.routeHi || (ord.route && ROUTE_HINDI_MAP[ord.route]) || ord.route || "सामान्य बीट"
+                                    : ord.route || "General Beat"}
+                                </span>
                               </span>
                             </td>
 
@@ -1260,7 +1282,11 @@ export default function OrderDeskPage() {
                             </span>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-bold text-slate-900">{stop.retailerName}</h4>
+                                <h4 className="text-sm font-bold text-slate-900">
+                                  {lang === "hi"
+                                    ? RETAILER_NAME_FALLBACK_MAP[stop.retailerName] || stop.retailerName
+                                    : stop.retailerName}
+                                </h4>
                                 <span className="text-xs text-slate-500">({stop.ownerName})</span>
                                 <span
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -1672,8 +1698,14 @@ export default function OrderDeskPage() {
                       >
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-slate-900">{ord.id}</span>
-                          <span className="text-slate-600 truncate max-w-[200px]">{ord.retailerName}</span>
-                          <span className="text-[10px] text-slate-400">({ord.route || "General Beat"})</span>
+                          <span className="text-slate-600 truncate max-w-[200px]">
+                            {lang === "hi"
+                              ? RETAILER_NAME_FALLBACK_MAP[ord.retailerName] || ord.retailerName
+                              : ord.retailerName}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            ({lang === "hi" ? ROUTE_HINDI_MAP[ord.route || ""] || ord.route || "सामान्य बीट" : ord.route || "General Beat"})
+                          </span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-[11px] text-slate-500">{ord.itemsCount} items</span>
@@ -1789,7 +1821,10 @@ export default function OrderDeskPage() {
 
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-950 space-y-1">
               <span className="font-bold block text-red-900">
-                Kirana: {selectedHoldOrder.retailerName}
+                {lang === "hi" ? "किराना दुकान: " : "Kirana: "}
+                {lang === "hi"
+                  ? selectedHoldOrder.retailerNameHi || RETAILER_NAME_FALLBACK_MAP[selectedHoldOrder.retailerName] || selectedHoldOrder.retailerName
+                  : selectedHoldOrder.retailerName}
               </span>
               <p className="text-red-800 text-[11px]">
                 {selectedHoldOrder.creditHoldReason || "Order exceeds approved credit headroom."}

@@ -4,11 +4,17 @@ import { verifyOtp, consumeOtp } from "@/lib/auth/otp";
 import { signSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/jwt";
 import { acquireRetailerSession, forceReleaseRetailerSession } from "@/lib/auth/session-lock";
 
-const VerifyOtpSchema = z.object({
-  phone: z.string().min(10, "Phone number required"),
-  otp: z.string().length(6, "OTP must be exactly 6 digits"),
-  force: z.boolean().optional(),
-});
+const VerifyOtpSchema = z
+  .object({
+    phone: z.string().min(10, "Phone number required"),
+    otp: z.string().length(6, "OTP must be exactly 6 digits").optional(),
+    code: z.string().length(6, "OTP must be exactly 6 digits").optional(),
+    force: z.boolean().optional(),
+  })
+  .refine((data) => data.otp || data.code, {
+    message: "OTP must be exactly 6 digits",
+    path: ["otp"],
+  });
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,9 +31,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, otp, force } = parseResult.data;
+    const { phone, otp, code, force } = parseResult.data;
+    const effectiveOtp = (otp || code)!;
     // Verify without immediately consuming, so concurrency conflict doesn't burn the OTP
-    const verifyResult = await verifyOtp(phone, otp, { consume: false });
+    const verifyResult = await verifyOtp(phone, effectiveOtp, { consume: false });
 
     if (!verifyResult.success || !verifyResult.user) {
       return NextResponse.json(

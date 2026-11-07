@@ -326,6 +326,7 @@ export const SEED_ALIASES: Record<string, string> = {
   "मारी गोल्ड": "SKU-BS-MG250",
 
   // Ghadi Detergent Powder 1kg (SKU-DT-1KG)
+  ghadi: "SKU-DT-1KG",
   "ghadi powder": "SKU-DT-1KG",
   "ghari powder": "SKU-DT-1KG",
   "ghadi 1kg": "SKU-DT-1KG",
@@ -334,6 +335,9 @@ export const SEED_ALIASES: Record<string, string> = {
   "kapde dhone ghadi": "SKU-DT-1KG",
   "detergent powder 1kg": "SKU-DT-1KG",
   "detergent powder": "SKU-DT-1KG",
+  "घड़ी": "SKU-DT-1KG",
+  "घडी": "SKU-DT-1KG",
+  "घड़ी": "SKU-DT-1KG",
   "घड़ी पाउडर": "SKU-DT-1KG",
   "घड़ी डिटर्जेंट पाउडर": "SKU-DT-1KG",
   "घड़ी डिटर्जेंट": "SKU-DT-1KG",
@@ -588,7 +592,9 @@ export function isConversationalFiller(segment: string): boolean {
  * Splits raw multi-item order text into individual item lines
  */
 export function splitOrderTextIntoLines(rawText: string): string[] {
-  const cleaned = normalizeNumerals(rawText.trim());
+  // First strip explanatory case capacity clauses from multi-line text so commas inside them don't create false lines
+  const { cleanedText } = extractAndStripExplanatoryClause(rawText.trim());
+  const cleaned = normalizeNumerals(cleanedText.trim());
 
   // Split on newlines, semicolons, or comma/plus delimiters
   const rawSegments = cleaned

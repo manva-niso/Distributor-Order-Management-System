@@ -603,6 +603,116 @@ This document records every error, build failure, test failure, runtime issue, a
      - Added `src/__tests__/cart-storage.test.ts` (7/7 passed), verifying dual-writes, auto-migration from un-scoped drafts, and fallback resilience. Total test suite: 142/142 tests passing.
 - **Prevention:** Always provide multi-tier fallback loading and dual-write mirroring whenever namespaced client-side storage keys are introduced into an existing state pipeline.
 
+---
+
+### [ERR-048] Dangling Orphaned JSX Block in `catalogue/page.tsx` During V2 Layout Refactor
+- **Date & Time:** 2026-11-07 14:15:00
+- **Module:** Module 2 - Catalogue View & Responsive Layout Refactor
+- **Phase:** Version 2.0 Desktop Grid Implementation
+- **Symptoms / Error Message:**
+  ```text
+  ./src/app/(portal)/catalogue/page.tsx:659:15
+  Parsing ecmascript: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  ```
+- **Root Cause Analysis:** During the refactoring of the product card loop into the responsive layout, an orphaned duplicate render block from an earlier edit remained between lines 651 and 729.
+- **Resolution / Fix:** Deleted the duplicate orphan block, ensuring properly balanced JSX closing tags. Verified with clean Turbopack production build (`next build`).
+- **Prevention:** Always run incremental build checks (`npm run build`) immediately following multi-block JSX structural layout modifications.
+
+---
+
+### [ERR-049] Duplicate Object Literal Keys in `transliterate.ts` (`shree`, `shri`, `sri`)
+- **Date & Time:** 2026-11-07 14:40:00
+- **Module:** Module 12 - Universal Transliteration Engine
+- **Phase:** Mandi Trade Lexicon Assembly
+- **Symptoms / Error Message:**
+  ```text
+  error TS1117: An object literal cannot have multiple properties with the same name ('shree', 'shri', 'sri').
+  ```
+- **Root Cause Analysis:** The keys `"shree"`, `"shri"`, and `"sri"` were defined both in the person names section and the shop prefixes section of the static `mandiTradeDict` object.
+- **Resolution / Fix:** Deduplicated keys in `transliterate.ts` by consolidating honorific and shop prefixes into a single dictionary entry.
+- **Prevention:** When extending large static lookup dictionaries, sort keys or declare them with unique semantic prefixes.
+
+---
+
+### [ERR-050] Isolated Local React State Causing Language Reset on Route Navigation
+- **Date & Time:** 2026-11-07 14:55:00
+- **Module:** Module 12 - Bilingual Vernacular Localization
+- **Phase:** Cross-Screen User Navigation & State Persistence
+- **Symptoms / Error Message:**
+  ```text
+  User selects Hindi on /catalogue, but navigating to /cart or /orders resets the language back to English.
+  ```
+- **Root Cause Analysis:** Each screen component managed an isolated `useState<Language>("en")`. Navigating unmounted the component and initialized the new page with default `"en"`.
+- **Resolution / Fix:** Replaced isolated local states with a unified React Context provider (`LanguageContext.tsx`) wrapping the root in `layout.tsx`, bound to `localStorage`, a 365-day `SameSite=Lax` cookie, and cross-tab custom events (`isolabs_language_change`).
+- **Prevention:** Global preferences (language, theme, tenant) must always reside in root-level context with persistent storage adapters rather than per-page state hooks.
+
+---
+
+### [ERR-051] Master Sandbox OTP `716716` Expired-State Rejection When Stale DB Record Exists
+- **Date & Time:** 2026-11-07 16:16:00
+- **Module:** Module 1 - Authentication & OTP Verification
+- **Symptoms / Error Message:**
+  ```text
+  HTTP 401 Unauthorized: "This OTP has expired. Please request a new code."
+  ```
+- **Root Cause Analysis:** In `src/lib/auth/otp.ts`, when `cleanCode === "716716"` and an `activeOtp` record existed in the database from an earlier session, `activeOtp.otpCode` was updated to `"716716"`, but `expiresAt` was not renewed. The expiry guard evaluated the timestamp from the stale record and rejected the master code.
+- **Resolution / Fix:** Updated `verifyOtp` so when master code `716716` is used in dev/sandbox mode, `expiresAt` is renewed to `Date.now() + 15m`, `attempts` is reset to 0, and `verified` is reset to false.
+- **Prevention:** Sandbox master bypasses must always renew expiration timestamps alongside overriding the code.
+
+---
+
+### [ERR-052] Registration Schema Strict Key Rejecting `name` in Place of `shopName`
+- **Date & Time:** 2026-11-07 15:51:00
+- **Module:** Module 1B - Kirana Self-Registration
+- **Symptoms / Error Message:**
+  ```text
+  HTTP 400 Bad Request: "Shop name must be at least 3 characters"
+  ```
+- **Root Cause Analysis:** `RegisterSchema` in `register/route.ts` only accepted the key `shopName`, rejecting payloads sending `name`.
+- **Resolution / Fix:** Refactored schema using `.refine()` and fallback extraction (`shopName || name`) to accept either naming convention.
+- **Prevention:** API input schemas should accept standard property synonyms where common in client integrations.
+
+---
+
+### [ERR-053] Checkout Payload Rejection on `cases` / `packs` Parameter Synonyms
+- **Date & Time:** 2026-11-07 15:52:00
+- **Module:** Module 4 - Cart & Checkout API
+- **Symptoms / Error Message:**
+  ```text
+  HTTP 400 Bad Request: "Invalid input data"
+  ```
+- **Root Cause Analysis:** `CheckoutItemSchema` in `checkout/route.ts` only accepted `quantityCases` and `quantityPacks`, rejecting payloads using `cases` or `packs`.
+- **Resolution / Fix:** Added a Zod `.transform()` mapper supporting `quantityCases ?? cases` and `quantityPacks ?? loosePacks ?? packs`, and normalizing `orderType` to `orderSource`.
+- **Prevention:** Use schema transformation layers to provide bidirectional compatibility with common naming conventions.
+
+---
+
+### [ERR-054] Bare Devanagari Brand Token `"घड़ी"` Missing from Alias Table
+- **Date & Time:** 2026-11-07 16:19:00
+- **Module:** Module 5 - NLP Order Capture
+- **Symptoms / Error Message:**
+  ```text
+  Input: "५ पेटी पारले जी, २ पेटी घड़ी"
+  Extracted: 2 CASE | SKU = NULL | Conf = 0.15 | Ambiguous = True (UNKNOWN_SKU)
+  ```
+- **Root Cause Analysis:** `SEED_ALIASES` in `text-parser.ts` contained compound phrases like `"घड़ी पाउडर"` and `"घड़ी डिटर्जेंट"`, but lacked bare `"ghadi"`, `"घड़ी"`, `"घडी"`, and `"घड़ी"`.
+- **Resolution / Fix:** Added bare brand tokens `"ghadi"`, `"घड़ी"`, `"घडी"`, and `"घड़ी"` mapping directly to `SKU-DT-1KG`.
+- **Prevention:** Always include both standalone brand nouns and compound brand+category phrases in alias seed tables.
+
+---
+
+### [ERR-055] Explanatory Clauses with Commas Creating False Orphaned Order Lines
+- **Date & Time:** 2026-11-07 16:21:00
+- **Module:** Module 5 - Multi-Line Order Text Splitting
+- **Symptoms / Error Message:**
+  ```text
+  Input: "5 peti biscuit chhota, where a case contains 24 pkts"
+  Split into 2 lines: Line 1: Parle-G, Line 2: "where a case contains 24 pkts" (UNKNOWN_SKU)
+  ```
+- **Root Cause Analysis:** `splitOrderTextIntoLines` split by comma `,` before `extractAndStripExplanatoryClause` had run, isolating the explanatory clause as a standalone line that passed digit detection.
+- **Resolution / Fix:** Updated `splitOrderTextIntoLines` to pre-strip explanatory clauses from the full text before splitting segments.
+- **Prevention:** Pre-process and strip non-transactional descriptive clauses across the entire message before tokenizing or segmenting lines.
+
 
 
 

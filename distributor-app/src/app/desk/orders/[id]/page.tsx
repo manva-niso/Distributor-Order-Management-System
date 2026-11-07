@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 import { SeedSku } from "@/db/seed-data";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getSkuDisplay, getRetailerDisplay, Language } from "@/lib/i18n/trade-dict";
 
 interface EditableLine {
   id: string;
@@ -68,6 +70,7 @@ interface RetailerDetail {
 
 export default function DeskOrderVerificationPage() {
   const router = useRouter();
+  const { lang, toggleLang } = useLanguage();
   const params = useParams();
   const orderId = params.id as string;
 
@@ -299,6 +302,7 @@ export default function DeskOrderVerificationPage() {
   }
 
   const isCreditHold = order.status === "CREDIT_HOLD";
+  const rDisp = getRetailerDisplay(retailer, lang);
   const projectedBalance =
     (retailer.currentBalance || 0) + (liveCalculation?.grandTotal || order.grandTotal);
   const exceedsCredit = projectedBalance > retailer.creditLimit;
@@ -340,12 +344,23 @@ export default function DeskOrderVerificationPage() {
                 )}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                {retailer.name} • {retailer.route}
+                {rDisp.name} • {rDisp.route}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Global Language Switcher */}
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="h-8 px-2.5 text-xs font-bold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+              title={lang === "hi" ? "Switch to English" : "हिन्दी में बदलें"}
+            >
+              <span className={lang === "hi" ? "text-emerald-700" : "text-slate-400"}>अ/A</span>
+              <span>{lang === "en" ? "हिंदी" : "English"}</span>
+            </button>
+
             <button
               type="button"
               onClick={loadOrder}
@@ -460,9 +475,11 @@ export default function DeskOrderVerificationPage() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 leading-tight">
-                    {retailer.name}
+                    {rDisp.name}
                   </h3>
-                  <span className="text-xs text-slate-500">Prop: {retailer.ownerName}</span>
+                  <span className="text-xs text-slate-500">
+                    {lang === "hi" ? "मालिक: " : "Prop: "}{rDisp.ownerName}
+                  </span>
                 </div>
                 <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded">
                   {retailer.id}
@@ -472,7 +489,7 @@ export default function DeskOrderVerificationPage() {
               <div className="space-y-1.5 text-xs text-slate-600">
                 <div className="flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-medium">{retailer.route}</span>
+                  <span className="font-medium">{rDisp.route}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -569,11 +586,14 @@ export default function DeskOrderVerificationPage() {
                             onChange={(e) => handleChangeSku(line.id, e.target.value)}
                             className="w-full text-xs font-bold bg-white border border-slate-300 rounded-md p-2 text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                           >
-                            {catalogueSkus.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                [{s.brand}] {s.name} — ₹{s.dealerPrice.toFixed(2)}/cs
-                              </option>
-                            ))}
+                            {catalogueSkus.map((s) => {
+                              const sDisp = getSkuDisplay(s, lang);
+                              return (
+                                <option key={s.id} value={s.id}>
+                                  [{sDisp.brand}] {sDisp.name} — ₹{s.dealerPrice.toFixed(2)}/cs
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
 

@@ -1,5 +1,7 @@
 import * as XLSX from "xlsx";
 import { SeedSku, SeedRetailer } from "@/db/seed-data";
+import { transliterateToHindi } from "@/lib/i18n/transliterate";
+import { ROUTE_HINDI_MAP } from "@/lib/i18n/trade-dict";
 
 export interface SkuImportRow {
   Code?: string;
@@ -134,13 +136,22 @@ export function parseSkuRows(rows: any[]): { skus: SeedSku[]; errors: string[] }
 
     const packPrice = Math.round((dealerPrice / unitsPerCase) * 100) / 100;
 
+    const nameHi = row.namehi || row.namehindi || row.itemnamehi || transliterateToHindi(name);
+    const brandHi = row.brandhi || row.brandhindi || transliterateToHindi(brand);
+    const categoryHi = row.categoryhi || row.categoryhindi || transliterateToHindi(category);
+    const packSizeHi = row.packsizehi || transliterateToHindi(packSize);
+
     skus.push({
       id: code,
       code,
       name,
+      nameHi,
       brand,
+      brandHi,
       category,
+      categoryHi,
       packSize,
+      packSizeHi,
       unitsPerCase,
       dealerPrice,
       packPrice,
@@ -187,13 +198,20 @@ export function parseRetailerRows(rows: any[]): { retailers: SeedRetailer[]; err
 
     const id = String(row.id || row.retailerid || `RET-${1800 + idx + 1}`).trim();
 
+    const nameHi = row.shophindi || row.shopnamehi || row.namehi || transliterateToHindi(shopName);
+    const ownerNameHi = row.ownernamehi || row.ownerhindi || transliterateToHindi(ownerName);
+    const routeHi = row.routehi || (route ? ROUTE_HINDI_MAP[route] || transliterateToHindi(route) : undefined);
+
     retailers.push({
       id,
       name: shopName,
+      nameHi,
       ownerName,
+      ownerNameHi,
       phone: rawPhone,
       address,
       route,
+      routeHi,
       creditLimit: isNaN(creditLimit) ? 50000 : creditLimit,
       currentBalance: isNaN(currentBalance) ? 0 : currentBalance,
       creditHold: currentBalance > creditLimit,

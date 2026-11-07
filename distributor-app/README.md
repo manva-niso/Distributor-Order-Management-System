@@ -20,8 +20,8 @@ npm run dev
 
 ### Run Tests:
 ```bash
-npm test          # Run app test suite (124 tests)
-npm run test:all  # Run universal test suite across app & engine (192 tests)
+npm test          # Run app test suite (147 tests across 19 suites)
+npm run test:all  # Run universal test suite across app & engine (215 tests)
 ```
 
 ---
@@ -42,9 +42,9 @@ On [`http://localhost:3000/login`](http://localhost:3000/login), tap any pre-con
 
 ---
 
-## 🧭 The 13-Step Interactive Walkthrough Guide
+## 🧭 The 18-Step Interactive Walkthrough Guide
 
-When the app opens, a floating **Walkthrough Widget** appears on your screen. You can drag it, minimize it, or click any step to jump straight to the route.
+When the app opens, a floating **Walkthrough Widget** appears on your screen. You can drag it, resize it with 1-tap zoom controls, minimize it into a pill badge, or click any step to jump straight to the route. It supports both English and fluent Devanagari Hindi.
 
 ### Part 1: Core Customer Demands in Sequence (Happy Path)
 
@@ -70,6 +70,11 @@ When the app opens, a floating **Walkthrough Widget** appears on your screen. Yo
 | **11** | **14-Day Dormant Retention** | On `/desk`, open **"Dormant Kiranas"** tab | Shows inactive shops (>14 days). Tap WhatsApp icon to send pre-composed Hindi offer deal. |
 | **12** | **Multi-Clerk OCC Locking** | Open same order in two browser tabs and save in both | Tab 2 is safely rejected with **HTTP 409 Conflict**, preventing double booking. |
 | **13** | **Clean Slate** | Tap **"Clean Slate"** on `/desk` or `/setup` | 1-click wipe back to **0 SKUs, 0 Retailers, 0 Orders** in Neon DB anytime. |
+| **14** | **Single-Writer Concurrency Lock** | Attempt concurrent login for *Sharma Kirana* from 2nd window | Blocked with **HTTP 409 Conflict** (`USER_ALREADY_LOGGED_IN`). Unburned OTP preserved across force-logout handoff (`[A49]`). |
+| **15** | **Persistent Order Re-hydration** | Place order, log out, restart/cold-boot container, re-login | Order `ORD-2026-0001` auto-hydrated from Neon PostgreSQL via `hydrateOrdersFromNeon` (`[A51]`). |
+| **16** | **Real-Time Multi-Seat Stock Sync** | Retailer A orders remaining stock while Retailer B views catalogue | Real-time SSE stream & BroadcastChannel decrements stock live; zero-stock locks steppers; proactive cart alert blocks overselling (`[A52]`). |
+| **17** | **Zero-Drop Cart Pipeline** | Dictate order in Quick Order, tap "Move to Cart" | Optimistic 0ms mount hydration via `loadScopedCart()`; dual-write mirroring guarantees zero dropped items (`[A53]`). |
+| **18** | **Bilingual Localization & Transliteration** | Tap `हिन्दी` toggle button; test custom uploaded catalogues | 0ms Zero-AI Mandi trade vernacular (`[A54]`); persistent cross-tab `LanguageContext` (`[A56]`); 3-tier cascade auto-transliterates arbitrary products & shops (`[A55]`); fluid desktop grids (`[A57]`). |
 
 ---
 
@@ -79,8 +84,12 @@ When the app opens, a floating **Walkthrough Widget** appears on your screen. Yo
 * **Hinglish & Dialect AI Engine:** Understands Devanagari numerals (`५ पेटी`), Hindi words (`aadha`, `derh`, `dhai`), weight fusion (`"1 kg"` $\to$ `"1kg"`), and trade nicknames (`"pila wala"` $\to$ Parle-G).
 * **Ask, Never Guess Guardrails (Invariant [A16]):** Never guesses money or units. Out-of-catalog items are rejected, and polysemic words trigger clarification prompts.
 * **GST & Promotion Engine:** Buy X Get Y Free items billed at ₹0 under GST Circular 92/11/2019. Madhya Pradesh intra-state GST split 50/50 into CGST and SGST with commercial half-up rounding.
+* **Zero-AI Vernacular Hindi Localization & Mandi Lexicon:** Authentic Devanagari terminology (पूरी पेटी, खुले पैकेट, स्टॉक समाप्त, उधार सीमा) with 0ms rendering and zero hallucination risk.
+* **Universal 3-Tier Transliteration Engine:** Arbitrary Excel price sheets and Kirana names translate dynamically into Devanagari at ingestion time without AI cost.
+* **Single-Source Persistent Language Context:** Retains Hindi preference across page navigations, browser restarts, and open tabs via React Context, local storage, 365-day cookies, and cross-tab event buses.
+* **Responsive Multi-Device Ergonomics:** Native smartphone utility on mobile; fluid multi-column grids on laptops and desktops with zero text overflow.
 * **ERP Ready:** Generates valid Tally Prime XML vouchers (`VCHTYPE="Sales Order"`) with exact HSN codes and ledger mappings.
-* **Live Neon PostgreSQL:** Relational cloud persistence with SSL encryption.
+* **Live Neon PostgreSQL:** Relational cloud persistence with SSL encryption and automatic serverless hydration.
 
 ---
 

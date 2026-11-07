@@ -326,20 +326,35 @@ flowchart TD
 
 ---
 
-### Step 18: Bilingual Jabalpur Trade UI Localization & Cultural Ergonomics
-- **Route:** [`/catalogue`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/catalogue/page.tsx), [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx), [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
-- **The Edge Case:** Non-English speaking shopkeepers alienated by standard accounting terminology.
+### Step 18: Bilingual Jabalpur Trade UI, Persistent Language Context & Universal Transliteration (Invariants [A54], [A55], [A56], [A57])
+- **Route:** All screens (`/catalogue`, `/cart`, `/quick-order`, `/orders`, `/login`, `/register`, `/setup`, `/desk`), and [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx)
+- **The Edge Case:**
+  1. Non-English speaking shopkeepers alienated by standard accounting jargon.
+  2. Language resets back to English whenever navigating between pages.
+  3. Custom arbitrary uploaded catalogues or new shop registrations remaining in English.
+  4. Onboarding walkthrough modal obscuring screen buttons or breaking on mobile displays.
 - **Action:**
-  1. In the header of `/catalogue` or `/cart`, tap the **`हिन्दी`** toggle button.
-  2. Observe immediate translation into authentic Jabalpur trade vernacular:
+  1. In the header of `/catalogue` (or in the floating Walkthrough Guide header), tap **`हिन्दी`**.
+  2. Observe immediate translation into authentic Jabalpur trade vernacular across the entire interface:
      - *Wholesale Master Case* $\to$ **पूरी पेटी**
      - *Loose Packs* $\to$ **खुले पैकेट**
      - *Out of Stock* $\to$ **स्टॉक समाप्त**
      - *Credit Limit* $\to$ **उधार सीमा**
      - *Current Balance* $\to$ **बकाया राशि**
      - *Place Order* $\to$ **ऑर्डर दर्ज करें**
-  3. Toggle back to **`EN`** anytime $\to$ state, quantities, and cart remain 100% intact.
-- **Why It Matters:** Lowers digital adoption barriers for rural and semi-urban Kirana store owners across central India.
+     - *Trade Slab Discount* $\to$ **थोक स्लैब छूट**
+     - *Scheme Free Goods* $\to$ **मुफ्त माल (स्कीम)**
+  3. Navigate across different screens: `/catalogue` $\to$ `/cart` $\to$ `/quick-order` $\to$ `/orders` $\to$ `/setup`.
+     - **Observed Behavior:** Language **never resets** to English! The selection is permanently persisted via `LanguageContext` (`localStorage` + 365-day cookie + cross-tab event bus).
+  4. Observe the Walkthrough Guide itself:
+     - All 18 steps, titles, summaries, point-by-point action instructions, and "Why It Matters" sections render in fluent Devanagari Hindi.
+  5. Test Arbitrary Custom Catalogue Transliteration:
+     - Go to `/setup` and upload a custom Excel sheet containing new English products (e.g. *"Kisan Chana Dal 1kg"* or *"Rajesh Masala"*).
+     - Switch to Hindi mode $\to$ The 3-tier cascade engine dynamically transliterates them into Devanagari (*"किसान चना दाल 1 किलो"*) at 0 runtime cost and 0 latency without AI dependencies!
+  6. Test Ergonomics & Sizing on Mobile / Laptop:
+     - On mobile or desktop, drag the top handle to reposition the tour widget anywhere on screen.
+     - Use the 1-tap `ZoomIn` / `ZoomOut` buttons in the guide header to expand or shrink the modal dimensions dynamically, or minimize it into a floating pill badge.
+- **Why It Matters:** Delivers an inclusive, culturally authentic digital procurement experience for central Indian Kirana merchants while maintaining rock-solid state persistence, zero-AI determinism, and flawless ergonomics across both smartphones and desktop displays.
 
 ---
 
@@ -364,7 +379,7 @@ flowchart TD
 | **Step 15** | Persistent Order Re-hydration Across Relogin | Invariant [A51] | Verified (Durable Neon PostgreSQL Hydration) |
 | **Step 16** | Multi-Store Real-Time Stock Sync & OOS Guard | Invariant [A52] | Verified (SSE Stream, BroadcastChannel & Atomic Guard) |
 | **Step 17** | Quick-Order to Cart Zero-Drop Handshake | Invariant [A53] | Verified (Dual-Mirroring & 0ms Optimistic Hydration) |
-| **Step 18** | Bilingual Vernacular UI Localization | Cultural Ergonomics | Verified (English & Jabalpur Hindi Toggle) |
+| **Step 18** | Bilingual Localization & Transliteration | Invariants [A54]–[A57] | Verified (Persistent Context & Dynamic Devanagari) |
 
 ---
 *End of Walkthrough Document.*

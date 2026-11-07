@@ -10,21 +10,39 @@ import { broadcastStockUpdate } from "@/lib/catalogue/inventory-events";
 const CheckoutItemSchema = z
   .object({
     skuId: z.string().min(1, "SKU ID required"),
-    quantityCases: z.number().int().min(0).default(0),
-    quantityPacks: z.number().int().min(0).default(0),
+    quantityCases: z.number().int().min(0).optional(),
+    cases: z.number().int().min(0).optional(),
+    quantityPacks: z.number().int().min(0).optional(),
+    loosePacks: z.number().int().min(0).optional(),
+    packs: z.number().int().min(0).optional(),
   })
+  .transform((data) => ({
+    skuId: data.skuId,
+    quantityCases: data.quantityCases ?? data.cases ?? 0,
+    quantityPacks: data.quantityPacks ?? data.loosePacks ?? data.packs ?? 0,
+  }))
   .refine((data) => (data.quantityCases || 0) > 0 || (data.quantityPacks || 0) > 0, {
     message: "Each line item must contain at least 1 case or 1 loose packet",
   });
 
-const CheckoutSchema = z.object({
-  retailerId: z.string().optional(),
-  items: z.array(CheckoutItemSchema).min(1, "Cart cannot be empty"),
-  notes: z.string().optional(),
-  mediaUrl: z.string().optional(),
-  mediaType: z.enum(["image", "audio"]).optional(),
-  orderSource: z.enum(["WHATSAPP_AI", "PORTAL_CATALOGUE", "SALESMAN_COUNTER"]).optional(),
-});
+const CheckoutSchema = z
+  .object({
+    retailerId: z.string().optional(),
+    items: z.array(CheckoutItemSchema).min(1, "Cart cannot be empty"),
+    notes: z.string().optional(),
+    mediaUrl: z.string().optional(),
+    mediaType: z.enum(["image", "audio"]).optional(),
+    orderSource: z.enum(["WHATSAPP_AI", "PORTAL_CATALOGUE", "SALESMAN_COUNTER"]).optional(),
+    orderType: z.string().optional(),
+  })
+  .transform((data) => ({
+    ...data,
+    orderSource:
+      data.orderSource ||
+      (data.orderType === "PORTAL_CATALOGUE" || data.orderType === "WHATSAPP_AI" || data.orderType === "SALESMAN_COUNTER"
+        ? (data.orderType as "PORTAL_CATALOGUE" | "WHATSAPP_AI" | "SALESMAN_COUNTER")
+        : "PORTAL_CATALOGUE"),
+  }));
 
 export async function POST(request: NextRequest) {
   try {
@@ -281,6 +299,16 @@ export async function POST(request: NextRequest) {
             ? "Order placed with Credit Hold alert. Awaiting desk clearance."
             : "Order confirmed successfully! Scheduled for van dispatch.",
         orderId,
+        order: {
+          id: orderId,
+          status: initialStatus,
+          grandTotal: summary.grandTotal,
+          totalDeliveredCases: summary.totalDeliveredCases,
+          creditHold: creditExceeded,
+          taxableAmount: summary.totalTaxableAmount,
+          cgst: summary.totalCgstAmount,
+          sgst: summary.totalSgstAmount,
+        },
         status: initialStatus,
         grandTotal: summary.grandTotal,
         totalDeliveredCases: summary.totalDeliveredCases,

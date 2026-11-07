@@ -26,7 +26,8 @@ import {
   Building2,
 } from "lucide-react";
 
-type Language = "en" | "hi";
+import { getSkuDisplay, getRetailerDisplay, Language } from "@/lib/i18n/trade-dict";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface StoreStats {
   totalSkus: number;
@@ -64,7 +65,7 @@ interface RetailerSummary {
 export default function SetupPage() {
   const router = useRouter();
 
-  const [lang, setLang] = useState<Language>("en");
+  const { lang, setLang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"upload" | "presets" | "browse">("upload");
   const [stats, setStats] = useState<StoreStats | null>(null);
   const [dbInfo, setDbInfo] = useState<{
@@ -732,11 +733,13 @@ export default function SetupPage() {
                   <tbody className="divide-y divide-slate-100">
                     {skus
                       .filter((s) => s.name.toLowerCase().includes(browseQuery.toLowerCase()) || s.brand.toLowerCase().includes(browseQuery.toLowerCase()))
-                      .map((sku) => (
-                        <tr key={sku.id} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3 font-medium text-slate-900">{sku.name}</td>
-                          <td className="py-2.5 px-3 text-slate-600">{sku.brand}</td>
-                          <td className="py-2.5 px-3 text-slate-500">{sku.packSize} • {sku.unitsPerCase}/case</td>
+                      .map((sku) => {
+                        const sDisp = getSkuDisplay(sku, lang);
+                        return (
+                          <tr key={sku.id} className="hover:bg-slate-50/80">
+                            <td className="py-2.5 px-3 font-medium text-slate-900">{sDisp.name}</td>
+                            <td className="py-2.5 px-3 text-slate-600">{sDisp.brand}</td>
+                            <td className="py-2.5 px-3 text-slate-500">{sku.packSize} • {sku.unitsPerCase}/case</td>
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                             ₹{sku.dealerPrice.toFixed(2)}
                           </td>
@@ -759,7 +762,8 @@ export default function SetupPage() {
                             </span>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -785,13 +789,15 @@ export default function SetupPage() {
                   <tbody className="divide-y divide-slate-100">
                     {retailers
                       .filter((r) => r.name.toLowerCase().includes(browseQuery.toLowerCase()) || r.phone.includes(browseQuery))
-                      .map((r) => (
-                        <tr key={r.id} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3 font-medium text-slate-900">{r.name}</td>
-                          <td className="py-2.5 px-3 text-slate-600 font-mono">
-                            {r.ownerName} • +91 {r.phone}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-500">{r.route}</td>
+                      .map((r) => {
+                        const rDisp = getRetailerDisplay(r, lang);
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/80">
+                            <td className="py-2.5 px-3 font-medium text-slate-900">{rDisp.name}</td>
+                            <td className="py-2.5 px-3 text-slate-600 font-mono">
+                              {rDisp.ownerName} • +91 {r.phone}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-500">{rDisp.route}</td>
                           <td className="py-2.5 px-3 text-right font-mono font-medium text-slate-900">
                             ₹{r.creditLimit.toLocaleString("en-IN")}
                           </td>
@@ -807,7 +813,8 @@ export default function SetupPage() {
                             </Link>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

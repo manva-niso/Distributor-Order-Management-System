@@ -276,6 +276,10 @@ export async function verifyOtp(
       dbStore.saveOtp(activeOtp);
     } else {
       activeOtp.otpCode = "716716";
+      activeOtp.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      activeOtp.attempts = 0;
+      activeOtp.verified = false;
+      dbStore.saveOtp(activeOtp);
     }
   }
 

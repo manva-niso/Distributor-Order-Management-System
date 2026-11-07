@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Plus, X, Package, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
+import { transliterateToHindi } from "@/lib/i18n/transliterate";
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -56,9 +57,13 @@ export default function AddProductModal({
         action: "add_sku",
         sku: {
           name: name.trim(),
+          nameHi: transliterateToHindi(name.trim()),
           brand: brand.trim() || "Brand",
+          brandHi: transliterateToHindi(brand.trim() || "Brand"),
           category,
+          categoryHi: transliterateToHindi(category),
           packSize: packSize.trim() || "Standard",
+          packSizeHi: transliterateToHindi(packSize.trim() || "Standard"),
           unitsPerCase: Number(unitsPerCase) || 24,
           dealerPrice: Number(dealerPrice) || 100,
           stockCases: Number(stockCases) || 10,

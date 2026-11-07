@@ -17,8 +17,8 @@ import {
   FileSpreadsheet,
   LogOut,
 } from "lucide-react";
-
-type Language = "en" | "hi";
+import { getRetailerDisplay, Language } from "@/lib/i18n/trade-dict";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface BusinessHint {
   found: boolean;
@@ -31,8 +31,8 @@ interface BusinessHint {
 export default function LoginPage() {
   const router = useRouter();
 
-  // Language state (English / Hindi)
-  const [lang, setLang] = useState<Language>("en");
+  // Global synchronized language state (English / Hindi)
+  const { lang, setLang } = useLanguage();
 
   // Form states
   const [phone, setPhone] = useState("9826000001"); // Pre-filled with Sharma Kirana for fast review
@@ -213,9 +213,17 @@ export default function LoginPage() {
       if (!res.ok || !data.success) {
         if (data.code === "USER_ALREADY_LOGGED_IN" || res.status === 409) {
           setIsAlreadyLoggedIn(true);
-          setErrorMsg("User already logged in");
+          setErrorMsg(lang === "hi" ? "उपयोगकर्ता पहले से लॉगिन है" : "User already logged in");
         } else {
-          setErrorMsg(data.error || "Verification failed");
+          let err = data.error || (lang === "hi" ? "सत्यापन विफल रहा" : "Verification failed");
+          if (lang === "hi" && typeof err === "string") {
+            if (err.includes("No active OTP request")) {
+              err = "इस नंबर पर कोई सक्रिय ओटीपी नहीं मिला। कृपया 'ओटीपी प्राप्त करें' पर क्लिक करें।";
+            } else if (err.includes("Invalid") || err.includes("expired")) {
+              err = "ओटीपी अमान्य है या समय समाप्त हो चुका है।";
+            }
+          }
+          setErrorMsg(err);
         }
         return;
       }
@@ -229,7 +237,7 @@ export default function LoginPage() {
       // Navigate to authorized dashboard
       router.push(data.redirectUrl || "/catalogue");
     } catch {
-      setErrorMsg("Network error during verification.");
+      setErrorMsg(lang === "hi" ? "सत्यापन के दौरान नेटवर्क समस्या आई।" : "Network error during verification.");
     } finally {
       setLoading(false);
     }
@@ -267,17 +275,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
-      <div className="w-full max-w-md min-h-screen bg-slate-50 flex flex-col justify-between sm:shadow-2xl sm:border-x sm:border-slate-200/80 relative">
+      <div className="w-full max-w-md md:max-w-lg min-h-screen bg-slate-50 flex flex-col justify-between md:shadow-xl md:border-x md:border-slate-200/80 relative">
         {/* Top Bar: Distributor Identity & Bilingual Switch */}
         <header className="w-full bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-20">
-          <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="max-w-md md:max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-lg shadow-sm">
               A
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-slate-900 text-sm leading-tight">Company A</span>
-              <span className="text-xs text-slate-500 font-medium">Jabalpur Wholesale Hub</span>
+              <span className="font-bold text-slate-900 text-sm leading-tight">
+                {lang === "hi" ? "कंपनी ए" : "Company A"}
+              </span>
+              <span className="text-xs text-slate-500 font-medium">
+                {lang === "hi" ? "जबलपुर थोक केंद्र" : "Jabalpur Wholesale Hub"}
+              </span>
             </div>
           </div>
 
@@ -305,8 +317,8 @@ export default function LoginPage() {
         </div>
       </header>
 
-      {/* Main Login Workspace (Centered Mobile Container) */}
-      <main className="flex-1 max-w-md w-full mx-auto p-4 flex flex-col justify-center gap-4">
+      {/* Main Login Workspace (Responsive Container) */}
+      <main className="flex-1 max-w-md md:max-w-lg w-full mx-auto p-4 flex flex-col justify-center gap-4">
         {/* Portal Greeting */}
         <div className="text-center pt-2">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -324,15 +336,15 @@ export default function LoginPage() {
           href="/setup"
           className="bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between gap-3 transition-colors group cursor-pointer"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-emerald-700/80 flex items-center justify-center shrink-0">
               <FileSpreadsheet className="w-5 h-5 text-emerald-200" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-emerald-200 uppercase tracking-wider leading-tight">
                 {lang === "hi" ? "प्रथम बार उपयोगकर्ता? एक्सेल मास्टर सेटअप" : "First Time Here? Custom Excel Setup"}
               </div>
-              <div className="text-xs font-medium text-white">
+              <div className="text-xs font-medium text-white leading-snug mt-0.5">
                 {lang === "hi"
                   ? "अपनी थोक मूल्य सूची अपलोड करें या रेडीमेड डेटासेट लोड करें →"
                   : "Upload your custom product Excel sheet or load demo catalog →"}
@@ -369,7 +381,8 @@ export default function LoginPage() {
               }`}
             >
               <div className="font-bold flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-emerald-700" /> Order Desk
+                <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{lang === "hi" ? "आर्डर डेस्क" : "Order Desk"}</span>
               </div>
               <div className="text-[11px] text-slate-500 font-mono mt-0.5">+91 9826000099</div>
             </button>
@@ -384,7 +397,8 @@ export default function LoginPage() {
               }`}
             >
               <div className="font-bold flex items-center gap-1">
-                <UserCheck className="w-3.5 h-3.5 text-emerald-700" /> Salesman Beat
+                <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{lang === "hi" ? "सेल्समैन बीट" : "Salesman Beat"}</span>
               </div>
               <div className="text-[11px] text-slate-500 font-mono mt-0.5">+91 9826000018</div>
             </button>
@@ -399,27 +413,30 @@ export default function LoginPage() {
               {(loadedRetailers.length > 0 ? loadedRetailers : [
                 { id: "RET-0001", name: "Sharma Kirana", phone: "9826000001", route: "Napier Town", availableCredit: 38000 },
                 { id: "RET-0002", name: "Verma General", phone: "9826000002", route: "Adhartal", availableCredit: 36500 },
-              ]).map((ret) => (
-                <button
-                  key={ret.id}
-                  type="button"
-                  onClick={() => selectQuickRole(ret.phone)}
-                  className={`p-2 rounded-lg text-left border text-xs transition-all ${
-                    phone.includes(ret.phone.slice(-5))
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-bold"
-                      : "border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  <div className="truncate font-semibold flex items-center gap-1">
-                    <Store className="w-3 h-3 text-emerald-700 shrink-0" />
-                    <span className="truncate">{ret.name}</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between mt-0.5">
-                    <span>..{ret.phone.slice(-5)}</span>
-                    <span className="text-emerald-800 font-bold">₹{Math.round(ret.availableCredit / 1000)}k</span>
-                  </div>
-                </button>
-              ))}
+              ]).map((ret) => {
+                const retDisplay = getRetailerDisplay(ret, lang);
+                return (
+                  <button
+                    key={ret.id}
+                    type="button"
+                    onClick={() => selectQuickRole(ret.phone)}
+                    className={`p-2 rounded-lg text-left border text-xs transition-all ${
+                      phone.includes(ret.phone.slice(-5))
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-bold"
+                        : "border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    <div className="truncate font-semibold flex items-center gap-1">
+                      <Store className="w-3 h-3 text-emerald-700 shrink-0" />
+                      <span className="truncate">{retDisplay.name}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between mt-0.5">
+                      <span>..{ret.phone.slice(-5)}</span>
+                      <span className="text-emerald-800 font-bold">₹{Math.round(ret.availableCredit / 1000)}k</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -540,8 +557,9 @@ export default function LoginPage() {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2">
                   <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold">Dev Sandbox Notice: </span>
-                    Your verification code is <strong className="font-mono text-sm bg-amber-200 px-1.5 py-0.5 rounded">{devOtpCode}</strong>
+                    <span className="font-bold">{lang === "hi" ? "डेव सैंडबॉक्स सूचना: " : "Dev Sandbox Notice: "}</span>
+                    <span>{lang === "hi" ? "आपका सत्यापन कोड है " : "Your verification code is "}</span>
+                    <strong className="font-mono text-sm bg-amber-200 px-1.5 py-0.5 rounded">{devOtpCode}</strong>
                   </div>
                 </div>
               )}
@@ -665,13 +683,21 @@ export default function LoginPage() {
 
         {/* Security & Regulatory Footer Note */}
         <div className="text-center text-xs text-slate-500">
-          <span>Company A Wholesale • Jabalpur (MP) • Rule 46 CGST Compliant</span>
+          <span>
+            {lang === "hi"
+              ? "कंपनी ए थोक वितरण • जबलपुर (म.प्र.) • नियम 46 सीजीएसटी अनुपालन"
+              : "Company A Wholesale • Jabalpur (MP) • Rule 46 CGST Compliant"}
+          </span>
         </div>
       </main>
 
       {/* Persistent Bottom Status Strip */}
       <footer className="w-full bg-slate-100 border-t border-slate-200 py-2.5 px-4 text-center text-xs text-slate-500">
-        <span>Helpline: 1800-419-0021 • Support: 0761-248000</span>
+        <span>
+          {lang === "hi"
+            ? "हेल्पलाइन: 1800-419-0021 • सहायता: 0761-248000"
+            : "Helpline: 1800-419-0021 • Support: 0761-248000"}
+        </span>
       </footer>
       </div>
     </div>

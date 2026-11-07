@@ -10,11 +10,15 @@ From the `distributor-app/` directory:
 
 | What You Want To Do | Command | What It Verifies |
 | :--- | :--- | :--- |
-| **Run all tests collectively** | `npm run test` | Executes all Vitest test suites across all modules in <1 second. |
+| **Run all tests collectively** | `npm run test` | Executes all 19 Vitest test suites (147 tests) across all modules in <2 seconds. |
 | **Run tests in watch mode** | `npm run test:watch` | Reruns tests on every file save during development. |
 | **Test Module 1 (Auth) only** | `npx vitest run src/__tests__/auth.test.ts` | Runs the 13 isolated auth, cryptographic OTP, and JWT tests. |
+| **Test Concurrency Lock only** | `npx vitest run src/__tests__/session-lock.test.ts` | Runs 6 single-writer concurrency lock & force-logout tests (`[A49]`). |
 | **Test Module 2 (Catalogue) only** | `npx vitest run src/__tests__/catalogue.test.ts` | Runs the 8 isolated catalogue, pricing, and stock tests. |
-| **Test Module 3 (Schemes) only** | `npx vitest run src/__tests__/schemes.test.ts` | Runs the 10 pure scheme engine and GST calculation tests. |
+| **Test Real-Time Stock Sync only** | `npx vitest run src/__tests__/realtime-stock.test.ts` | Runs 5 SSE streaming, inventory versioning, and out-of-stock guard tests (`[A52]`). |
+| **Test Scoped Cart Storage only** | `npx vitest run src/__tests__/cart-storage.test.ts` | Runs 7 multi-kirana cart isolation and zero-drop migration tests (`[A50]`, `[A53]`). |
+| **Test Module 3 (Schemes) only** | `npx vitest run src/__tests__/schemes.test.ts` | Runs the 13 pure scheme engine and GST calculation tests. |
+| **Test Dynamic Transliteration only**| `npx vitest run src/__tests__/dynamic-transliteration.test.ts` | Runs 5 3-tier cascade and arbitrary catalogue transliteration tests (`[A55]`). |
 | **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
 | **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
 | **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 14 multilingual text parser, broken case, and ambiguity guardrail tests. |
@@ -324,20 +328,29 @@ All integrations can be flipped between **Development Mode** (console output) an
 
 ---
 
-## 5. Comprehensive Automated Test Suite (77 Tests across 10 Suites)
+## 5. Comprehensive Automated Test Suite (147 Tests across 19 Suites)
 
-All test suites are fully automated and pass in <1 second with zero network dependencies:
+All test suites are fully automated and pass in <2 seconds with zero network dependencies:
 
 | Module | Test Command | What It Verifies | Tests Count |
 | :--- | :--- | :--- | :--- |
 | **Module 1: Auth & OTP** | `npx vitest run src/__tests__/auth.test.ts` | OTP generation, rate limits, attempt lockouts, JWT sessions, B2B registration | 13 tests |
+| **Module 1: Concurrency Lock** | `npx vitest run src/__tests__/session-lock.test.ts` | Single-writer acquisition, HTTP 409 conflict, deferred OTP preservation, force logout (`[A49]`) | 6 tests |
 | **Module 2: Catalogue** | `npx vitest run src/__tests__/catalogue.test.ts` | Case/pack pricing, out-of-stock disablement, live search & brand filters | 8 tests |
-| **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 floor division, 3% slab tiers, Rule 46 50/50 GST formulas | 10 tests |
+| **Module 10: Real-Time Stock** | `npx vitest run src/__tests__/realtime-stock.test.ts` | Real-time SSE streaming, inventory versioning, out-of-stock stepper locks (`[A52]`) | 5 tests |
+| **Module 10: Scoped Carts** | `npx vitest run src/__tests__/cart-storage.test.ts` | Kirana draft cart isolation (`[A50]`), zero-drop dual-writes, auto-migration (`[A53]`) | 7 tests |
+| **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 floor division, 3% slab tiers, Rule 46 50/50 GST formulas | 13 tests |
+| **Module 12: Transliteration**| `npx vitest run src/__tests__/dynamic-transliteration.test.ts` | 3-tier cascade, Mandi lexicon mapping, phonetic syllable conversion, Excel enrichment (`[A55]`) | 5 tests |
 | **Module 4: Cart & Orders** | `npx vitest run src/__tests__/orders.test.ts` | Atomic stock reservation, ledger credit headroom ceiling check, OCC versioning | 4 tests |
 | **Master Setup (Excel)** | `npx vitest run src/__tests__/excel-import.test.ts` | Excel workbook parsing, column synonym tolerance, dynamic catalog replacement | 4 tests |
 | **Module 5: Text Parser** | `npx vitest run src/__tests__/text-parser.test.ts` | Devanagari numerals, Hinglish extraction, unit ambiguity guardrails, broken case handling | 14 tests |
+| **Module 5: Scorer** | `npx vitest run src/__tests__/calibrated-scorer.test.ts` | Platt-calibrated logistic regression scoring, 0.60 confidence floor | 8 tests |
+| **Module 5: Candidate Retrieval** | `npx vitest run src/__tests__/candidate-retriever.test.ts` | Cormack RRF k=60 candidate retrieval, trigram fuzzy matching | 8 tests |
+| **Module 5: AI Cascade** | `npx vitest run src/__tests__/cascaded-parser.test.ts` | Three-tier cascade execution, early abstention thresholds | 12 tests |
+| **Module 5: Closed-Set Chooser** | `npx vitest run src/__tests__/gemini-chooser.test.ts` | Gemini 2.5 closed-set candidate selector, out-of-catalog rejection floor (`[A16]`) | 6 tests |
+| **Module 5: Resilience** | `npx vitest run src/__tests__/gemini-random-words.test.ts` | Typo and gibberish handling, zero false-positive biscuits, polite vernacular explanations | 6 tests |
 | **Module 6: Order Desk** | `npx vitest run src/__tests__/desk.test.ts` | Optimistic Concurrency Control (OCC) version conflicts, line editing, alias learning | 8 tests |
 | **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime XML `<ENVELOPE>`, Actual vs Billed quantities, double-entry balance | 8 tests |
 | **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
 | **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
-| **Total Test Coverage** | `npm run test` | **All 10 test suites executing collectively** | **77 tests (100% Passing)** |
+| **Total Test Coverage** | `npm run test` | **All 19 test suites executing collectively** | **147 tests (100% Passing)** |

@@ -3,14 +3,20 @@ import { z } from "zod";
 import { dbStore } from "@/db/store";
 import { signSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/jwt";
 
-const RegisterSchema = z.object({
-  phone: z.string().min(10, "Valid 10-digit phone number is required").regex(/^\d{10}$/, "Must be 10 digits"),
-  shopName: z.string().min(3, "Shop name must be at least 3 characters"),
-  ownerName: z.string().min(2, "Owner name must be at least 2 characters"),
-  route: z.string().min(2, "Please select your delivery route/beat"),
-  address: z.string().min(5, "Shop address in Jabalpur is required"),
-  gstin: z.string().optional(),
-});
+const RegisterSchema = z
+  .object({
+    phone: z.string().min(10, "Valid 10-digit phone number is required").regex(/^\d{10}$/, "Must be 10 digits"),
+    shopName: z.string().min(3, "Shop name must be at least 3 characters").optional(),
+    name: z.string().min(3, "Shop name must be at least 3 characters").optional(),
+    ownerName: z.string().min(2, "Owner name must be at least 2 characters"),
+    route: z.string().min(2, "Please select your delivery route/beat"),
+    address: z.string().min(5, "Shop address in Jabalpur is required"),
+    gstin: z.string().optional(),
+  })
+  .refine((data) => data.shopName || data.name, {
+    message: "Shop name must be at least 3 characters",
+    path: ["shopName"],
+  });
 
 export const AVAILABLE_ROUTES = [
   "Napier Town Route #4",
@@ -37,7 +43,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, shopName, ownerName, route, address } = parseResult.data;
+    const { phone, shopName, name, ownerName, route, address } = parseResult.data;
+    const effectiveShopName = (shopName || name || "").trim();
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
 
     // Guard: Prevent duplicate registrations
@@ -60,13 +67,22 @@ export async function POST(request: NextRequest) {
     const retailerId = `RET-${nextSeq}`;
 
     // Create Retailer record with provisional credit limit of ₹25,000 (Assumption [A5])
+    const { ROUTE_HINDI_MAP } = await import("@/lib/i18n/trade-dict");
+    const { transliterateToHindi } = await import("@/lib/i18n/transliterate");
+    const routeHi = ROUTE_HINDI_MAP[route.trim()] || transliterateToHindi(route.trim());
+    const nameHi = transliterateToHindi(effectiveShopName);
+    const ownerNameHi = transliterateToHindi(ownerName.trim());
+
     const newRetailer = dbStore.createRetailer({
       id: retailerId,
-      name: shopName.trim(),
+      name: effectiveShopName,
+      nameHi,
       ownerName: ownerName.trim(),
+      ownerNameHi,
       phone: cleanPhone,
       address: address.trim(),
       route: route.trim(),
+      routeHi,
       creditLimit: 25000,
       currentBalance: 0,
       creditHold: false,

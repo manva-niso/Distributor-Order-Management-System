@@ -516,16 +516,30 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/lib/auth/otp.ts`**:
   - `generateNumericOtp()`: Cryptographic 6-digit random code generation.
   - `createAndSendOtp(phone)`: Enforces 30-second re-send rate limits, sets 5-minute expiry, and dispatches via SMS provider or dev console.
-  - `verifyOtp(phone, code)`: Enforces max 3 failed attempts, performs timing-safe comparison.
-- **`src/lib/catalogue/cart-store.ts`**:
-  - In-browser reactive cart store with `localStorage` synchronization (`distributor_cart_v1`).
-  - Supports dual case and loose pack quantities (`[A42]`).
+  - `verifyOtp(phone, code, options)`: Enforces max 3 failed attempts, performs timing-safe comparison, supports deferred OTP consumption (`consume: false`).
+- **`src/lib/auth/session-lock.ts`**:
+  - `acquireRetailerSession(retailerId, userId, phone, req)`: Single-writer concurrency lock backing `[A49]`, enforcing rolling 30-minute inactivity timeout.
+  - `forceLogoutRetailerSessions(retailerId)`: Dedicated lock purge for remote sessions.
+  - `releaseRetailerSession(sessionId)`: Clean release upon logout.
+- **`src/lib/i18n/LanguageContext.tsx`**:
+  - Unified React Context provider wrapping the entire Next.js App Router tree (`layout.tsx`).
+  - Implements multi-layer persistence: `localStorage` (`isolabs_lang`), 365-day `SameSite=Lax` cookies, and cross-tab/window event bus (`isolabs_language_change`).
+  - Exposes `useLanguage()` with `{ lang, setLang, t }` for instant 0ms vernacular rendering across all screens.
+- **`src/lib/i18n/transliterate.ts`**:
+  - Universal 3-tier cascade transliteration engine (`transliterateToHindi`).
+  - Tier 1: Ground-truth Devanagari schema attributes (`nameHi`, `shopNameHi`).
+  - Tier 2: Static Mandi trade lexicon (`mandiTradeDict`) covering commodity food items, personal care, package formats, brands, and shop prefixes.
+  - Tier 3: Algorithmic phonetic syllable converter handling aspirated consonants (`bh`, `dh`, `kh`, `gh`), consonant clusters, and Devanagari numerals (`०-९`).
+- **`src/lib/catalogue/cart-storage.ts`**:
+  - `saveScopedCart`, `loadScopedCart`, `clearScopedCart`: Scopes draft cart storage per Kirana store (`isolabs_draft_cart_${retailerId}`) with zero-drop dual-writing and auto-migration fallback (`[A50]`, `[A53]`).
+- **`src/lib/catalogue/inventory-events.ts` & `src/lib/catalogue/useLiveStock.ts`**:
+  - Quad-layer real-time stock synchronization engine (`[A52]`): BroadcastChannel (0ms local), Server-Sent Events (SSE network stream), adaptive versioned polling (2.5s fallback), and Neon database hydration.
 - **`src/lib/schemes/engine.ts`**:
   - Pure function trade scheme and tax engine.
   - Multi-tier progressive slab ladders (`[A45]`), cross-SKU gifting (`[A46]`), flat cash rebates (`[A47]`), loose packs (`[A42]`), real-time upsell nudge math (`[A48]`), and Rule 46 50/50 MP GST splits with micro-epsilon half-up rounding (`[A2]`).
 - **`src/lib/excel/importer.ts`**:
   - Universal Excel / CSV workbook parsing engine using `xlsx` (SheetJS).
-  - Normalizes headers, resolves column synonyms (`[A32]`), parses multi-tier scheme ladders, and generates downloadable sample `.xlsx` templates.
+  - Normalizes headers, resolves column synonyms (`[A32]`), auto-enriches `nameHi` and `categoryHi` via `transliterateToHindi`, parses multi-tier scheme ladders, and generates downloadable sample `.xlsx` templates.
 - **`src/lib/ai/types.ts`**:
   - Pipeline contracts (`OrderParserPipeline`), parsed item structures (`ParsedLineItem`, `ParseResult`), unit types (`CASE`, `PACK`, `KG`, `UNKNOWN`).
 - **`src/lib/ai/text-parser.ts`**:
@@ -540,16 +554,25 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### E. Automated Test Matrix (`src/__tests__/` — 82/82 Passing)
+### E. Automated Test Matrix (`src/__tests__/` — 19 Suites, 147/147 Passing)
 
 | Test Suite File | Module Verified | Tests | Critical Assertions Covered |
 | :--- | :--- | :--- | :--- |
 | **`auth.test.ts`** | Module 1: Auth & OTP | 13 | 6-digit crypto generation, 30s rate limits, 5-min expiry, 3-attempt lockout, JWT signing, kirana registration |
+| **`session-lock.test.ts`** | Module 1: Concurrency Lock | 6 | Single-writer acquisition, HTTP 409 conflict, deferred OTP preservation, force-logout release (`[A49]`) |
 | **`catalogue.test.ts`** | Module 2: Catalogue | 8 | Pack pricing, GST badges, live inventory stock guards, Buy 10 Get 1 live math, 3% slab preview |
+| **`realtime-stock.test.ts`**| Module 10: Live Stock Sync | 5 | Inventory versioning, SSE subscriber broadcasts, out-of-stock stepper locks, zero overselling (`[A52]`) |
+| **`cart-storage.test.ts`** | Module 10: Scoped Carts | 7 | Kirana isolation (`[A50]`), dual-write mirroring, zero-drop auto-migration, 0ms mount hydration (`[A53]`) |
 | **`schemes.test.ts`** | Module 3: Scheme Engine | 13 | Multi-tier slab ladders (`5:3%, 10:5%, 20:8%`), cross-SKU gifting, flat cash rebates, loose pack pricing, MP GST 50/50 split |
 | **`orders.test.ts`** | Module 4: Checkout | 4 | Atomic stock decrements (`[A15]`), promotional stock locking (`[A30]`), `CREDIT_HOLD` vs `PLACED` state machine (`[A29]`) |
 | **`excel-import.test.ts`**| Master Setup Hub | 4 | Excel/CSV ingestion, header synonym tolerance (`[A32]`), multi-tier ladder parsing, template generation |
-| **`text-parser.test.ts`** | Module 5: NLP Intake | 16 | Explanatory clause stripping, Devanagari numerals (`०-९`), Hinglish words, unit guardrail card (`[A16]`), broken case policy (`[A36]`) |
+| **`dynamic-transliteration.test.ts`** | Module 12: Transliteration | 5 | 3-tier cascade, Mandi lexicon mapping, phonetic syllable conversion, arbitrary catalogue enrichment (`[A55]`) |
+| **`text-parser.test.ts`** | Module 5: NLP Intake | 14 | Explanatory clause stripping, Devanagari numerals (`०-९`), Hinglish words, unit guardrail card (`[A16]`), broken case policy (`[A36]`) |
+| **`calibrated-scorer.test.ts`** | Module 5: Scorer | 8 | Platt-calibrated logistic regression scoring, 0.60 confidence floor, ambiguity tagging |
+| **`candidate-retriever.test.ts`** | Module 5: Retrieval | 8 | Cormack RRF k=60 candidate retrieval, trigram fuzzy matching, phonetic BM25 boosting |
+| **`cascaded-parser.test.ts`** | Module 5: AI Cascade | 12 | Three-tier cascade execution, early abstention thresholds, confidence fusion |
+| **`gemini-chooser.test.ts`** | Module 5: Closed-Set Chooser | 6 | Gemini 2.5 closed-set candidate selector, out-of-catalog rejection floor (`[A16]`) |
+| **`gemini-random-words.test.ts`** | Module 5: Resilience | 6 | Typo and gibberish handling, zero false-positive biscuits, polite vernacular explanations |
 | **`desk.test.ts`** | Module 6: Desk & OCC | 8 | Optimistic Concurrency Control collision rejection (`[A19]`), credit hold release notes (`[A37]`), alias auto-learning (`[A20]`) |
 | **`tally.test.ts`** | Module 7: Tally Export | 8 | Tally XML `<ENVELOPE>`, `<ACTUALQTY>` vs `<BILLEDQTY>` (`[A39]`), double-entry balance (`[A40]`), `EXPORTED_TALLY` transition |
 | **`manifest.test.ts`** | Module 8: Van Manifest | 4 | Route aggregation, total case picking (`paid + free`, `[A41]`), vehicle payload weights (`[A42]`), drop stops |
@@ -557,7 +580,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### E. API Route Handlers (`src/app/api/`)
+### F. API Route Handlers (`src/app/api/`)
 - **`src/app/api/auth/send-otp/route.ts`**:
   - `POST`: Validates phone number via Zod, generates OTP, persists to store, and returns status with expiry countdown.
 - **`src/app/api/auth/verify-otp/route.ts`**:
@@ -666,17 +689,26 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### G. Test Suite (`src/__tests__/`)
+### G. Test Suite (`src/__tests__/` — 19 Suites, 147 Tests)
 - **`src/__tests__/auth.test.ts`**: 13 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, JWT signature verification, and B2B kirana self-registration.
+- **`src/__tests__/session-lock.test.ts`**: 6 automated unit tests verifying single-writer concurrency acquisition, HTTP 409 conflict blocking, deferred OTP consumption, and force-logout purge (`[A49]`).
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
-- **`src/__tests__/schemes.test.ts`**: 10 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
+- **`src/__tests__/schemes.test.ts`**: 13 automated unit tests verifying mathematical half-up rounding, free goods tiers (floor division), slab tier discounts pre-tax, 5% and 18% GST splits, composite basket invoices, round-offs, and negative quantity clamping.
 - **`src/__tests__/orders.test.ts`**: 4 automated unit tests verifying order checkout under credit limit, automatic `CREDIT_HOLD` flagging on headroom breach (`[A14]`), anti-backorder warehouse stock protection (`[A9]`), and OCC conflict detection on status updates (`[A19]`).
 - **`src/__tests__/excel-import.test.ts`**: 4 automated unit tests verifying Excel template generation, workbook buffer extraction, column synonym tolerance, and dynamic in-memory catalog replacement.
+- **`src/__tests__/dynamic-transliteration.test.ts`**: 5 automated unit tests verifying 3-tier cascade transliteration, Mandi lexicon mapping, phonetic syllable conversion, and dynamic Excel ingestion enrichment (`[A55]`).
 - **`src/__tests__/text-parser.test.ts`**: 14 automated unit tests verifying Devanagari numerals, Hinglish extraction, number words, unit ambiguity guardrail (`[A16]`), cut-pack / broken case detection (`[A36]`), and pipeline strategy switching.
+- **`src/__tests__/calibrated-scorer.test.ts`**: 8 automated unit tests verifying Platt-calibrated logistic regression scoring, 0.60 confidence floor, and ambiguity flagging.
+- **`src/__tests__/candidate-retriever.test.ts`**: 8 automated unit tests verifying Cormack RRF k=60 candidate retrieval, trigram fuzzy matching, and phonetic BM25 boosting.
+- **`src/__tests__/cascaded-parser.test.ts`**: 12 automated unit tests verifying three-tier cascade execution, early abstention thresholds, and confidence fusion.
+- **`src/__tests__/gemini-chooser.test.ts`**: 6 automated unit tests verifying Gemini 2.5 closed-set candidate selector and out-of-catalog rejection floor (`[A16]`).
+- **`src/__tests__/gemini-random-words.test.ts`**: 6 automated unit tests verifying typo and gibberish handling, zero false-positive biscuits, and polite vernacular explanations.
 - **`src/__tests__/desk.test.ts`**: 8 automated unit tests verifying desk queue queries, summary metrics, line item editing with live scheme recalculation (`[A38]`), OCC concurrency collision detection (`[A19]`), credit hold release authorization (`[A37]`), and retailer alias auto-learning (`[A20]`).
 - **`src/__tests__/tally.test.ts`**: 8 automated unit tests verifying XML escaping, Tally date formatting, single voucher nodes, Buy 10 Get 1 free scheme Actual vs Billed quantities (`[A39]`), double-entry balance (`[A40]`), batch envelope wrappers, XML structure validation, and `EXPORTED_TALLY` status transitions.
 - **`src/__tests__/manifest.test.ts`**: 4 automated unit tests verifying delivery route discovery, warehouse SKU case aggregation (`totalCases = paidCases + freeCases`), stop sequencing, and vehicle weight calculations (`[A22]`, `[A41]`, `[A42]`).
 - **`src/__tests__/dormant.test.ts`**: 4 automated unit tests verifying 14-day inactivity threshold filtering, churn risk tiers (High vs Critical), credit headroom analytics, and Devanagari Hindi WhatsApp nudge formatting (`[A23]`, `[A43]`, `[A44]`).
+- **`src/__tests__/realtime-stock.test.ts`**: 5 automated unit tests verifying inventory versioning, SSE subscriber broadcasts, and out-of-stock stepper locks (`[A52]`).
+- **`src/__tests__/cart-storage.test.ts`**: 7 automated unit tests verifying Kirana cart isolation (`[A50]`), zero-drop dual writes, and fallback auto-migration (`[A53]`).
 
 ---
 
@@ -686,13 +718,16 @@ This table details the implemented directories, screens, backend logic, API endp
 
 | Core Build Module | Primary UI Screen | Backend Logic / Engine | API Endpoints | Unit Tests |
 | :--- | :--- | :--- | :--- | :--- |
-| **Module 1: Auth & Registration** | `src/app/(auth)/login/page.tsx`<br/>`src/app/(auth)/register/page.tsx` | `src/lib/auth/otp.ts`<br/>`src/lib/auth/jwt.ts` | `POST /api/auth/send-otp`<br/>`POST /api/auth/verify-otp`<br/>`POST /api/auth/register`<br/>`GET /api/auth/lookup-phone` | `src/__tests__/auth.test.ts` (13 tests) |
-| **Module 2: Catalogue & Live Stock** | `src/app/(portal)/catalogue/page.tsx` | `src/lib/catalogue/cart-store.ts` | `GET /api/catalogue`<br/>`POST /api/catalogue/notify-restock` | `src/__tests__/catalogue.test.ts` (8 tests) |
-| **Module 3: Pure Scheme Engine** | Integrated in `/catalogue`, `/cart`, and `/desk` | `src/lib/schemes/engine.ts` | Pure functional in-memory calculation | `src/__tests__/schemes.test.ts` (10 tests) |
-| **Module 4: Cart & Credit Order** | `src/app/(portal)/cart/page.tsx`<br/>`src/app/(portal)/orders/page.tsx` | `src/db/store.ts` (Atomic inventory locks & ledger exposure) | `POST /api/orders/checkout`<br/>`GET /api/orders` | `src/__tests__/orders.test.ts` (4 tests) |
-| **Master Setup & Excel Hub** | `src/app/setup/page.tsx` | `src/lib/excel/importer.ts` | `POST /api/setup/import-excel`<br/>`GET /api/setup/template`<br/>`GET /api/setup/status`<br/>`POST /api/setup/load-preset` | `src/__tests__/excel-import.test.ts` (4 tests) |
-| **Module 5: Multi-Modal Intake** | `src/app/(portal)/quick-order/page.tsx` | `src/lib/ai/text-parser.ts`<br/>`src/lib/ai/pipeline.ts` | `POST /api/capture/parse-text` | `src/__tests__/text-parser.test.ts` (14 tests) |
+| **Module 1: Auth & Registration** | `src/app/(auth)/login/page.tsx`<br/>`src/app/(auth)/register/page.tsx` | `src/lib/auth/otp.ts`<br/>`src/lib/auth/jwt.ts`<br/>`src/lib/auth/session-lock.ts` | `POST /api/auth/send-otp`<br/>`POST /api/auth/verify-otp`<br/>`POST /api/auth/force-logout`<br/>`POST /api/auth/register`<br/>`GET /api/auth/lookup-phone` | `src/__tests__/auth.test.ts` (13 tests)<br/>`src/__tests__/session-lock.test.ts` (6 tests) |
+| **Module 2: Catalogue & Live Stock** | `src/app/(portal)/catalogue/page.tsx` | `src/lib/catalogue/cart-store.ts`<br/>`src/lib/catalogue/useLiveStock.ts` | `GET /api/catalogue`<br/>`GET /api/catalogue/live-stock`<br/>`POST /api/catalogue/notify-restock` | `src/__tests__/catalogue.test.ts` (8 tests)<br/>`src/__tests__/realtime-stock.test.ts` (5 tests) |
+| **Module 3: Pure Scheme Engine** | Integrated in `/catalogue`, `/cart`, and `/desk` | `src/lib/schemes/engine.ts` | Pure functional in-memory calculation | `src/__tests__/schemes.test.ts` (13 tests) |
+| **Module 4: Cart & Credit Order** | `src/app/(portal)/cart/page.tsx`<br/>`src/app/(portal)/orders/page.tsx` | `src/db/store.ts` (Atomic inventory locks & ledger exposure) | `POST /api/orders/checkout`<br/>`GET /api/orders` | `src/__tests__/orders.test.ts` (4 tests)<br/>`src/__tests__/cart-storage.test.ts` (7 tests) |
+| **Master Setup & Excel Hub** | `src/app/setup/page.tsx` | `src/lib/excel/importer.ts`<br/>`src/lib/i18n/transliterate.ts` | `POST /api/setup/import-excel`<br/>`GET /api/setup/template`<br/>`GET /api/setup/status`<br/>`POST /api/setup/load-preset` | `src/__tests__/excel-import.test.ts` (4 tests) |
+| **Module 5: Multi-Modal Intake** | `src/app/(portal)/quick-order/page.tsx` | `src/lib/ai/text-parser.ts`<br/>`src/lib/ai/pipeline.ts` | `POST /api/capture/parse-text` | `src/__tests__/text-parser.test.ts` (14 tests)<br/>`src/__tests__/calibrated-scorer.test.ts` (8 tests)<br/>`src/__tests__/candidate-retriever.test.ts` (8 tests)<br/>`src/__tests__/cascaded-parser.test.ts` (12 tests)<br/>`src/__tests__/gemini-chooser.test.ts` (6 tests)<br/>`src/__tests__/gemini-random-words.test.ts` (6 tests) |
 | **Module 6: Order Desk & OCC** | `src/app/desk/page.tsx`<br/>`src/app/desk/orders/[id]/page.tsx` | `src/db/store.ts` (OCC versioning & alias persistence) | `GET /api/desk/orders`<br/>`GET /api/desk/orders/[id]`<br/>`PATCH /api/desk/orders/[id]`<br/>`POST /api/desk/orders/[id]/release-hold`<br/>`GET /api/desk/stats` | `src/__tests__/desk.test.ts` (8 tests) |
 | **Module 7: Tally XML Export** | `src/app/desk/page.tsx` (Export Modal) | `src/lib/tally/xml-builder.ts` | `GET /api/tally/preview`<br/>`POST /api/tally/export` | `src/__tests__/tally.test.ts` (8 tests) |
 | **Module 8: Van Route Manifest** | `src/app/desk/page.tsx` (Tab: Van Manifest) | `src/db/store.ts` (`getVanManifest`) | `GET /api/desk/van-manifest` | `src/__tests__/manifest.test.ts` (4 tests) |
 | **Module 9: 14-Day Dormant Dashboard** | `src/app/desk/page.tsx` (Tab: Dormant Kiranas) | `src/db/store.ts` (`getDormantRetailers`) | `GET /api/desk/dormant` | `src/__tests__/dormant.test.ts` (4 tests) |
+| **Module 10: Real-Time Stock & Carts** | Real-time SSE across all screens | `src/lib/catalogue/inventory-events.ts`<br/>`src/lib/catalogue/cart-storage.ts` | `GET /api/catalogue/live-stock` | `src/__tests__/realtime-stock.test.ts` (5 tests)<br/>`src/__tests__/cart-storage.test.ts` (7 tests) |
+| **Module 11: V2 UI Polish & Guidance** | Centered layout, draggable guide | `src/components/walkthrough/WalkthroughGuide.tsx` | Client UI components | Verified in browser across mobile/desktop |
+| **Module 12: Zero-AI Transliteration** | All screens (`LanguageProvider`) | `src/lib/i18n/LanguageContext.tsx`<br/>`src/lib/i18n/transliterate.ts` | Dynamic enrichment on ingestion & auth | `src/__tests__/dynamic-transliteration.test.ts` (5 tests) |

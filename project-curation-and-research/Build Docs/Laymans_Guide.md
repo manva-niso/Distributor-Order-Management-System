@@ -261,4 +261,22 @@ Obviously, if a truck arrives at a village shop with ₹13,000 worth of sweet bu
 
 ---
 
-*This document is maintained as the authoritative plain-English specification for `@isolabs/order-engine` in `Build Docs/`.*
+## 10. How the App Speaks Authentic Mandi Hindi & Prevents Warehouse Stock Fights (In Plain English)
+
+### A. Why We Used "Zero-AI" for Hindi Translation
+Why didn't we just plug in ChatGPT or Google Translate to translate the website into Hindi?
+1. **Instant Speed (0.05 milliseconds vs 3 seconds):** When a shopkeeper taps a button on a 3G phone, they cannot wait 3 seconds for an AI cloud server to translate a word. Our built-in Mandi dictionary translates words in less than 0.05 milliseconds.
+2. **Zero Invoicing Hallucinations:** Generative AI models can hallucinate and change numbers! On a commercial tax invoice, if an AI accidentally changes a ₹777 price or a 9% GST tax rate, the distributor breaks the law. With our deterministic engine, numbers and prices are 100% sacred and never altered.
+3. **Mandi Slang vs Textbook Hindi:** Generic translation produces formal literary Hindi like *"थोक डिब्बा"* (thok dibba) or *"शॉपिंग कार्ट"* (shopping cart). Real Mandi traders say **पूरी पेटी** (whole case), **खुले पैकेट** (loose packs), **स्टॉक समाप्त** (out of stock), and **उधार सीमा** (credit limit).
+4. **The "Random Catalog" Transliteration Engine:** If a distributor uploads a brand-new Excel price sheet with products like *"Kisan Chana Dal 1kg"* or registers a new shop *"Raju Kirana & General Store"*, our phonetic sound-matching engine automatically writes them in clean Devanagari Hindi (*"किसान चना दाल 1 किलो"*, *"राजू किराना व जनरल स्टोर"*) with zero AI costs or monthly API bills.
+5. **Never Resets on Page Turn:** When a shopkeeper clicks "हिन्दी" on one page, the whole app (cart, orders, login, walkthrough) stays in Hindi without asking them to click it again.
+
+### B. The "Movie Ticket Seat Selection" Warehouse Stock Guard
+What happens if two rival Kirana stores open the app at 9:00 AM and there are only 5 cases of Marie Gold left in the warehouse?
+- **Just like booking seats in a movie theatre:** The moment Sharma Kirana buys those 5 cases, Verma General's screen immediately drops from 5 to 0 cases live without needing to refresh the page.
+- If Verma already had those cases sitting in their cart, the app immediately flashes a bright red warning banner and locks the "Place Order" button, politely telling them the goods just sold out.
+- This prevents messy warehouse stockouts, double-dispatching, or angry phone calls from merchants whose orders had to be cancelled.
+
+---
+
+*This document is maintained as the authoritative plain-English specification for `@isolabs/order-engine` and the IsoLabs platform in `Build Docs/`.*

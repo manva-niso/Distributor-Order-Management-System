@@ -40,6 +40,14 @@ export async function POST(
       );
     }
 
+    // Persist verified status update to Neon PostgreSQL
+    try {
+      const { syncOrderStatusToNeon } = await import("@/db/neon-sync");
+      syncOrderStatusToNeon(id, "VERIFIED", result.order?.occVersion || 2).catch((err) =>
+        console.warn("Neon release-hold status sync warning:", err)
+      );
+    } catch {}
+
     return NextResponse.json({
       success: true,
       message: `Credit hold on order #${id} released successfully.`,

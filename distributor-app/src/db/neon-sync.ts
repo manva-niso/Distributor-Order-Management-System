@@ -46,6 +46,17 @@ export async function syncDatasetToNeon(params: {
   }
 
   try {
+    // 0. Ensure optional Hindi columns exist without failing
+    try {
+      await sql`ALTER TABLE skus ADD COLUMN IF NOT EXISTS name_hi text;`;
+      await sql`ALTER TABLE skus ADD COLUMN IF NOT EXISTS brand_hi text;`;
+      await sql`ALTER TABLE skus ADD COLUMN IF NOT EXISTS category_hi text;`;
+      await sql`ALTER TABLE skus ADD COLUMN IF NOT EXISTS pack_size_hi text;`;
+      await sql`ALTER TABLE retailers ADD COLUMN IF NOT EXISTS name_hi text;`;
+      await sql`ALTER TABLE retailers ADD COLUMN IF NOT EXISTS owner_name_hi text;`;
+      await sql`ALTER TABLE retailers ADD COLUMN IF NOT EXISTS route_hi text;`;
+    } catch {}
+
     // 1. Wipe old records if requested
     if (params.wipeFirst) {
       if (params.retailers.length > 0) {
@@ -75,10 +86,13 @@ export async function syncDatasetToNeon(params: {
         .values({
           id: r.id,
           name: r.name,
+          nameHi: r.nameHi || null,
           ownerName: r.ownerName,
+          ownerNameHi: r.ownerNameHi || null,
           phone: r.phone,
           address: r.address,
           route: r.route,
+          routeHi: r.routeHi || null,
           salesmanId: r.salesmanId,
           creditLimit: toNumStr(r.creditLimit, "50000"),
           currentBalance: toNumStr(r.currentBalance, "0"),
@@ -89,10 +103,13 @@ export async function syncDatasetToNeon(params: {
           target: schema.retailers.id,
           set: {
             name: r.name,
+            nameHi: r.nameHi || null,
             ownerName: r.ownerName,
+            ownerNameHi: r.ownerNameHi || null,
             phone: r.phone,
             address: r.address,
             route: r.route,
+            routeHi: r.routeHi || null,
             creditLimit: toNumStr(r.creditLimit, "50000"),
             currentBalance: toNumStr(r.currentBalance, "0"),
             creditHold: Boolean(r.creditHold),
@@ -132,9 +149,13 @@ export async function syncDatasetToNeon(params: {
           id: s.id,
           code: s.code,
           name: s.name,
+          nameHi: s.nameHi || null,
           brand: s.brand,
+          brandHi: s.brandHi || null,
           category: s.category,
+          categoryHi: s.categoryHi || null,
           packSize: s.packSize,
+          packSizeHi: s.packSizeHi || null,
           unitsPerCase: s.unitsPerCase || 1,
           dealerPrice: toNumStr(s.dealerPrice, "0"),
           packPrice: toNumStr(s.packPrice, "0"),
@@ -150,9 +171,13 @@ export async function syncDatasetToNeon(params: {
           set: {
             code: s.code,
             name: s.name,
+            nameHi: s.nameHi || null,
             brand: s.brand,
+            brandHi: s.brandHi || null,
             category: s.category,
+            categoryHi: s.categoryHi || null,
             packSize: s.packSize,
+            packSizeHi: s.packSizeHi || null,
             unitsPerCase: s.unitsPerCase || 1,
             dealerPrice: toNumStr(s.dealerPrice, "0"),
             packPrice: toNumStr(s.packPrice, "0"),

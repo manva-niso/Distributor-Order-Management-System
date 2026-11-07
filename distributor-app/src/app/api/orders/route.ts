@@ -41,7 +41,9 @@ export async function GET(request: NextRequest) {
       return {
         ...order,
         retailerName: retailer?.name || "Unknown Retailer",
+        retailerNameHi: retailer?.nameHi,
         retailerRoute: retailer?.route || "Unassigned Route",
+        retailerRouteHi: retailer?.routeHi,
         retailerPhone: retailer?.phone || "",
         items,
       };

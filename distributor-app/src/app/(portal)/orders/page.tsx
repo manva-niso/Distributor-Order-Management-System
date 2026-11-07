@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { getCartStorageKey, saveScopedCart } from "@/lib/catalogue/cart-storage";
-
-type Language = "en" | "hi";
+import { TRADE_DICT, getSkuDisplay, ROUTE_HINDI_MAP, RETAILER_NAME_FALLBACK_MAP, Language } from "@/lib/i18n/trade-dict";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface OrderLine {
   id: string;
@@ -38,7 +38,9 @@ interface OrderRecord {
   id: string;
   retailerId?: string;
   retailerName: string;
+  retailerNameHi?: string;
   retailerRoute: string;
+  retailerRouteHi?: string;
   status: "PLACED" | "VERIFIED" | "CREDIT_HOLD" | "EXPORTED_TALLY" | "CANCELLED";
   grandTotal: number;
   totalGst: number;
@@ -53,7 +55,7 @@ function OrdersContent() {
   const searchParams = useSearchParams();
   const placedOrderId = searchParams.get("placed");
 
-  const [lang, setLang] = useState<Language>("en");
+  const { lang, setLang } = useLanguage();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,34 +99,42 @@ function OrdersContent() {
     fetchOrders();
   }, []);
 
-  const getStatusBadge = (status: OrderRecord["status"]) => {
+  const t = TRADE_DICT[lang];
+
+  const getStatusBadge = (status: OrderRecord["status"] | string) => {
     switch (status) {
       case "PLACED":
         return (
           <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{lang === "hi" ? "ऑर्डर दर्ज (डिस्पैच हेतु)" : "Confirmed / Placed"}</span>
+            <span>{t.statusPlaced}</span>
           </span>
         );
       case "CREDIT_HOLD":
         return (
           <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-            <span>{lang === "hi" ? "क्रेडिट होल्ड (डेस्क समीक्षा)" : "Credit Hold"}</span>
+            <span>{t.statusCreditHold}</span>
           </span>
         );
       case "VERIFIED":
         return (
           <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
             <Clock className="w-3.5 h-3.5 text-blue-700" />
-            <span>{lang === "hi" ? "सत्यापित (क्लर्क)" : "Verified by Desk"}</span>
+            <span>{t.statusVerified}</span>
           </span>
         );
       case "EXPORTED_TALLY":
         return (
           <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
             <FileText className="w-3.5 h-3.5 text-purple-700" />
-            <span>{lang === "hi" ? "टैली एक्सपोर्ट पूर्ण" : "Exported to Tally"}</span>
+            <span>{t.statusTallyExported}</span>
+          </span>
+        );
+      case "CANCELLED":
+        return (
+          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+            <span>{t.statusCancelled}</span>
           </span>
         );
       default:
@@ -138,16 +148,16 @@ function OrdersContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
-      <div className="w-full max-w-md min-h-screen bg-white flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-28 relative">
+      <div className="w-full max-w-md md:max-w-4xl lg:max-w-5xl min-h-screen bg-white flex flex-col md:shadow-xl md:border-x md:border-slate-200/80 pb-28 relative">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
-          <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-base font-bold text-slate-900 leading-tight">
-              {lang === "hi" ? "ऑर्डर इतिहास व स्थिति" : "Order History & Status"}
+              {lang === "hi" ? "पुराने आर्डर व स्थिति" : "Order History & Status"}
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              Company A • Jabalpur Distribution Beat
+              {lang === "hi" ? "कंपनी ए • जबलपुर थोक वितरण बही" : "Company A • Jabalpur Distribution Beat"}
             </p>
           </div>
 
@@ -174,7 +184,7 @@ function OrdersContent() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto px-4 pt-4 space-y-4">
         {/* Newly Placed Order Celebratory Toast */}
         {placedOrderId && (
           <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl p-4 shadow-xs flex items-start gap-3">
@@ -250,7 +260,11 @@ function OrdersContent() {
                       <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
                         <span className="flex items-center gap-1">
                           <Truck className="w-3 h-3 text-slate-400" />
-                          <span>{ord.retailerRoute}</span>
+                          <span>
+                            {lang === "hi"
+                              ? ord.retailerRouteHi || ROUTE_HINDI_MAP[ord.retailerRoute] || ord.retailerRoute
+                              : ord.retailerRoute}
+                          </span>
                         </span>
                         <span>•</span>
                         <span>{new Date(ord.createdAt).toLocaleDateString("en-IN", {
@@ -267,7 +281,7 @@ function OrdersContent() {
                         ₹{Math.round(ord.grandTotal).toLocaleString("en-IN")}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        {totalCases} cases {totalFree > 0 && `(+${totalFree} free)`}
+                        {totalCases} {lang === "hi" ? "पेटी" : "cases"} {totalFree > 0 && `(+${totalFree} ${lang === "hi" ? "मुफ्त" : "free"})`}
                       </span>
                     </div>
                   </div>
@@ -278,36 +292,39 @@ function OrdersContent() {
                       <Gift className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                       <span>
                         {lang === "hi" ? "मुफ्त योजना पेटी: " : "Promotional Schemes: "}
-                        {ord.freeGoodsTally.map((f) => `+${f.freeCases} ${f.skuName}`).join(", ")}
+                        {ord.freeGoodsTally.map((f) => `+${f.freeCases} ${getSkuDisplay({ name: f.skuName, id: f.skuId }, lang).name}`).join(", ")}
                       </span>
                     </div>
                   )}
 
                   {/* Itemized Lines */}
                   <div className="space-y-1.5 pt-0.5">
-                    {ord.items.map((it) => (
-                      <div
-                        key={it.id}
-                        className="flex items-center justify-between text-xs text-slate-700"
-                      >
-                        <span className="truncate pr-2">
-                          <strong className="font-mono text-slate-900">
-                            {it.quantityCases > 0 ? `${it.quantityCases} Case(s)` : ""}
-                            {it.quantityCases > 0 && (it.quantityPacks || 0) > 0 ? " + " : ""}
-                            {(it.quantityPacks || 0) > 0 ? `${it.quantityPacks} Pack(s)` : ""}
-                          </strong>{" "}
-                          {it.skuName || it.skuId}
-                          {it.freeCases > 0 && (
-                            <span className="text-emerald-700 font-semibold ml-1">
-                              (+{it.freeCases} free)
-                            </span>
-                          )}
-                        </span>
-                        <span className="font-mono text-slate-900 shrink-0 font-medium">
-                          ₹{it.netLineAmount.toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
+                    {ord.items.map((it) => {
+                      const skuDisplay = getSkuDisplay({ name: it.skuName || "", code: it.skuCode, id: it.skuId }, lang);
+                      return (
+                        <div
+                          key={it.id}
+                          className="flex items-center justify-between text-xs text-slate-700"
+                        >
+                          <span className="truncate pr-2">
+                            <strong className="font-mono text-slate-900">
+                              {it.quantityCases > 0 ? `${it.quantityCases} ${lang === "hi" ? "पेटी" : "Case(s)"}` : ""}
+                              {it.quantityCases > 0 && (it.quantityPacks || 0) > 0 ? " + " : ""}
+                              {(it.quantityPacks || 0) > 0 ? `${it.quantityPacks} ${lang === "hi" ? "पैकेट" : "Pack(s)"}` : ""}
+                            </strong>{" "}
+                            {skuDisplay.name || it.skuName || it.skuId}
+                            {it.freeCases > 0 && (
+                              <span className="text-emerald-700 font-semibold ml-1">
+                                (+{it.freeCases} {lang === "hi" ? "मुफ्त" : "free"})
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-mono text-slate-900 shrink-0 font-medium">
+                            ₹{it.netLineAmount.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Repeat Order Action Button */}

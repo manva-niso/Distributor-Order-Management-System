@@ -1,10 +1,13 @@
 export interface SeedRetailer {
   id: string;
   name: string;
+  nameHi?: string;
   ownerName: string;
+  ownerNameHi?: string;
   phone: string;
   address: string;
   route: string;
+  routeHi?: string;
   salesmanId?: string;
   creditLimit: number;
   currentBalance: number;
@@ -44,9 +47,13 @@ export interface SeedSku {
   id: string;
   code: string;
   name: string;
+  nameHi?: string;
   brand: string;
+  brandHi?: string;
   category: string;
+  categoryHi?: string;
   packSize: string;
+  packSizeHi?: string;
   unitsPerCase: number;
   dealerPrice: number; // Case price ex-GST
   packPrice: number; // Single pack rate

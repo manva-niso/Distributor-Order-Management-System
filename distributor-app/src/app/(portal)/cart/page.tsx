@@ -34,14 +34,17 @@ import {
 } from "@/lib/catalogue/cart-storage";
 import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
 import BottomNav from "@/components/layout/BottomNav";
-
-type Language = "en" | "hi";
+import { TRADE_DICT, getSkuDisplay, getRetailerDisplay, Language } from "@/lib/i18n/trade-dict";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface RetailerLedger {
   id: string;
   name: string;
+  nameHi?: string;
   ownerName: string;
+  ownerNameHi?: string;
   route: string;
+  routeHi?: string;
   creditLimit: number;
   currentBalance: number;
 }
@@ -50,7 +53,7 @@ export default function CartPage() {
   const router = useRouter();
   const { stockMap, stockVersion, getStock, isOutOfStock } = useLiveStock();
 
-  const [lang, setLang] = useState<Language>("en");
+  const { lang, setLang } = useLanguage();
   const [skus, setSkus] = useState<SeedSku[]>([]);
   const [ledger, setLedger] = useState<RetailerLedger | null>(null);
   const [cartMap, setCartMap] = useState<Record<string, DraftCartItem>>({});
@@ -249,6 +252,9 @@ export default function CartPage() {
     router.push("/login");
   };
 
+  const t = TRADE_DICT[lang];
+  const ledgerDisplay = ledger ? getRetailerDisplay(ledger, lang) : null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
@@ -259,10 +265,10 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
-      <div className="w-full max-w-md min-h-screen bg-white flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-28 relative">
+      <div className="w-full max-w-md md:max-w-5xl lg:max-w-6xl min-h-screen bg-white flex flex-col md:shadow-xl md:border-x md:border-slate-200/80 pb-28 relative">
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
-          <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="max-w-md md:max-w-5xl lg:max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/catalogue"
@@ -275,8 +281,8 @@ export default function CartPage() {
                 {lang === "hi" ? "ऑर्डर सारांश / कार्ट" : "Review Wholesale Order"}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs text-slate-500 font-medium">
-                  {ledger?.name || "Kirana Account"} • {ledger?.route || "Jabalpur"}
+                <p className="text-xs text-slate-500 font-medium truncate">
+                  {ledgerDisplay ? `${ledgerDisplay.name} • ${ledgerDisplay.route}` : (lang === "hi" ? "शर्मा किराना स्टोर • नेपियर टाउन" : "Sharma Kirana • Napier Town")}
                 </p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -310,13 +316,13 @@ export default function CartPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-md md:max-w-5xl lg:max-w-6xl w-full mx-auto px-4 pt-4 space-y-4">
         {/* Error Alert */}
         {errorMessage && (
           <div className="bg-red-50 border border-red-200 text-red-900 rounded-lg p-3 text-xs flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div>
-              <div className="font-bold">Checkout Issue</div>
+              <div className="font-bold">{lang === "hi" ? "चेकआउट समस्या" : "Checkout Issue"}</div>
               <div>{errorMessage}</div>
             </div>
           </div>
@@ -335,7 +341,7 @@ export default function CartPage() {
             </div>
             <p className="text-xs text-red-800 leading-relaxed">
               {lang === "hi"
-                ? `अन्य दुकानदार ने आपसे पहले ऑर्डर कर दिया: ${outOfStockItems.map((o) => o.name).join(", ")} अब गोदाम में उपलब्ध नहीं है। आर्डर पूरा करने के लिए कृपया नीचे दिए बटन से इसे कार्ट से हटाएं।`
+                ? `अन्य दुकानदार ने आपसे पहले ऑर्डर कर दिया: ${outOfStockItems.map((o) => getSkuDisplay(o, lang).name).join(", ")} अब गोदाम में उपलब्ध नहीं है। आर्डर पूरा करने के लिए कृपया नीचे दिए बटन से इसे कार्ट से हटाएं।`
                 : `Another retailer just placed an order for the remaining cases of: ${outOfStockItems.map((o) => o.name).join(", ")}. Please remove them to proceed with checkout.`}
             </p>
             <button
@@ -352,396 +358,405 @@ export default function CartPage() {
 
         {/* Empty State */}
         {activeItems.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-4 shadow-sm my-8">
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-4 shadow-sm my-8 max-w-lg mx-auto">
             <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <ShoppingCart className="w-8 h-8" />
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {lang === "hi" ? "आपकी कार्ट खाली है" : "Your order cart is empty"}
+                {t.cartIsEmptyTitle}
               </h2>
               <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
-                {lang === "hi"
-                  ? "डिलीवरी वैन के लिए सामान जोड़ने हेतु हमारे थोक कैटलॉग पर जाएं।"
-                  : "Add master cases from our wholesale FMCG catalogue to prepare your van delivery order."}
+                {t.cartIsEmptySubtitle}
               </p>
             </div>
             <Link
               href="/catalogue"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-xs hover:bg-emerald-800 transition-colors"
             >
-              <span>{lang === "hi" ? "कैटलॉग देखें" : "Browse Wholesale Catalogue"}</span>
+              <span>{t.browseCatalogueBtn}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
-          <>
-            {/* 1. B2B Credit Headroom Meter (Rule [A14]) */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  {creditExceeded ? (
-                    <ShieldAlert className="w-5 h-5 text-amber-600" />
-                  ) : (
-                    <ShieldCheck className="w-5 h-5 text-emerald-700" />
-                  )}
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    {lang === "hi" ? "क्रेडिट हेडरुम मीटर" : "Credit Ledger Headroom"}
-                  </span>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-600">
-                  ₹{creditLimit.toLocaleString("en-IN")} Limit
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3">
-                <div className="flex justify-between text-xs font-medium text-slate-600 mb-1">
-                  <span>
-                    {lang === "hi" ? "वर्तमान बकाया: " : "Existing: "}
-                    ₹{currentBalance.toLocaleString("en-IN")}
-                  </span>
-                  <span>
-                    + {lang === "hi" ? "यह ऑर्डर: " : "This Order: "}
-                    ₹{grandTotal.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      creditExceeded ? "bg-amber-500" : "bg-emerald-600"
-                    }`}
-                    style={{ width: `${creditUsagePct}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Status Note */}
-              <div className="mt-2.5 text-xs">
-                {creditExceeded ? (
-                  <div className="bg-amber-50 text-amber-900 border border-amber-200 rounded p-2 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">
-                        {lang === "hi"
-                          ? `क्रेडिट सीमा ₹${exceededBy.toLocaleString("en-IN")} से अधिक हो रही है: `
-                          : `Credit limit exceeded by ₹${exceededBy.toLocaleString("en-IN")}: `}
-                      </span>
-                      {lang === "hi"
-                        ? "ऑर्डर स्वीकार हो जाएगा लेकिन डिस्पैच से पहले डेस्क क्लर्क की मंजूरी आवश्यक होगी।"
-                        : "Order will be placed under CREDIT_HOLD status for clerk review before dispatch."}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-emerald-800 font-semibold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    <span>
-                      {lang === "hi"
-                        ? `उपलब्ध शेष क्रेडिट: ₹${(creditLimit - projectedBalance).toLocaleString("en-IN")}`
-                        : `Available headroom after this order: ₹${(creditLimit - projectedBalance).toLocaleString("en-IN")}`}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* Left Column (Items Breakdown) */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Itemized Case Breakdown */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      {lang === "hi" ? "कार्ट में उत्पाद" : "Order Line Items"} ({activeItems.length})
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 font-mono">
+                      {totals.totalCases} {lang === "hi" ? "पेटी" : "Cases"} {totals.totalPacks > 0 && `+ ${totals.totalPacks} ${lang === "hi" ? "पैकेट" : "Packs"}`}
                     </span>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer transition-colors"
+                  >
+                    {t.emptyCartBtn}
+                  </button>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {activeItems.map((sku) => {
+                    const calc = calculateLineItem(sku);
+                    const liveStock = getStock(sku.id, sku.stockCases);
+                    const isZeroStock = liveStock <= 0;
+                    const isOverStock = liveStock > 0 && liveStock < sku.quantityCases;
+                    const skuDisplay = getSkuDisplay(sku, lang);
+
+                    return (
+                      <div
+                        key={sku.id}
+                        className={`py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2.5 rounded-lg p-2.5 transition-colors ${
+                          isZeroStock ? "bg-red-50/70 border border-red-200" : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                {skuDisplay.brand} • {sku.code}
+                              </span>
+                              {isZeroStock && (
+                                <span className="text-[11px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                                  <AlertTriangle className="w-3 h-3 text-red-600" />
+                                  {lang === "hi" ? "स्टॉक समाप्त (0 पेटी)" : "OUT OF STOCK"}
+                                </span>
+                              )}
+                              {isOverStock && (
+                                <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-amber-700" />
+                                  {t.casesLeft(liveStock)}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-900 mt-0.5 leading-snug">
+                              {skuDisplay.name}
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                              ₹{sku.dealerPrice.toFixed(2)}{t.perCase} · ₹{sku.packPrice.toFixed(2)}{t.perPack} · {sku.unitsPerCase} {t.packsPerCase}
+                            </p>
+                          </div>
+
+                          {/* Line Total */}
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-bold font-mono text-slate-900 block">
+                              ₹{Math.round(calc.totalAmount).toLocaleString("en-IN")}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {sku.gstRate}% {t.inclGst}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Active Scheme Badges */}
+                        {calc.freeCases > 0 && (
+                          <div className="bg-emerald-50 text-emerald-900 text-xs px-2.5 py-1 rounded border border-emerald-200 flex items-center gap-1.5 font-medium leading-relaxed">
+                            <Gift className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                            <span>
+                              {lang === "hi"
+                                ? `🎉 योजना अनलॉक: +${calc.freeCases} पेटी मुफ्त (कुल ${calc.quantityCases + calc.freeCases} पेटी डिलीवर होंगी)`
+                                : `🎉 Scheme Unlocked: +${calc.freeCases} Free Case (Total ${calc.quantityCases + calc.freeCases} cases delivered at ₹0.00)`}
+                            </span>
+                          </div>
+                        )}
+
+                        {calc.discountAmount > 0 && (
+                          <div className="bg-blue-50 text-blue-900 text-xs px-2.5 py-1 rounded border border-blue-200 flex items-center gap-1.5 font-medium leading-relaxed">
+                            <Percent className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                            <span>
+                              {lang === "hi"
+                                ? `🏷️ ${sku.schemeDetail?.discountPct || 3}% स्लैब छूट लागू (-₹${calc.discountAmount.toFixed(2)} बचत)`
+                                : `🏷️ ${sku.schemeDetail?.discountPct || 3}% Slab Discount Applied (-₹${calc.discountAmount.toFixed(2)} savings)`}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Quantity Stepper Row for Cases & Loose Packs */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-50">
+                          <div className="flex items-center gap-3">
+                            {/* Case Stepper */}
+                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                              <span className="text-[11px] font-bold text-slate-600 px-1">{t.caseLabel}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(sku.id, "cases", -1)}
+                                disabled={calc.quantityCases <= 0}
+                                className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
+                                {calc.quantityCases}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(sku.id, "cases", 1)}
+                                disabled={calc.quantityCases >= sku.stockCases}
+                                className="w-7 h-7 flex items-center justify-center bg-emerald-700 text-white hover:bg-emerald-800 rounded cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {/* Loose Pack Stepper */}
+                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                              <span className="text-[11px] font-bold text-slate-600 px-1">{t.packLabel}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(sku.id, "packs", -1)}
+                                disabled={calc.quantityPacks <= 0}
+                                className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
+                                {calc.quantityPacks}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(sku.id, "packs", 1)}
+                                className="w-7 h-7 flex items-center justify-center bg-slate-800 text-white hover:bg-slate-900 rounded cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeItem(sku.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                            title="Remove line"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* 2. Itemized Case Breakdown */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    {lang === "hi" ? "कार्ट में उत्पाद" : "Order Line Items"} ({activeItems.length})
-                  </span>
-                  <span className="text-[11px] font-bold text-slate-500 font-mono">
-                    {totals.totalCases} Cases {totals.totalPacks > 0 && `+ ${totals.totalPacks} Packs`}
+            {/* Right Column (Credit Ledger + Tax Invoice Summary + Checkout Action) */}
+            <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-20">
+              {/* 1. B2B Credit Headroom Meter */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    {creditExceeded ? (
+                      <ShieldAlert className="w-5 h-5 text-amber-600" />
+                    ) : (
+                      <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                    )}
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      {lang === "hi" ? "क्रेडिट हेडरुम मीटर" : "Credit Ledger Headroom"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-600">
+                    ₹{creditLimit.toLocaleString("en-IN")} {lang === "hi" ? "सीमा" : "Limit"}
                   </span>
                 </div>
+
+                {/* Progress Bar */}
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                    <span>
+                      {lang === "hi" ? "वर्तमान बकाया: " : "Existing: "}
+                      ₹{currentBalance.toLocaleString("en-IN")}
+                    </span>
+                    <span>
+                      + {lang === "hi" ? "यह ऑर्डर: " : "This Order: "}
+                      ₹{grandTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        creditExceeded ? "bg-amber-500" : "bg-emerald-600"
+                      }`}
+                      style={{ width: `${creditUsagePct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Status Note */}
+                <div className="mt-2.5 text-xs">
+                  {creditExceeded ? (
+                    <div className="bg-amber-50 text-amber-900 border border-amber-200 rounded p-2 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">
+                          {lang === "hi"
+                            ? `क्रेडिट सीमा ₹${exceededBy.toLocaleString("en-IN")} से अधिक हो रही है: `
+                            : `Credit limit exceeded by ₹${exceededBy.toLocaleString("en-IN")}: `}
+                        </span>
+                        {lang === "hi"
+                          ? "ऑर्डर स्वीकार हो जाएगा लेकिन डिस्पैच से पहले डेस्क क्लर्क की मंजूरी आवश्यक होगी।"
+                          : "Order will be placed under CREDIT_HOLD status for clerk review before dispatch."}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-emerald-800 font-semibold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                      <span>
+                        {lang === "hi"
+                          ? `उपलब्ध शेष क्रेडिट: ₹${(creditLimit - projectedBalance).toLocaleString("en-IN")}`
+                          : `Available headroom after this order: ₹${(creditLimit - projectedBalance).toLocaleString("en-IN")}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Commercial Tax Invoice Breakdown */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                  <Receipt className="w-4 h-4 text-slate-600" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    {lang === "hi" ? "कर बीजक सारांश (जीएसटी)" : "Tax Invoice Summary"}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>{t.orderedCases}</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      {totals.totalCases} {lang === "hi" ? "पेटी" : "cases"}
+                    </span>
+                  </div>
+
+                  {totals.totalPacks > 0 && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>{t.orderedPacks}</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        {totals.totalPacks} {lang === "hi" ? "पैकेट" : "packs"}
+                      </span>
+                    </div>
+                  )}
+
+                  {totals.totalFreeCases > 0 && (
+                    <div className="flex justify-between text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded">
+                      <span>{t.freePromotional}</span>
+                      <span className="font-mono">+{totals.totalFreeCases} {lang === "hi" ? "पेटी मुफ्त" : "cases free"}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-slate-600">
+                    <span>{t.grossSubtotal}</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      ₹{totals.grossSubtotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {totals.totalDiscounts > 0 && (
+                    <div className="flex justify-between text-emerald-800 font-semibold">
+                      <span>{t.totalDiscounts}</span>
+                      <span className="font-mono">-₹{totals.totalDiscounts.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-slate-600">
+                    <span>{t.taxableSubtotal}</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      ₹{totals.taxableSubtotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-slate-600">
+                    <span>{t.cgst}</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      ₹{(totals.totalGst / 2).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-slate-600">
+                    <span>{t.sgst}</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      ₹{(totals.totalGst / 2).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
+                    <div>
+                      <span className="text-sm font-bold text-slate-900 block">
+                        {t.grandTotalPayable}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {lang === "hi" ? "राउंड ऑफ सहित" : "Net rounded invoice amount"}
+                      </span>
+                    </div>
+                    <span className="text-xl font-bold font-mono text-emerald-800">
+                      ₹{totals.grandTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Dispatch Cutoff Alert */}
+              <div className="bg-slate-200/60 border border-slate-300 rounded-lg p-3 flex items-start gap-2.5 text-xs text-slate-700">
+                <Clock className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">
+                    {lang === "hi" ? "2:00 PM कटऑफ समय: " : "2:00 PM Dispatch Cutoff: "}
+                  </span>
+                  {lang === "hi"
+                    ? "दोपहर 2:00 बजे से पहले दिए गए ऑर्डर आपकी डिलीवरी वैन द्वारा कल सुबह 9:30 बजे तक पहुंचा दिए जाएंगे।"
+                    : "Orders confirmed before 2:00 PM are batched for delivery van loading tomorrow morning by 9:30 AM."}
+                </div>
+              </div>
+
+              {/* 5. Primary Checkout Action Button */}
+              <div className="pt-1">
                 <button
                   type="button"
-                  onClick={clearCart}
-                  className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer transition-colors"
+                  onClick={handleCheckout}
+                  disabled={loadingCheckout || outOfStockItems.length > 0}
+                  className={`w-full min-h-[48px] h-auto py-3 px-3 font-bold text-sm sm:text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer text-center ${
+                    outOfStockItems.length > 0
+                      ? "bg-red-700 text-white opacity-85 cursor-not-allowed"
+                      : "bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                  }`}
                 >
-                  {lang === "hi" ? "कार्ट खाली करें" : "Empty Cart"}
+                  {loadingCheckout ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>{t.submittingOrder}</span>
+                    </>
+                  ) : outOfStockItems.length > 0 ? (
+                    <>
+                      <AlertTriangle className="w-5 h-5 text-white shrink-0" />
+                      <span>
+                        {lang === "hi"
+                          ? "आउट ऑफ स्टॉक सामान हटाएं"
+                          : "Remove Out of Stock Items to Order"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="break-words">
+                        {creditExceeded
+                          ? (lang === "hi"
+                            ? "ऑर्डर भेजें (डेस्क समीक्षा हेतु)"
+                            : "Place Order (Flag Credit Hold)")
+                          : (lang === "hi"
+                          ? `ऑर्डर पक्का करें • ₹${totals.grandTotal.toLocaleString("en-IN")}`
+                          : `Confirm & Place Order • ₹${totals.grandTotal.toLocaleString("en-IN")}`)}
+                      </span>
+                      <ArrowRight className="w-5 h-5 shrink-0" />
+                    </>
+                  )}
                 </button>
               </div>
-
-              <div className="divide-y divide-slate-100">
-                {activeItems.map((sku) => {
-                  const calc = calculateLineItem(sku);
-                  const liveStock = getStock(sku.id, sku.stockCases);
-                  const isZeroStock = liveStock <= 0;
-                  const isOverStock = liveStock > 0 && liveStock < sku.quantityCases;
-
-                  return (
-                    <div
-                      key={sku.id}
-                      className={`py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2.5 rounded-lg p-2.5 transition-colors ${
-                        isZeroStock ? "bg-red-50/70 border border-red-200" : ""
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                              {sku.brand} • {sku.code}
-                            </span>
-                            {isZeroStock && (
-                              <span className="text-[11px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
-                                <AlertTriangle className="w-3 h-3 text-red-600" />
-                                {lang === "hi" ? "स्टॉक समाप्त (0 पेटी)" : "OUT OF STOCK"}
-                              </span>
-                            )}
-                            {isOverStock && (
-                              <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-amber-700" />
-                                {lang === "hi" ? `केवल ${liveStock} पेटी शेष` : `Only ${liveStock} cases left`}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-sm font-bold text-slate-900 mt-0.5 leading-snug">
-                            {sku.name}
-                          </h3>
-                          <p className="text-xs text-slate-500">
-                            ₹{sku.dealerPrice.toFixed(2)}/case · ₹{sku.packPrice.toFixed(2)}/pack · {sku.unitsPerCase} packs/case
-                          </p>
-                        </div>
-
-                        {/* Line Total */}
-                        <div className="text-right shrink-0">
-                          <span className="text-sm font-bold font-mono text-slate-900 block">
-                            ₹{Math.round(calc.totalAmount).toLocaleString("en-IN")}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Incl. {sku.gstRate}% GST
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Active Scheme Badges */}
-                      {calc.freeCases > 0 && (
-                        <div className="bg-emerald-50 text-emerald-900 text-xs px-2.5 py-1 rounded border border-emerald-200 flex items-center gap-1.5 font-medium">
-                          <Gift className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>
-                            {lang === "hi"
-                              ? `🎉 योजना अनलॉक: +${calc.freeCases} पेटी मुफ्त (कुल ${calc.quantityCases + calc.freeCases} पेटी डिलीवर होंगी)`
-                              : `🎉 Scheme Unlocked: +${calc.freeCases} Free Case (Total ${calc.quantityCases + calc.freeCases} cases delivered at ₹0.00)`}
-                          </span>
-                        </div>
-                      )}
-
-                      {calc.discountAmount > 0 && (
-                        <div className="bg-blue-50 text-blue-900 text-xs px-2.5 py-1 rounded border border-blue-200 flex items-center gap-1.5 font-medium">
-                          <Percent className="w-3.5 h-3.5 text-blue-700" />
-                          <span>
-                            {lang === "hi"
-                              ? `🏷️ ${sku.schemeDetail?.discountPct || 3}% स्लैब छूट लागू (-₹${calc.discountAmount.toFixed(2)})`
-                              : `🏷️ ${sku.schemeDetail?.discountPct || 3}% Slab Discount Applied (-₹${calc.discountAmount.toFixed(2)} savings)`}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Quantity Stepper Row for Cases & Loose Packs */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-50">
-                        <div className="flex items-center gap-3">
-                          {/* Case Stepper */}
-                          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                            <span className="text-[11px] font-bold text-slate-600 px-1">Case:</span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(sku.id, "cases", -1)}
-                              disabled={calc.quantityCases <= 0}
-                              className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
-                              {calc.quantityCases}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(sku.id, "cases", 1)}
-                              disabled={calc.quantityCases >= sku.stockCases}
-                              className="w-7 h-7 flex items-center justify-center bg-emerald-700 text-white hover:bg-emerald-800 rounded cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {/* Loose Pack Stepper */}
-                          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                            <span className="text-[11px] font-bold text-slate-600 px-1">Pack:</span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(sku.id, "packs", -1)}
-                              disabled={calc.quantityPacks <= 0}
-                              className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-8 text-center font-bold text-xs font-mono text-slate-900">
-                              {calc.quantityPacks}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(sku.id, "packs", 1)}
-                              className="w-7 h-7 flex items-center justify-center bg-slate-800 text-white hover:bg-slate-900 rounded cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => removeItem(sku.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                          title="Remove line"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-
-            {/* 3. Commercial Tax Invoice Breakdown */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Receipt className="w-4 h-4 text-slate-600" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  {lang === "hi" ? "कर बीजक सारांश (जीएसटी)" : "Tax Invoice Summary"}
-                </span>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>{lang === "hi" ? "ऑर्डर की गई पेटी: " : "Ordered Master Cases:"}</span>
-                  <span className="font-mono font-bold text-slate-900">{totals.totalCases} cases</span>
-                </div>
-
-                {totals.totalPacks > 0 && (
-                  <div className="flex justify-between text-slate-600">
-                    <span>{lang === "hi" ? "ऑर्डर किए गए खुले पैकेट: " : "Ordered Loose Packs:"}</span>
-                    <span className="font-mono font-bold text-slate-900">{totals.totalPacks} packs</span>
-                  </div>
-                )}
-
-                {totals.totalFreeCases > 0 && (
-                  <div className="flex justify-between text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded">
-                    <span>{lang === "hi" ? "मुफ्त योजना पेटी (₹0): " : "Promotional Free Cases (₹0):"}</span>
-                    <span className="font-mono">+{totals.totalFreeCases} cases free</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between text-slate-600">
-                  <span>{lang === "hi" ? "सकल राशि (बिना टैक्स): " : "Gross Subtotal (Ex-GST):"}</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    ₹{totals.grossSubtotal.toFixed(2)}
-                  </span>
-                </div>
-
-                {totals.totalDiscounts > 0 && (
-                  <div className="flex justify-between text-emerald-800 font-semibold">
-                    <span>{lang === "hi" ? "कुल योजना छूट: " : "Total Trade Discounts:"}</span>
-                    <span className="font-mono">-₹{totals.totalDiscounts.toFixed(2)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between text-slate-600">
-                  <span>{lang === "hi" ? "कर योग्य मूल्य: " : "Taxable Value:"}</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    ₹{totals.taxableSubtotal.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-slate-600">
-                  <span>CGST (9.0% / 2.5%):</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    ₹{(totals.totalGst / 2).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-slate-600">
-                  <span>SGST (9.0% / 2.5%):</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    ₹{(totals.totalGst / 2).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
-                  <div>
-                    <span className="text-sm font-bold text-slate-900 block">
-                      {lang === "hi" ? "कुल देय राशि (जीएसटी सहित):" : "Grand Total Payable (Incl. GST):"}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      {lang === "hi" ? "राउंड ऑफ सहित" : "Net rounded invoice amount"}
-                    </span>
-                  </div>
-                  <span className="text-xl font-bold font-mono text-emerald-800">
-                    ₹{totals.grandTotal.toLocaleString("en-IN")}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Dispatch Cutoff Alert (Rule [A1]) */}
-            <div className="bg-slate-200/60 border border-slate-300 rounded-lg p-3 flex items-start gap-2.5 text-xs text-slate-700">
-              <Clock className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">
-                  {lang === "hi" ? "2:00 PM कटऑफ समय: " : "2:00 PM Dispatch Cutoff: "}
-                </span>
-                {lang === "hi"
-                  ? "दोपहर 2:00 बजे से पहले दिए गए ऑर्डर आपकी डिलीवरी वैन द्वारा कल सुबह 9:30 बजे तक पहुंचा दिए जाएंगे।"
-                  : "Orders confirmed before 2:00 PM are batched for delivery van loading tomorrow morning by 9:30 AM."}
-              </div>
-            </div>
-
-            {/* 5. Primary Checkout Action Button (48px Touch Target) */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleCheckout}
-                disabled={loadingCheckout || outOfStockItems.length > 0}
-                className={`w-full min-h-[48px] h-auto py-3 px-3 font-bold text-sm sm:text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer text-center ${
-                  outOfStockItems.length > 0
-                    ? "bg-red-700 text-white opacity-85 cursor-not-allowed"
-                    : "bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white disabled:opacity-70 disabled:cursor-not-allowed"
-                }`}
-              >
-                {loadingCheckout ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>{lang === "hi" ? "ऑर्डर दर्ज किया जा रहा है..." : "Submitting Order to Desk..."}</span>
-                  </>
-                ) : outOfStockItems.length > 0 ? (
-                  <>
-                    <AlertTriangle className="w-5 h-5 text-white shrink-0" />
-                    <span>
-                      {lang === "hi"
-                        ? "आउट ऑफ स्टॉक सामान हटाएं"
-                        : "Remove Out of Stock Items to Order"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="truncate max-w-[280px]">
-                      {creditExceeded
-                        ? lang === "hi"
-                          ? "ऑर्डर भेजें (डेस्क समीक्षा हेतु)"
-                          : "Place Order (Flag Credit Hold)"
-                        : lang === "hi"
-                        ? `ऑर्डर पक्का करें • ₹${totals.grandTotal.toLocaleString("en-IN")}`
-                        : `Confirm & Place Order • ₹${totals.grandTotal.toLocaleString("en-IN")}`}
-                    </span>
-                    <ArrowRight className="w-5 h-5 shrink-0" />
-                  </>
-                )}
-              </button>
-            </div>
-          </>
+          </div>
         )}
       </main>
 

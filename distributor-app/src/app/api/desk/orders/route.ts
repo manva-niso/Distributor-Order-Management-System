@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       return {
         ...order,
         retailerName: order.retailerName || retailer?.name || "Unknown Retailer",
+        retailerNameHi: retailer?.nameHi,
         route: order.route || retailer?.route || "General Beat",
+        routeHi: retailer?.routeHi,
         retailerPhone: retailer?.phone,
         totalItemsCount: items.length,
         totalCasesCount: items.reduce((sum, item) => sum + item.quantityCases + item.freeCases, 0),

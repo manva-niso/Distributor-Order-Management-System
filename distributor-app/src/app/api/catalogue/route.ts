@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/db/store";
 import { SeedSku } from "@/db/seed-data";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
+import { transliterateToHindi } from "@/lib/i18n/transliterate";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,12 +24,15 @@ export async function GET(request: NextRequest) {
         retailer = {
           id: r.id,
           name: r.name,
+          nameHi: r.nameHi,
           ownerName: r.ownerName,
+          ownerNameHi: r.ownerNameHi,
           creditLimit: r.creditLimit,
           currentBalance: r.currentBalance,
           availableCredit: r.creditLimit - r.currentBalance,
           creditHold: r.creditHold,
           route: r.route,
+          routeHi: r.routeHi,
         };
       }
     }
@@ -78,8 +82,11 @@ export async function GET(request: NextRequest) {
         ? dbStore.getAllRetailers().map((r) => ({
             id: r.id,
             name: r.name,
+            nameHi: r.nameHi,
             ownerName: r.ownerName,
+            ownerNameHi: r.ownerNameHi,
             route: r.route,
+            routeHi: r.routeHi,
             creditLimit: r.creditLimit,
             currentBalance: r.currentBalance,
             availableCredit: r.creditLimit - r.currentBalance,
@@ -125,9 +132,13 @@ export async function POST(request: NextRequest) {
         id,
         code: sku.code || id,
         name: sku.name,
+        nameHi: sku.nameHi || transliterateToHindi(sku.name),
         brand: sku.brand || "General",
+        brandHi: sku.brandHi || transliterateToHindi(sku.brand || "General"),
         category: sku.category || "General Grocery",
+        categoryHi: sku.categoryHi || transliterateToHindi(sku.category || "General Grocery"),
         packSize: sku.packSize || "Standard",
+        packSizeHi: sku.packSizeHi || transliterateToHindi(sku.packSize || "Standard"),
         unitsPerCase: Number(sku.unitsPerCase) || 24,
         dealerPrice: Number(sku.dealerPrice) || 100,
         packPrice: Number(sku.packPrice) || (Number(sku.dealerPrice) || 100) / (Number(sku.unitsPerCase) || 24),
