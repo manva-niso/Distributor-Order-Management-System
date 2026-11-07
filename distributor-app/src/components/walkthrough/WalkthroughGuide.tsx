@@ -71,13 +71,13 @@ export const WALKTHROUGH_STEPS: StepItem[] = [
     summaryHi: "डेस्क से लॉग आउट कर अधिकृत किराना दुकानदार के रूप में लॉगिन करें।",
     actions: [
       "Tap the Log Out icon in the top right header.",
-      "On /login, 1-click select Sharma Kirana Store (9826000001).",
-      "Enter Dev OTP code (716716 or displayed code) to enter buyer portal.",
+      "On /login, 1-click select Sharma Kirana Store (9826000001) or tap 'Instant Demo Login'.",
+      "Enter Dev OTP code (123456 / 716716, or click the auto-fill badge) to enter buyer portal.",
     ],
     actionsHi: [
       "ऊपर दाईं ओर हेडर में लॉग आउट आइकन दबाएं।",
-      "/login पर 1-क्लिक से शर्मा किराना स्टोर (9826000001) चुनें।",
-      "खरीदार पोर्टल में प्रवेश करने के लिए देव ओटीपी कोड (716716 या स्क्रीन पर कोड) दर्ज करें।",
+      "/login पर 1-क्लिक से शर्मा किराना स्टोर (9826000001) चुनें या 'त्वरित डेमो लॉगिन' दबाएं।",
+      "खरीदार पोर्टल में प्रवेश करने के लिए देव ओटीपी कोड (123456 / 716716 या ऑटो-फिल बैज पर क्लिक) दर्ज करें।",
     ],
     whyItMatters: "Strict seat isolation: You are now truly experiencing the Kirana buyer seat without desk privileges.",
     whyItMattersHi: "सख्त सीट अलगाव: अब आप बिना डेस्क विशेषाधिकार के असली किराना खरीदार सीट का अनुभव कर रहे हैं।",
@@ -579,6 +579,21 @@ export default function WalkthroughGuide() {
     });
   };
 
+  // Mark all or none as completed
+  const handleToggleAllSteps = (markAllDone: boolean, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const next: Record<number, boolean> = {};
+    if (markAllDone) {
+      WALKTHROUGH_STEPS.forEach((step) => {
+        next[step.id] = true;
+      });
+    }
+    setCompletedSteps(next);
+    try {
+      localStorage.setItem("isolabs_walkthrough_completed", JSON.stringify(next));
+    } catch {}
+  };
+
   // Toggle minimize/maximize (checks that user did not just drag)
   const handleToggleMinimized = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -966,13 +981,44 @@ export default function WalkthroughGuide() {
           </button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-0.5">
-          <div
-            className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${Math.max(4, progressRatio)}%` }}
-          />
+        {/* Progress Bar & Quick Action */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex-1 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+              style={{ width: `${Math.max(4, progressRatio)}%` }}
+            />
+          </div>
+          {completedCount < totalCount ? (
+            <button
+              type="button"
+              onClick={(e) => handleToggleAllSteps(true, e)}
+              className="text-[9px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 px-2 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
+            >
+              {lang === "hi" ? "✓ सभी 18 चेक करें" : "✓ Check All (18/18)"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => handleToggleAllSteps(false, e)}
+              className="text-[9px] font-bold text-slate-400 hover:text-slate-200 bg-slate-800 px-2 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
+            >
+              {lang === "hi" ? "सभी अनचेक करें" : "Uncheck All"}
+            </button>
+          )}
         </div>
+
+        {/* Celebratory Banner when 18/18 Done */}
+        {completedCount === totalCount && (
+          <div className="mt-1 py-1 px-2 bg-emerald-500/20 border border-emerald-500/40 rounded-md text-center text-[10px] font-bold text-emerald-300 flex items-center justify-center gap-1.5 animate-in fade-in duration-200">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>
+              {lang === "hi"
+                ? "🌟 सभी 18 मांग व कठिन टेस्ट सत्यापित हैं (18/18) ✓"
+                : "🌟 All 18 Demands & Edge Cases Verified (18/18) ✓"}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* TOWERING BARS CONTAINER: Steps in sequence forming a neat scrollable stack */}
@@ -1147,11 +1193,22 @@ export default function WalkthroughGuide() {
 
       {/* FOOTER BAR WITH SUMMARY AND CORNER RESIZE HANDLE */}
       <div className="px-3 py-1.5 bg-slate-950/95 border-t border-slate-800 flex items-center justify-between shrink-0 relative text-[10px] text-slate-500 font-mono">
-        <span>
-          {lang === "hi"
-            ? `${completedCount}/${totalCount} पूर्ण (${completedDemands} मांग, ${completedEdgeCases} कठिन टेस्ट)`
-            : `${completedCount} of ${totalCount} Done (${completedDemands} Demands, ${completedEdgeCases} Edge Cases)`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span>
+            {lang === "hi"
+              ? `${completedCount}/${totalCount} पूर्ण (${completedDemands} मांग, ${completedEdgeCases} कठिन टेस्ट)`
+              : `${completedCount} of ${totalCount} Done (${completedDemands} Demands, ${completedEdgeCases} Edge Cases)`}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => handleToggleAllSteps(completedCount !== totalCount, e)}
+            className="text-[9px] text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer ml-1 font-bold"
+          >
+            {completedCount === totalCount
+              ? (lang === "hi" ? "सभी अनचेक करें" : "Uncheck All")
+              : (lang === "hi" ? "सभी चेक करें ✓" : "Check All ✓")}
+          </button>
+        </div>
 
         {/* Corner Resize Handle with expanded touch target */}
         <div

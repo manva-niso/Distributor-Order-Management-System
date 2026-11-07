@@ -152,7 +152,7 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
               resolvedQtyCases,
               resolvedQtyPacks,
               reasoning: decision.reasoning,
-              source: decision.source,
+              source: decision.source as ParsedLineItem["source"],
             };
           }
         }
@@ -164,9 +164,9 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
           matchedSku: null,
           confidence: decision.confidence ?? 0.15,
           isAmbiguous: true,
-          ambiguityReason: "UNKNOWN_SKU",
+          ambiguityReason: "UNKNOWN_SKU" as AmbiguityReason,
           reasoning: decision.reasoning || `No match found in wholesale catalog for "${line.rawUtterance}".`,
-          source: decision.source === "gemini" ? "gemini" : "rules",
+          source: (decision.source === "gemini" ? "gemini" : "rules") as ParsedLineItem["source"],
         };
       })
     );

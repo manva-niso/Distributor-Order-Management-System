@@ -514,3 +514,23 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   2. **Dev Callout Click-to-Autofill:** The `/login` page displays an ambient dev sandbox banner showing the issued OTP; tapping or clicking the badge instantly fills the 6 input boxes.
   3. **1-Tap Quick Demo Login:** The login form features a 1-tap `"Instant Demo Login (Auto-Verify 123456) →"` action that provisions and verifies the retailer in a single operation, bypassing all SMS latency in sales presentations.
 
+#### `[A65]` 18-Step Walkthrough End-to-End Programmatic Verification & 1-Tap UI Bulk Checkbox Control
+- **Context:** Presenters and evaluators running through the 18 Demands and Edge Cases require an effortless method to verify every single requirement in the interactive floating Walkthrough Guide without manual repetitive ticking. Furthermore, every claim made in the Walkthrough Guide must be strictly backed by an automated regression test suite to guarantee 0 regressions.
+- **Core Architectural Assumption:** **Every single item in the Walkthrough Guide must be verifiable both manually via 1-tap bulk toggle controls with celebratory visual feedback, and programmatically via a dedicated Vitest test suite that executes all 18 demands and edge cases against real application logic.**
+- **Verification & Control Specifications (`WalkthroughGuide.tsx`, `walkthrough.test.ts`):**
+  1. **1-Tap Bulk Check / Uncheck Controls:** The Walkthrough Guide provides `"✓ Check All (18/18)"` and `"Uncheck All"` toggle buttons in both the top progress bar and the sticky footer bar, updating and persisting `isolabs_walkthrough_completed` in `localStorage`.
+  2. **Celebratory Verification Banner:** When all 18 steps are verified, the guide presents an ambient green banner: `"🌟 All 18 Demands & Edge Cases Verified (18/18) ✓"`.
+  3. **18-Step Automated Vitest Suite (`src/__tests__/walkthrough.test.ts`):** 19 dedicated programmatic tests asserting:
+     - **Demand 1:** 36-SKU catalog and 8-Kirana baseline with zero initial orders.
+     - **Demand 2:** Mobile OTP verification & instant 1-tap demo auth.
+     - **Demand 3:** Hinglish/Hindi dialect WhatsApp order parsing.
+     - **Demand 4:** Free goods Buy 10 Get 1, multi-tier slab discounts, and MP intra-state 50/50 GST split.
+     - **Demand 5:** Desk split-screen triage, approval workflow, and OCC version increments.
+     - **Demand 6:** Van route manifest generation and Tally Prime XML export (`<VOUCHER VCHTYPE="Sales">`, `<ACTUALQTY>`, `<BILLEDQTY>`).
+     - **Edge Cases 7–9:** Honest unknown SKU rejection (`UNKNOWN_SKU`), polysemic packaging disambiguation (`AMBIGUOUS_UNIT`), and cut-pack loose quantity broken case calculation (`BROKEN_CASE`).
+     - **Edge Case 10:** Credit limit breach credit-hold assignment and clerk-authorized release with OCC concurrency verification.
+     - **Edge Case 11:** 14-day dormant Kirana identification with pre-composed Hindi WhatsApp links.
+     - **Edge Cases 12–14:** Multi-clerk OCC conflict blocking, Master Clean Slate absolute-zero reset, and single-writer Kirana session lock with force-logout release.
+     - **Edge Cases 15–17:** Persistent order re-hydration, multi-store real-time stock decrements with negative stock guards, and zero-drop scoped cart persistence.
+     - **Edge Case 18:** Bilingual vernacular toggle and deterministic trade transliteration for FMCG brands (Good Day, Fortune, Ghadi, Parle-G).
+

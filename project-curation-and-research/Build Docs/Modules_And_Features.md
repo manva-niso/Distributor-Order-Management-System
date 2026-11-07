@@ -926,3 +926,50 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Vitest Suite:** 165/165 tests passing across all 22 test files (`npm --prefix distributor-app test`).
 - **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors.
 - **Cross-Tab Parity:** Verified that zero-state on Order Desk triggers real-time zero-state on Kirana Storefront without page refresh.
+
+---
+
+## Module 16: Interactive Walkthrough Verification Suite & 1-Tap Bulk Check Controls
+
+### 1. Features Implemented
+- [x] **1-Tap UI Bulk Checkbox Controls (`WalkthroughGuide.tsx`):**
+  - Added `"✓ Check All (18/18)"` and `"Uncheck All"` action buttons in both the header progress bar and sticky footer bar.
+  - Automatically updates local state and synchronizes with `localStorage` key `isolabs_walkthrough_completed`.
+  - Added celebratory visual verification banner: `"🌟 All 18 Demands & Edge Cases Verified (18/18) ✓"`.
+  - Updated Step 2 action instructions to explicitly guide evaluators through `123456 / 716716` and the `"Instant Demo Login"` action.
+- [x] **18-Step Automated Vitest Test Suite (`src/__tests__/walkthrough.test.ts`):**
+  - **Metadata Integrity Test:** Asserts all 18 steps exist (7 Demands, 11 Edge Cases) with bilingual EN/HI titles, routes, actions, and why-it-matters explanations.
+  - **Step 1:** Wholesale catalog baseline (36 SKUs, 8 Kiranas, 0 Orders).
+  - **Step 2:** SMS OTP & Master Demo verification (`verifyOtp` with `123456`).
+  - **Step 3:** Vernacular WhatsApp order parsing (Hinglish/Hindi dialect: 5 peti biscuit chhota, 2 peti ghadi powder).
+  - **Step 4:** Deterministic trade scheme math (Buy 10 Get 1 Free, 5% slab discount on 4+ cases, intra-state 50/50 GST split).
+  - **Step 5:** Desk split-screen triage, status progression, and OCC version increments.
+  - **Step 6:** Delivery van manifest routing and Tally Prime XML export (`<VOUCHER VCHTYPE="Sales">`, `<ACTUALQTY>`, `<BILLEDQTY>`).
+  - **Step 7:** Honest out-of-catalog rejection (`UNKNOWN_SKU` for "10 packet chips").
+  - **Step 8:** Polysemic packaging unit disambiguation (`AMBIGUOUS_UNIT` for "5 dabba tel").
+  - **Step 9:** Loose cut-pack Maggi broken case detection (`BROKEN_CASE` for "40 packet maggi").
+  - **Step 10:** Credit limit breach hold (`CREDIT_HOLD`) and manager-authorized release with OCC check.
+  - **Step 11:** 14-day dormant Kirana detection with pre-composed Hindi WhatsApp retention links.
+  - **Step 12:** Multi-clerk OCC concurrency locking & conflict rejection on stale edit versions.
+  - **Step 13:** Master Clean Slate absolute zero wipe (0 SKUs, 0 Retailers, 0 Orders).
+  - **Step 14:** Single-writer Kirana session lock (`acquireRetailerSession`) & concurrent login rejection (`USER_ALREADY_LOGGED_IN`) with force-logout release.
+  - **Step 15:** Persistent order re-hydration across server reads.
+  - **Step 16:** Real-time stock decrement and negative stock prevention.
+  - **Step 17:** Zero-drop scoped cart storage into client-side `localStorage`.
+  - **Step 18:** Bilingual vernacular toggle and deterministic trade transliteration for FMCG brands (Good Day, Fortune, Ghadi, Parle-G).
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/components/walkthrough/WalkthroughGuide.tsx` - 1-tap Check All / Uncheck All controls, celebratory banner, Step 2 instant demo login instructions
+  - `src/lib/i18n/transliterate.ts` - Expanded `TRADE_WORD_MAP` with core FMCG brand terms (good, day, fortune, ghadi, parle, maggi, tata, amul, surf, excel, colgate)
+  - `src/lib/ai/cascaded-parser.ts` - Fixed `ambiguityReason` and `source` typing to prevent TypeScript compilation errors
+  - `src/__tests__/walkthrough.test.ts` - 19 automated Vitest tests asserting all 18 walkthrough demands and edge cases
+- `project-curation-and-research/`
+  - `Build Docs/Assumptions.md` - Registered `[A65]`
+  - `Build Docs/Modules_And_Features.md` - Registered Module 16
+  - `Build Docs/Overall_connections.md` - Updated test suite registry to 23 test files (186 passing tests)
+
+### 3. Verification & Tests
+- **Vitest Suite:** 186/186 tests passing across all 23 test files (`npm --prefix distributor-app test -- --run`).
+- **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors across all 35 routes.
+- **Walkthrough UI:** Tested 1-tap Check All (18/18) and Uncheck All controls with instant local storage persistence and celebratory verification banner.
