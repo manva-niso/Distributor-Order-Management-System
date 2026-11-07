@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   MessageSquare,
-  Sparkles,
+  Send,
   ArrowRight,
   RefreshCw,
   CheckCircle2,
@@ -335,10 +335,11 @@ export default function QuickOrderPage() {
     parsedLines?.reduce((sum, l) => sum + (l.matchedSku ? l.resolvedQtyCases : 0), 0) || 0;
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-28 text-slate-900">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-white flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-28 relative">
+        {/* Top Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
+          <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/catalogue"
@@ -522,7 +523,7 @@ export default function QuickOrderPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Send className="w-4 h-4" />
                   <span>{lang === "hi" ? "आर्डर पार्स करें" : "Parse Order Text"}</span>
                 </>
               )}
@@ -797,7 +798,7 @@ export default function QuickOrderPage() {
 
                         {line.reasoning && (
                           <div className="flex items-start gap-1.5 text-[11px] text-emerald-900 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                             <span><strong className="font-semibold text-emerald-700">AI Match:</strong> {line.reasoning}</span>
                           </div>
                         )}
@@ -811,7 +812,7 @@ export default function QuickOrderPage() {
 
                         {line.reasoning && (
                           <div className="text-[11px] text-amber-900 bg-amber-100/60 p-2 rounded border border-amber-200">
-                            <span className="font-bold text-amber-800">💡 Gemini AI Analysis: </span>
+                            <span className="font-bold text-amber-800">💡 AI Order Analysis: </span>
                             <span>{line.reasoning}</span>
                           </div>
                         )}
@@ -1003,6 +1004,7 @@ export default function QuickOrderPage() {
 
       {/* Persistent Bottom Nav */}
       <BottomNav activeTab="quick-order" lang={lang} />
+      </div>
     </div>
   );
 }

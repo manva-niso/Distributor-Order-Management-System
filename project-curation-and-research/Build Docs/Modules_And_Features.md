@@ -698,3 +698,27 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### 3. Verification & Tests
 - **Vitest Suite:** 142/142 tests passing across all 18 test files (`npm --prefix distributor-app test`).
 - **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
+
+---
+
+## Module 11: Version 2.0 (V2) UI Polish, Ergonomics & Walkthrough Expansion
+
+### 1. Features Implemented
+- [x] **Mobile-First Phone Layout on Laptop:**
+  - Standardized centered smartphone container (`max-w-md w-full min-h-screen bg-white sm:shadow-2xl sm:border-x sm:border-slate-200/80`) across all Kirana portal screens (`/catalogue`, `/cart`, `/quick-order`, `/orders`, `/login`, `/register`).
+  - Constrained bottom navigation bar (`BottomNav`) and sticky cart action pills within the mobile phone viewport on desktop screens with rounded top corners.
+- [x] **Phone-Friendly Walkthrough Drag & Resize:**
+  - Expanded touch handles for mobile (`w-5`/`h-5` resize strips, `w-8 h-8` corner grip, and `touch-none` touch isolation).
+  - Added 1-tap quick size adjustment buttons in the header (`ZoomOut` to shrink by 30px/50px, `ZoomIn` to enlarge).
+  - Clamped dimensions to viewport bounds (`Math.min(..., window.innerWidth - 12)`).
+- [x] **Complete Removal of Vendor AI Star Icons (`Sparkles`):**
+  - Replaced all instances of generic Gemini star icons across 9 files with semantic business icons (`Gift`, `Percent`, `Users`, `CheckCircle2`, `Send`, `Layers`, `BookOpen`).
+  - Removed "Gemini AI Analysis" vendor branding in favor of clean "AI Order Analysis".
+- [x] **Dynamic Scheme & Discount Calculations:**
+  - Replaced hardcoded "3% slab discount" in `/cart` with dynamic `{sku.schemeDetail?.discountPct}%`, correctly reflecting 5% for Good Day, 4% for Tata Tea/Dettol, and 3% for Ghadi.
+- [x] **Expanded 18-Step Walkthrough Matrix:**
+  - Added Steps 14–18 covering Single-Writer Kirana Lock (`[A49]`), Persistent Order Re-hydration (`[A51]`), Multi-Store Real-Time Stock Sync (`[A52]`), Zero-Drop Quick-Order to Cart (`[A53]`), and Bilingual English / Jabalpur Hindi UI localization.
+
+### 2. Verification & Tests
+- **Vitest Suite:** 142/142 tests passing across all 18 test files (`npm --prefix distributor-app test`).
+- **Production Build:** Next.js 16 Turbopack build cleanly compiled with 0 errors (35/35 routes).

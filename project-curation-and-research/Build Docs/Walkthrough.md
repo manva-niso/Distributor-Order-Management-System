@@ -85,17 +85,17 @@ flowchart LR
 ### Step 4: Catalogue Stepper Ordering with Live Scheme Engine Math & MP GST
 - **Role / Seat:** Kirana Merchant (*Sharma Kirana Store*)
 - **Route:** [`/catalogue`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/catalogue/page.tsx) & [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx)
-- **Customer Demand:** Live, transparent calculation of promotional trade schemes (Buy X Get Y Free, slab discounts) and GST before committing capital.
+- **Customer Demand:** Live, transparent calculation of promotional trade schemes (Buy X Get Y Free, percentage slab discounts) and GST before committing capital.
 - **Action:**
   1. Open [`/catalogue`](http://localhost:3000/catalogue).
   2. On **Parle-G 75g**, use the 48px stepper to increase quantity to **10 cases**.
      - Observe live badge: **`+1 Free Promotional Case Unlocked!`** (Delivered: 11 Cases, Valued at ₹0.00 per Circular 92/11/2019).
-  3. On **Ghadi Detergent Powder 1kg**, set quantity to **5 cases**.
-     - Observe live badge: **`3% Bulk Slab Discount Applied!`**
+  3. On **Ghadi Detergent Powder 1kg** (or **Good Day Butter Cookies**), increase quantity to meet the bulk threshold (5 cases for Ghadi, or 4 cases for Good Day).
+     - Observe live badge: **`Wholesale Slab Discount Applied!`** (3% on Ghadi Powder, 5% on Good Day).
   4. Click **"View Cart"** ([`/cart`](http://localhost:3000/cart)).
 - **Observed Behavior:**
-  - Line 1 (10 cs Biscuit): Gross ₹7,776.00 | Free: 1 Case (`SKU-BS-PG075`) | Discount: ₹0.00 | Taxable: ₹7,776.00.
-  - Line 2 (5 cs Detergent): Gross ₹10,150.00 | 3% Slab Discount: -₹304.50 | Taxable: ₹9,845.50.
+  - Line 1 (10 cs Parle-G Biscuit): Gross ₹7,776.00 | Free: 1 Case (`SKU-BS-PG075`) billed at ₹0.00 | Taxable: ₹7,776.00.
+  - Line 2 (5 cs Ghadi Detergent): Gross ₹10,150.00 | 3% Slab Discount: -₹304.50 | Taxable: ₹9,845.50.
   - Subtotal Taxable: ₹17,621.50.
   - Madhya Pradesh Intra-State GST: CGST 9% (₹1,585.94) + SGST 9% (₹1,585.94) = Total GST ₹3,171.87.
   - Grand Total: ₹20,793.00 (with -₹0.37 half-up round-off).
@@ -309,6 +309,40 @@ flowchart TD
 
 ---
 
+### Step 17: Quick-Order to Cart Zero-Drop Handshake & Fallback Hydration (Invariant [A53])
+- **Route:** [`/quick-order`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/quick-order/page.tsx) $\to$ [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx)
+- **The Edge Case:** Users parsing vernacular orders before `retailerId` finishes loading asynchronously or under unauthenticated previews; clicking "Move to Cart" must never lose items or display an empty cart.
+- **Action:**
+  1. Open [`/quick-order`](http://localhost:3000/quick-order).
+  2. Enter or paste: `"bhaiya 5 peti biscuit chhota"`.
+  3. Click **"Parse Order Text"** $\to$ AI accurately resolves 5 cases of Parle-G Gluco Biscuit.
+  4. Click **"Move to Cart (1 items)"** $\to$ browser immediately navigates to `/cart`.
+- **Observed Behavior:**
+  - `/cart` mounts with **0ms optimistic hydration** from local storage via `loadScopedCart()`.
+  - The 5 cases of Parle-G are immediately rendered without blank-cart flashes.
+  - Behind the scenes, `saveScopedCart` dual-writes to both the scoped key (`isolabs_draft_cart_RET-0001`) and the fallback safety key (`isolabs_draft_cart`), auto-migrating if required.
+  - Zero dropped items, zero lost state.
+- **Why It Matters:** Guarantees absolute commercial reliability for AI-driven order capture; merchants never face dropped orders.
+
+---
+
+### Step 18: Bilingual Jabalpur Trade UI Localization & Cultural Ergonomics
+- **Route:** [`/catalogue`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/catalogue/page.tsx), [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx), [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
+- **The Edge Case:** Non-English speaking shopkeepers alienated by standard accounting terminology.
+- **Action:**
+  1. In the header of `/catalogue` or `/cart`, tap the **`हिन्दी`** toggle button.
+  2. Observe immediate translation into authentic Jabalpur trade vernacular:
+     - *Wholesale Master Case* $\to$ **पूरी पेटी**
+     - *Loose Packs* $\to$ **खुले पैकेट**
+     - *Out of Stock* $\to$ **स्टॉक समाप्त**
+     - *Credit Limit* $\to$ **उधार सीमा**
+     - *Current Balance* $\to$ **बकाया राशि**
+     - *Place Order* $\to$ **ऑर्डर दर्ज करें**
+  3. Toggle back to **`EN`** anytime $\to$ state, quantities, and cart remain 100% intact.
+- **Why It Matters:** Lowers digital adoption barriers for rural and semi-urban Kirana store owners across central India.
+
+---
+
 ## 3. Verification Matrix
 
 | Step | Capability Tested | Brief Reference | Status |
@@ -330,6 +364,7 @@ flowchart TD
 | **Step 15** | Persistent Order Re-hydration Across Relogin | Invariant [A51] | Verified (Durable Neon PostgreSQL Hydration) |
 | **Step 16** | Multi-Store Real-Time Stock Sync & OOS Guard | Invariant [A52] | Verified (SSE Stream, BroadcastChannel & Atomic Guard) |
 | **Step 17** | Quick-Order to Cart Zero-Drop Handshake | Invariant [A53] | Verified (Dual-Mirroring & 0ms Optimistic Hydration) |
+| **Step 18** | Bilingual Vernacular UI Localization | Cultural Ergonomics | Verified (English & Jabalpur Hindi Toggle) |
 
 ---
 *End of Walkthrough Document.*

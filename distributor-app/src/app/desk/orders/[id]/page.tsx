@@ -13,7 +13,7 @@ import {
   Minus,
   RefreshCw,
   FileText,
-  Sparkles,
+  BookOpen,
   Truck,
   Building2,
   Phone,
@@ -520,7 +520,7 @@ export default function DeskOrderVerificationPage() {
             {/* Alias Auto-Learning Notice (Rule [A20]) */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 shadow-xs text-xs text-emerald-950 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                <Sparkles className="w-4 h-4 text-emerald-700" />
+                <BookOpen className="w-4 h-4 text-emerald-700" />
                 <span>Retailer Vocabulary Auto-Learning (Rule [A20])</span>
               </div>
               <p className="text-[11px] text-emerald-800 leading-relaxed">

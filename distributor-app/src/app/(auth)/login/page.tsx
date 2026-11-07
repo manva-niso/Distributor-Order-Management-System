@@ -13,7 +13,7 @@ import {
   Building2,
   UserCheck,
   CheckCircle2,
-  Sparkles,
+  Users,
   FileSpreadsheet,
   LogOut,
 } from "lucide-react";
@@ -266,10 +266,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900 font-sans antialiased">
-      {/* Top Bar: Distributor Identity & Bilingual Switch */}
-      <header className="w-full bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-20">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-slate-50 flex flex-col justify-between sm:shadow-2xl sm:border-x sm:border-slate-200/80 relative">
+        {/* Top Bar: Distributor Identity & Bilingual Switch */}
+        <header className="w-full bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-20">
+          <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-lg shadow-sm">
               A
@@ -345,7 +346,7 @@ export default function LoginPage() {
         <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+              <Users className="w-3.5 h-3.5 text-emerald-700" />
               <span>{lang === "hi" ? "सक्रिय खाते (1-क्लिक टेस्ट)" : "Active Accounts Directory"}</span>
             </div>
             <Link
@@ -672,6 +673,7 @@ export default function LoginPage() {
       <footer className="w-full bg-slate-100 border-t border-slate-200 py-2.5 px-4 text-center text-xs text-slate-500">
         <span>Helpline: 1800-419-0021 • Support: 0761-248000</span>
       </footer>
+      </div>
     </div>
   );
 }

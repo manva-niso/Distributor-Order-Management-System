@@ -15,7 +15,7 @@ import {
   Boxes,
   Users,
   Store,
-  Sparkles,
+  Layers,
   Database,
   Tag,
   ShieldCheck,
@@ -370,7 +370,7 @@ export default function SetupPage() {
         {/* First-Time User 3-Step Walkthrough Banner */}
         <div className="bg-gradient-to-r from-emerald-800 to-emerald-950 text-white rounded-xl p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
-            <Sparkles className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" />
             <span>{lang === "hi" ? "नया उपयोगकर्ता? 1-मिनट में अपनी दुकान शुरू करें" : "First-Time User? 1-Minute Custom Setup"}</span>
           </div>
           <h2 className="text-base sm:text-lg font-bold leading-snug">
@@ -418,7 +418,7 @@ export default function SetupPage() {
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" />
             <span>{lang === "hi" ? "रेडीमेड डेटासेट" : "1-Click FMCG Presets"}</span>
           </button>
 

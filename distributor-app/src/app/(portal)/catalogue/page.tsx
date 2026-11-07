@@ -7,7 +7,6 @@ import {
   Search,
   Store,
   Wallet,
-  Sparkles,
   Percent,
   Gift,
   Bell,
@@ -180,9 +179,10 @@ export default function CataloguePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 pb-36 font-sans antialiased">
-      {/* Top Fixed Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-slate-50 flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-36 relative">
+        {/* Top Fixed Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
         {userRole === "desk" && (
           <div className="bg-emerald-950 text-white px-4 py-2 border-b border-emerald-900">
             <div className="max-w-md mx-auto flex items-center justify-between text-xs">
@@ -468,7 +468,7 @@ export default function CataloguePage() {
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
-                        <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <Gift className="w-4 h-4 text-emerald-700 shrink-0" />
                         <div>
                           {lineCalc.freeCases > 0 ? (
                             <span>
@@ -639,17 +639,17 @@ export default function CataloguePage() {
 
       {/* Sticky Bottom Cart Bar (Appears when items are selected for retailers/salesmen) */}
       {userRole !== "desk" && (totals.totalCases > 0 || totals.totalPacks > 0) && (
-        <aside className="fixed bottom-16 inset-x-0 z-40 bg-slate-900 text-white p-3 shadow-xl">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+        <aside className="fixed bottom-16 inset-x-0 z-40 bg-transparent pointer-events-none p-3">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3 bg-slate-900 text-white p-3 shadow-xl rounded-xl pointer-events-auto border border-slate-700/60">
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
+              <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold truncate">
                 <span>{totals.itemCount} Items</span>
                 <span>•</span>
                 {totals.totalCases > 0 && <span>{totals.totalCases} Cases</span>}
                 {totals.totalCases > 0 && totals.totalPacks > 0 && <span>+</span>}
                 {totals.totalPacks > 0 && <span>{totals.totalPacks} Packs</span>}
                 {totals.totalFreeCases > 0 && (
-                  <span className="text-amber-400 font-bold">
+                  <span className="text-amber-400 font-bold shrink-0">
                     (+{totals.totalFreeCases} Free)
                   </span>
                 )}
@@ -677,16 +677,19 @@ export default function CataloguePage() {
       {userRole !== "desk" ? (
         <BottomNav cartItemCount={totals.totalCases + (totals.totalPacks > 0 ? 1 : 0)} lang={lang} />
       ) : (
-        <div className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 py-3 text-center shadow-md">
-          <Link
-            href="/desk"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-emerald-900"
-          >
-            <Building2 className="w-4 h-4 text-amber-300" />
-            <span>← Return to Order Desk Terminal</span>
-          </Link>
+        <div className="fixed bottom-0 inset-x-0 bg-transparent pointer-events-none py-3 text-center">
+          <div className="max-w-md mx-auto pointer-events-auto">
+            <Link
+              href="/desk"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-md hover:bg-emerald-900 border border-emerald-700"
+            >
+              <Building2 className="w-4 h-4 text-amber-300" />
+              <span>← Return to Order Desk Terminal</span>
+            </Link>
+          </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

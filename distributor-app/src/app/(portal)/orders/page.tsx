@@ -13,7 +13,7 @@ import {
   ArrowRight,
   RefreshCw,
   ShoppingBag,
-  Sparkles,
+  Gift,
   LogOut,
 } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
@@ -137,10 +137,11 @@ function OrdersContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-28 text-slate-900">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-white flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-28 relative">
+        {/* Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
+          <div className="max-w-md mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-base font-bold text-slate-900 leading-tight">
               {lang === "hi" ? "ऑर्डर इतिहास व स्थिति" : "Order History & Status"}
@@ -173,7 +174,7 @@ function OrdersContent() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
         {/* Newly Placed Order Celebratory Toast */}
         {placedOrderId && (
           <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl p-4 shadow-xs flex items-start gap-3">
@@ -274,7 +275,7 @@ function OrdersContent() {
                   {/* Free Goods Alert if present */}
                   {ord.freeGoodsTally && ord.freeGoodsTally.length > 0 && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded px-2.5 py-1.5 text-xs text-emerald-900 flex items-center gap-1.5 font-medium">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <Gift className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                       <span>
                         {lang === "hi" ? "मुफ्त योजना पेटी: " : "Promotional Schemes: "}
                         {ord.freeGoodsTally.map((f) => `+${f.freeCases} ${f.skuName}`).join(", ")}
@@ -347,6 +348,7 @@ function OrdersContent() {
 
       {/* Persistent Bottom Nav */}
       <BottomNav activeTab="orders" />
+      </div>
     </div>
   );
 }

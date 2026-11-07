@@ -13,8 +13,9 @@ import {
   GripHorizontal,
   CheckCircle2,
   Circle,
-  Sparkles,
   ShieldAlert,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 export type StepCategory = "DEMAND" | "EDGE_CASE";
@@ -78,10 +79,10 @@ export const WALKTHROUGH_STEPS: StepItem[] = [
     route: "/catalogue",
     summary: "Browse catalog with 48px touch steppers, unlocked trade schemes & MP GST.",
     actions: [
-      "Open Catalogue (/catalogue) — see 36 SKUs across Food & Personal Care.",
+      "Open Catalogue (/catalogue) — see 36 SKUs across Food, Detergent & Personal Care.",
       "Increase Parle-G 75g to 10 cases — watch '+1 Free Case Unlocked' badge appear.",
-      "Increase Ghadi Powder 1kg to 5 cases — unlocks 3% bulk slab discount.",
-      "View Cart (/cart) — review taxable base, CGST 9% + SGST 9%, and place order.",
+      "Increase Ghadi Powder 1kg to 5 cases (or Good Day to 4 cases) — watch bulk slab discount unlock.",
+      "View Cart (/cart) — review promotional benefits, CGST 9% + SGST 9%, and place order.",
     ],
     whyItMatters: "Transparent trade promotion engine: circular 92/11/2019 compliant ₹0 promotional billing.",
   },
@@ -207,6 +208,75 @@ export const WALKTHROUGH_STEPS: StepItem[] = [
       "Verify row counts return to 0 SKUs, 0 Retailers, 0 Orders in Neon DB.",
     ],
     whyItMatters: "Evaluators can re-test the entire onboarding flow from true zero anytime.",
+  },
+  {
+    id: 14,
+    category: "EDGE_CASE",
+    title: "14. Single-Writer Kirana Lock",
+    route: "/login",
+    summary: "Blocks concurrent multi-device logins for the same Kirana store to protect ledger integrity.",
+    actions: [
+      "Log into Sharma Kirana (9826000001) in Window A.",
+      "Open Window B/Incognito, enter 9826000001 + OTP -> Observe amber lock: 'User already logged in'.",
+      "Click 'Log Out All Other Sessions' -> clears remote session lock while preserving your entered OTP.",
+      "Click 'Verify & Login' -> successfully reclaims store access.",
+    ],
+    whyItMatters: "Enforces single-writer serializability [A49], preventing double-deductions and ledger race conditions.",
+  },
+  {
+    id: 15,
+    category: "EDGE_CASE",
+    title: "15. Persistent Order Re-hydration",
+    route: "/orders",
+    summary: "Guarantees placed orders permanently persist across relogins and serverless cold starts.",
+    actions: [
+      "Place an order in /cart -> note generated order ID (e.g. ORD-2026-0001).",
+      "Log out via top right header button, refresh browser or trigger server cold start.",
+      "Log back into the same store -> open Orders (/orders).",
+      "Verify previous order and line items remain permanently visible from durable Neon PostgreSQL.",
+    ],
+    whyItMatters: "Eliminates serverless cold-start memory loss [A51]; durable Neon PostgreSQL system of record.",
+  },
+  {
+    id: 16,
+    category: "EDGE_CASE",
+    title: "16. Multi-Store Real-Time Stock Sync",
+    route: "/catalogue",
+    summary: "Instant live inventory sync across all retailers like movie ticket booking; zero-stock checkout block.",
+    actions: [
+      "Open Sharma Kirana (/catalogue) in Window A and Verma General in Window B side-by-side.",
+      "In Window A, buy cases of an SKU with limited stock (e.g. 5 cases of Marie Gold).",
+      "Watch Window B available stock decrement live with 0ms delay without page refresh.",
+      "When stock reaches 0, observe Window B flip to red 'OUT OF STOCK' badge with checkout blocker in /cart.",
+    ],
+    whyItMatters: "Prevents warehouse double-selling and overselling [A52] with instant 0ms SSE / BroadcastChannel sync.",
+  },
+  {
+    id: 17,
+    category: "EDGE_CASE",
+    title: "17. Zero-Drop Quick-Order to Cart",
+    route: "/quick-order",
+    summary: "Dual-write mirroring & 0ms optimistic mount hydration guarantees zero dropped items.",
+    actions: [
+      "In Quick Order (/quick-order), paste colloquial text: 'bhaiya 5 peti biscuit chhota'.",
+      "Click 'Parse Order Text' -> AI matches 5 cases of Parle-G.",
+      "Click 'Move to Cart' -> arrives at /cart with 0ms delay.",
+      "Observe items immediately populated in cart via loadScopedCart [A53] without blank-cart flashes.",
+    ],
+    whyItMatters: "Guarantees zero dropped items across async auth handshakes, desk clerk sessions, and mobile devices.",
+  },
+  {
+    id: 18,
+    category: "DEMAND",
+    title: "18. Bilingual Vernacular Toggle",
+    route: "/catalogue",
+    summary: "1-tap English / Hindi toggle translating complex wholesale terms into local market phrasing.",
+    actions: [
+      "On /catalogue, click 'हिन्दी' toggle button in the top header.",
+      "Observe terms seamlessly translate: 'पूरी पेटी' (Cases), 'खुले पैकेट' (Loose Packs), 'स्टॉक समाप्त' (Out of Stock), 'उधार सीमा' (Credit Limit).",
+      "Toggle back to 'EN' anytime with zero state loss or cart disruption.",
+    ],
+    whyItMatters: "Crucial cultural ergonomics: Empowers non-English speaking Kirana owners across Madhya Pradesh.",
   },
 ];
 
@@ -357,6 +427,21 @@ export default function WalkthroughGuide() {
     try {
       localStorage.setItem("isolabs_walkthrough_minimized", nextVal ? "true" : "false");
     } catch {}
+  };
+
+  // Quick size adjust for phones/mobile (decrease/increase)
+  const adjustSize = (deltaW: number, deltaH: number) => {
+    setSize((prev) => {
+      const maxW = typeof window !== "undefined" ? window.innerWidth - 12 : 400;
+      const maxH = typeof window !== "undefined" ? window.innerHeight - 24 : 700;
+      const newW = Math.max(260, Math.min(prev.width + deltaW, maxW));
+      const newH = Math.max(300, Math.min(prev.height + deltaH, maxH));
+      const next = { width: newW, height: newH };
+      try {
+        localStorage.setItem("isolabs_walkthrough_size", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   // Master Absolute Zero Reset
@@ -586,7 +671,7 @@ export default function WalkthroughGuide() {
         onTouchStart={(e) => {
           if (e.touches.length > 0) onStartDrag(e.touches[0].clientX, e.touches[0].clientY);
         }}
-        className="p-3 pb-2 border-b border-slate-800 bg-slate-950/90 cursor-grab active:cursor-grabbing flex flex-col gap-1.5 shrink-0"
+        className="p-3 pb-2 border-b border-slate-800 bg-slate-950/90 cursor-grab active:cursor-grabbing flex flex-col gap-1.5 shrink-0 touch-none select-none"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -609,6 +694,26 @@ export default function WalkthroughGuide() {
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
           >
+            {/* Decrease Size (Phone Zoom Out) */}
+            <button
+              type="button"
+              onClick={() => adjustSize(-30, -50)}
+              title="Decrease Window Size (Make smaller on mobile)"
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Increase Size (Phone Zoom In) */}
+            <button
+              type="button"
+              onClick={() => adjustSize(30, 50)}
+              title="Increase Window Size (Make larger on mobile)"
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+
             {/* Absolute Zero Reset */}
             <button
               type="button"
@@ -658,7 +763,7 @@ export default function WalkthroughGuide() {
                 : "text-slate-400 hover:text-emerald-300 hover:bg-slate-900/60"
             }`}
           >
-            <Sparkles className="w-2.5 h-2.5" />
+            <CheckCircle2 className="w-2.5 h-2.5" />
             <span>Demands</span>
             <span className="text-[9px] px-1 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300">
               {completedDemands}/{demandCount}
@@ -831,24 +936,24 @@ export default function WalkthroughGuide() {
         })}
       </div>
 
-      {/* RIGHT RESIZE STRIP */}
+      {/* RIGHT RESIZE STRIP (Touch & Mouse) */}
       <div
         onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "horizontal", e)}
         onTouchStart={(e) => {
           if (e.touches.length > 0) onStartResize(e.touches[0].clientX, e.touches[0].clientY, "horizontal", e);
         }}
         title="Drag edge to adjust width"
-        className="absolute right-0 top-12 bottom-6 w-2 cursor-ew-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20"
+        className="absolute right-0 top-12 bottom-8 w-5 sm:w-2 cursor-ew-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20 touch-none"
       />
 
-      {/* BOTTOM RESIZE STRIP */}
+      {/* BOTTOM RESIZE STRIP (Touch & Mouse) */}
       <div
         onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "vertical", e)}
         onTouchStart={(e) => {
           if (e.touches.length > 0) onStartResize(e.touches[0].clientX, e.touches[0].clientY, "vertical", e);
         }}
         title="Drag edge to adjust height"
-        className="absolute bottom-0 left-4 right-6 h-2 cursor-ns-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20"
+        className="absolute bottom-0 left-4 right-8 h-5 sm:h-2 cursor-ns-resize hover:bg-emerald-500/30 active:bg-emerald-500/50 transition-colors z-20 touch-none"
       />
 
       {/* FOOTER BAR WITH SUMMARY AND CORNER RESIZE HANDLE */}
@@ -857,7 +962,7 @@ export default function WalkthroughGuide() {
           {completedCount} of {totalCount} Done ({completedDemands} Demands, {completedEdgeCases} Edge Cases)
         </span>
 
-        {/* Corner Resize Handle */}
+        {/* Corner Resize Handle with expanded touch target */}
         <div
           onMouseDown={(e) => onStartResize(e.clientX, e.clientY, "both", e)}
           onTouchStart={(e) => {
@@ -866,9 +971,9 @@ export default function WalkthroughGuide() {
             }
           }}
           title="Drag corner to adjust width & height"
-          className="w-6 h-6 -mr-1.5 -mb-1 cursor-nwse-resize flex items-center justify-center text-slate-500 hover:text-emerald-400 active:text-emerald-300 transition-colors z-30"
+          className="w-8 h-8 -mr-2 -mb-1 cursor-nwse-resize flex items-center justify-center text-slate-500 hover:text-emerald-400 active:text-emerald-300 transition-colors z-30 touch-none"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
             <path d="M11 1L1 11M11 5L5 11M11 9L9 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </div>

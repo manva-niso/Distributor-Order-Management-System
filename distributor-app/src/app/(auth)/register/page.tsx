@@ -108,9 +108,10 @@ function RegisterContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6">
-      {/* Top Header */}
-      <header className="max-w-md w-full mx-auto flex items-center justify-between pb-4">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 sm:shadow-2xl sm:border-x sm:border-slate-200/80 relative">
+        {/* Top Header */}
+        <header className="max-w-md w-full mx-auto flex items-center justify-between pb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 bg-emerald-700 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">
             CA
@@ -340,6 +341,7 @@ function RegisterContent() {
       <footer className="max-w-md w-full mx-auto text-center pt-4 text-[11px] text-slate-500">
         Company A • Jabalpur Authorized B2B FMCG Distribution Network
       </footer>
+      </div>
     </div>
   );
 }

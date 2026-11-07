@@ -43,8 +43,8 @@ export function BottomNav({ cartItemCount = 0, lang = "en", activeTab }: BottomN
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 shadow-md pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="max-w-md mx-auto flex items-center justify-around h-16 px-1">
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-transparent pointer-events-none pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="max-w-md mx-auto flex items-center justify-around h-16 px-1 bg-white border-t border-x sm:border-slate-200 shadow-lg pointer-events-auto sm:rounded-t-xl">
         {navItems.map((item) => {
           const isActive = activeTab
             ? item.path === `/${activeTab}`
@@ -67,7 +67,7 @@ export function BottomNav({ cartItemCount = 0, lang = "en", activeTab }: BottomN
                   </span>
                 )}
               </div>
-              <span className="text-[11px] leading-tight mt-0.5 font-medium">
+              <span className="text-[11px] leading-tight mt-0.5 font-medium truncate max-w-full px-0.5 text-center">
                 {lang === "hi" ? item.labelHi : item.labelEn}
               </span>
             </Link>

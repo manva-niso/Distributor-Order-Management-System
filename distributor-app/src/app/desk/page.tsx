@@ -32,7 +32,6 @@ import {
   Calendar,
   Boxes,
   RotateCcw,
-  Sparkles,
   Package,
   Tag,
   Plus,

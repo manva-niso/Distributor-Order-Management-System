@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Truck,
   Clock,
-  Sparkles,
+  Gift,
+  Percent,
   Receipt,
   RefreshCw,
   AlertTriangle,
@@ -257,10 +258,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-28 text-slate-900">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-900 font-sans antialiased">
+      <div className="w-full max-w-md min-h-screen bg-white flex flex-col sm:shadow-2xl sm:border-x sm:border-slate-200/80 pb-28 relative">
+        {/* Top Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
+          <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/catalogue"
@@ -518,7 +520,7 @@ export default function CartPage() {
                       {/* Active Scheme Badges */}
                       {calc.freeCases > 0 && (
                         <div className="bg-emerald-50 text-emerald-900 text-xs px-2.5 py-1 rounded border border-emerald-200 flex items-center gap-1.5 font-medium">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                          <Gift className="w-3.5 h-3.5 text-emerald-700" />
                           <span>
                             {lang === "hi"
                               ? `🎉 योजना अनलॉक: +${calc.freeCases} पेटी मुफ्त (कुल ${calc.quantityCases + calc.freeCases} पेटी डिलीवर होंगी)`
@@ -529,11 +531,11 @@ export default function CartPage() {
 
                       {calc.discountAmount > 0 && (
                         <div className="bg-blue-50 text-blue-900 text-xs px-2.5 py-1 rounded border border-blue-200 flex items-center gap-1.5 font-medium">
-                          <Sparkles className="w-3.5 h-3.5 text-blue-700" />
+                          <Percent className="w-3.5 h-3.5 text-blue-700" />
                           <span>
                             {lang === "hi"
-                              ? `🏷️ 3% स्लैब छूट लागू (-₹${calc.discountAmount.toFixed(2)})`
-                              : `🏷️ Flat 3% Slab Discount Applied (-₹${calc.discountAmount.toFixed(2)} savings)`}
+                              ? `🏷️ ${sku.schemeDetail?.discountPct || 3}% स्लैब छूट लागू (-₹${calc.discountAmount.toFixed(2)})`
+                              : `🏷️ ${sku.schemeDetail?.discountPct || 3}% Slab Discount Applied (-₹${calc.discountAmount.toFixed(2)} savings)`}
                           </span>
                         </div>
                       )}
@@ -703,7 +705,7 @@ export default function CartPage() {
                 type="button"
                 onClick={handleCheckout}
                 disabled={loadingCheckout || outOfStockItems.length > 0}
-                className={`w-full h-12 font-bold text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`w-full min-h-[48px] h-auto py-3 px-3 font-bold text-sm sm:text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer text-center ${
                   outOfStockItems.length > 0
                     ? "bg-red-700 text-white opacity-85 cursor-not-allowed"
                     : "bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white disabled:opacity-70 disabled:cursor-not-allowed"
@@ -716,7 +718,7 @@ export default function CartPage() {
                   </>
                 ) : outOfStockItems.length > 0 ? (
                   <>
-                    <AlertTriangle className="w-5 h-5 text-white" />
+                    <AlertTriangle className="w-5 h-5 text-white shrink-0" />
                     <span>
                       {lang === "hi"
                         ? "आउट ऑफ स्टॉक सामान हटाएं"
@@ -725,7 +727,7 @@ export default function CartPage() {
                   </>
                 ) : (
                   <>
-                    <span>
+                    <span className="truncate max-w-[280px]">
                       {creditExceeded
                         ? lang === "hi"
                           ? "ऑर्डर भेजें (डेस्क समीक्षा हेतु)"
@@ -734,7 +736,7 @@ export default function CartPage() {
                         ? `ऑर्डर पक्का करें • ₹${totals.grandTotal.toLocaleString("en-IN")}`
                         : `Confirm & Place Order • ₹${totals.grandTotal.toLocaleString("en-IN")}`}
                     </span>
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-5 h-5 shrink-0" />
                   </>
                 )}
               </button>
@@ -745,6 +747,7 @@ export default function CartPage() {
 
       {/* Mobile Bottom Navigation */}
       <BottomNav cartItemCount={totals.itemCount} lang={lang} />
+      </div>
     </div>
   );
 }
