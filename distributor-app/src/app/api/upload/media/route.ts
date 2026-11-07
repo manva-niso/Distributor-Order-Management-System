@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadMediaToS3, isS3Configured } from "@/lib/storage/s3";
-import { extractTextFromMediaWithGemini } from "@/lib/ai/gemini";
+import { processMediaOrder } from "@/lib/ai/multimodal";
 import { parseOrderText } from "@/lib/ai/pipeline";
 import { dbStore } from "@/db/store";
 
@@ -47,26 +47,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Extract Text via Gemini Vision / Audio or fallback
-    let extractedText = "";
-    const geminiResult = await extractTextFromMediaWithGemini({
+    // 2. Extract Text via Multimodal Pipeline (Vaani Hindi ASR / Gemini Vision OCR / Offline Fallback)
+    const mediaResult = await processMediaOrder({
       buffer,
       mimeType,
       mediaType: mediaType as "image" | "audio",
     });
 
-    if (geminiResult && geminiResult.extractedText) {
-      extractedText = geminiResult.extractedText;
-    } else {
-      // Realistic fallback for demo / test uploads without a live Gemini key
-      if (mediaType === "image") {
-        extractedText =
-          "5 peti biscuit glucose 75g\n2 peti ghadi detergent 1kg\n3 case fortune tel 1L\n1 peti wagh bakri chai";
-      } else {
-        extractedText =
-          "bhaiya namaste, sharma kirana se bol raha hu. 5 peti biscuit chhota bhej dena, aur 2 peti fortune tel 1 litre wala. kal subah tak delivery karwana.";
-      }
-    }
+    const extractedText = mediaResult.extractedText;
 
     // 3. Run extracted text through our universal FMCG deterministic parser
     let retailerAliases: Record<string, string> | undefined = undefined;
@@ -87,6 +75,7 @@ export async function POST(request: NextRequest) {
       mediaUrl: signedUrl,
       mediaKey: s3Key,
       mediaType,
+      mediaSource: mediaResult.source,
       fileName: originalName,
       fileSize: file.size,
       rawText: extractedText,

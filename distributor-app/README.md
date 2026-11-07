@@ -21,8 +21,8 @@ npm run dev
 
 ### Run Tests:
 ```bash
-npm test          # Run app test suite (147 tests across 19 suites)
-npm run test:all  # Run universal test suite across app & engine (215 tests)
+npm test          # Run app test suite (153 tests across 20 suites)
+npm run test:all  # Run universal test suite across app & engine (221 tests)
 ```
 
 ---

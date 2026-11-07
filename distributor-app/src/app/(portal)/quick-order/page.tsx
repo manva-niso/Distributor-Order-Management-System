@@ -125,6 +125,41 @@ export default function QuickOrderPage() {
     }
   };
 
+// 3G Network Optimization: Compress large smartphone camera photos (< 150KB) before transit
+function compressImageFor3g(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !window.createImageBitmap) {
+      return resolve(file);
+    }
+    createImageBitmap(file)
+      .then((bmp) => {
+        const maxDim = 1280;
+        let { width, height } = bmp;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(bmp, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => resolve(blob || file),
+          "image/jpeg",
+          0.82
+        );
+      })
+      .catch(() => resolve(file));
+  });
+}
+
   // Upload Photo or Audio to Neon Object Storage
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "audio") => {
     const file = e.target.files?.[0];
@@ -135,8 +170,13 @@ export default function QuickOrderPage() {
     setMediaFileName(file.name);
 
     try {
+      let uploadPayload: File | Blob = file;
+      if (type === "image" && file.type.startsWith("image/")) {
+        uploadPayload = await compressImageFor3g(file);
+      }
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadPayload, file.name);
       formData.append("mediaType", type);
 
       const res = await fetch("/api/upload/media", {
@@ -810,7 +850,14 @@ export default function QuickOrderPage() {
                             {line.reasoning && (
                               <div className="flex items-start gap-1.5 text-[11px] text-emerald-900 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                <span><strong className="font-semibold text-emerald-700">{lang === "hi" ? "सटीक मिलान: " : "AI Match: "}</strong>{line.reasoning}</span>
+                                <span>
+                                  <strong className="font-semibold text-emerald-700">
+                                    {line.source === "gemini"
+                                      ? (lang === "hi" ? "AI भाषा मिलान: " : "AI Semantic Match: ")
+                                      : (lang === "hi" ? "सीधा कैटलॉग मिलान: " : "Direct Catalog Match: ")}
+                                  </strong>
+                                  {line.reasoning}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -825,7 +872,11 @@ export default function QuickOrderPage() {
 
                         {line.reasoning && (
                           <div className="text-[11px] text-amber-900 bg-amber-100/60 p-2 rounded border border-amber-200">
-                            <span className="font-bold text-amber-800">💡 AI Order Analysis: </span>
+                            <span className="font-bold text-amber-800">
+                              {line.source === "gemini"
+                                ? "💡 AI Order Analysis: "
+                                : (lang === "hi" ? "📋 कैटलॉग जांच: " : "📋 Catalog Check: ")}
+                            </span>
                             <span>{line.reasoning}</span>
                           </div>
                         )}

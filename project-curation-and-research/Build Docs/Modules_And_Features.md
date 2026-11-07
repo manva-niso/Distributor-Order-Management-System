@@ -434,13 +434,16 @@ This document tracks each Core Build Module step by step, its features, implemen
   - `src/lib/ai/candidate-retriever.ts` - Synchronized candidate retriever
   - `src/lib/ai/calibrated-scorer.ts` - Synchronized Platt calibrated scorer
   - `src/lib/ai/gemini-chooser.ts` - Synchronized Gemini closed-set chooser
-  - `src/lib/ai/cascaded-parser.ts` - Synchronized 5-tier cascaded pipeline
+  - `src/lib/ai/cascaded-parser.ts` - Synchronized 5-tier cascaded pipeline overhauled with deterministic packaging isolation and out-of-catalog rejection
+  - `src/lib/ai/vaani-asr.ts` - ARTPARK-IISc Vaani Hindi speech-to-text module (Whisper Large v3 Vaani & FastConformer)
+  - `src/lib/ai/multimodal.ts` - Unified multimodal ingestion dispatcher (Vaani Hindi ASR, Gemini Vision OCR, offline simulation)
   - `src/lib/ai/pipeline.ts` - Factory supporting `"cascade"`, `"rules"`, and `"custom_ml"`
   - `src/lib/ai/text-parser.ts` - Synchronized app parser calling calibrated scorer
   - `src/lib/ai/types.ts` - Synchronized types
   - `src/app/api/capture/parse-text/route.ts` - Injects active `retailerAliases` from DB store
-  - `src/app/api/upload/media/route.ts` - Injects active `retailerAliases` into media parsing
-  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card and multi-modal upload triggers
+  - `src/app/api/upload/media/route.ts` - Dispatches via `processMediaOrder` with Vaani Hindi ASR and Gemini Vision
+  - `src/app/(portal)/quick-order/page.tsx` - Enhanced with "Dabba" ambiguity card, honest source badging (Direct Match vs AI Match), and client-side <3G canvas image compression (<120KB)
+  - `src/__tests__/deterministic-guardrails.test.ts` - 6 unit tests verifying deterministic packaging guardrails, out-of-catalog rejection, and multimodal audio pipeline
   - `src/__tests__/candidate-retriever.test.ts` - 11 unit tests in distributor-app
   - `src/__tests__/calibrated-scorer.test.ts` - 7 unit tests in distributor-app
   - `src/__tests__/gemini-chooser.test.ts` - 6 unit tests in distributor-app
