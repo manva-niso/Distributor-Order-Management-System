@@ -354,8 +354,12 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 6: Order Desk** | `npx vitest run src/__tests__/desk.test.ts` | Optimistic Concurrency Control (OCC) version conflicts, line editing, alias learning | 8 tests |
 | **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime XML `<ENVELOPE>`, Actual vs Billed quantities, double-entry balance | 8 tests |
 | **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
-| **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
-| **Total Test Coverage** | `npm run test` | **All 21 test suites executing collectively** | **158 tests (100% Passing)** |
+| **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | >= 14 day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
+| **Module 13: Guardrails & ASR** | `npx vitest run src/__tests__/deterministic-guardrails.test.ts` | Deterministic packaging guardrails, 15% threshold, ultra-low token Gemini escalation | 8 tests |
+| **Module 14: Knowledge Graph** | `npx vitest run src/__tests__/knowledge-graph.test.ts` | 12-domain trade ontology, longest-phrase compound matching, zero biscuit hallucinations | 5 tests |
+| **Module 15: Master Reset & Auth** | `npx vitest run src/__tests__/reset-sync-and-auth.test.ts` | Universal Kirana cart wipe, SSE database reset, Absolute Zero store isolation, master OTP | 7 tests |
+| **Module 16: Walkthrough Suite** | `npx vitest run src/__tests__/walkthrough.test.ts` | End-to-end programmatic verification of all 18 Walkthrough demands and edge cases | 19 tests |
+| **Total Test Coverage** | `npm run test` | **All 23 test suites executing collectively** | **186 tests (100% Passing)** |
 
 ---
 

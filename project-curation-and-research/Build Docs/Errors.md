@@ -737,6 +737,44 @@ This document records every error, build failure, test failure, runtime issue, a
   5. Added a dedicated Log Out button to the header of `/desk/orders/[id]`.
 - **Prevention:** Always use hard document navigation (`window.location.href`) for authentication boundary crossings to bust SPA client caches, and mirror exact cookie scope attributes on deletion.
 
+---
+
+### [ERR-057] Deployment TypeScript Compilation Failure on AmbiguityReason Literal Widening in Cascaded Parser
+- **Date & Time:** 2026-11-07 21:56:00
+- **Module:** Module 5 - Cascaded Parser Pipeline & Next.js Production Build
+- **Phase:** Deployment / Next.js Production Build
+- **Symptoms / Error Message:**
+  ```text
+  src/lib/ai/cascaded-parser.ts(179,7): error TS2322: Type '({ source: "rules"; id: string; rawUtterance: string; extractedQty: number | null; extractedUnit: UnitType; matchedSku: SeedSku | null; confidence: number; isAmbiguous: boolean; ... 5 more ...; reasoning?: string | undefined; } | { ...; } | { ...; })[]' is not assignable to type 'ParsedLineItem[]'.
+    Type '{ matchedSku: null; confidence: number; isAmbiguous: boolean; ambiguityReason: string; reasoning: string; source: string; id: string; rawUtterance: string; extractedQty: number | null; extractedUnit: UnitType; candidates: SkuCandidate[]; resolvedQtyCases: number; resolvedQtyPacks?: number; brokenCaseInfo?: BrokenCas...' is not assignable to type 'ParsedLineItem'.
+      Types of property 'ambiguityReason' are incompatible.
+        Type 'string' is not assignable to type 'AmbiguityReason'.
+  Failed to type check.
+  ```
+- **Root Cause Analysis:**
+  In commit `2888ad1` (committed at 21:53:33), the fallback threshold was lowered from 20% to 15% to allow remote match evaluation. In the return object for unmatched candidate items:
+  ```ts
+  return {
+    ...line,
+    matchedSku: null,
+    confidence: decision.confidence ?? 0.15,
+    isAmbiguous: true,
+    ambiguityReason: "UNKNOWN_SKU",
+    reasoning: decision.reasoning || `No match found in wholesale catalog for "${line.rawUtterance}".`,
+    source: decision.source === "gemini" ? "gemini" : "rules",
+  };
+  ```
+  The TypeScript compiler widened `"UNKNOWN_SKU"` to `string` and `source` to `string`. When assigned to `ParsedLineItem[]`, TypeScript strictly enforces `ambiguityReason: AmbiguityReason` where `AmbiguityReason` is a strict union (`"MISSING_UNIT" | "AMBIGUOUS_UNIT" | "MULTIPLE_CANDIDATES" | "UNKNOWN_SKU" | "BROKEN_CASE" | null`). The widened `string` type was rejected during `next build`, failing the cloud deployment at 21:56:00.
+- **Resolution / Fix:**
+  Explicitly typed the fields:
+  ```ts
+  ambiguityReason: "UNKNOWN_SKU" as AmbiguityReason,
+  source: (decision.source === "gemini" ? "gemini" : "rules") as ParsedLineItem["source"],
+  ```
+  And in `src/__tests__/walkthrough.test.ts`, corrected `casePacks` and `gstPct` references to `unitsPerCase` and `gstRate` on `SeedSku`.
+  Verified with `npm run build` which compiled cleanly in 4.5s with exit code 0 across all 35 routes. Pushed in commit `9ad0d61`.
+- **Prevention:** Always run full production build (`npm run build`) locally before pushing to catch TypeScript union type widening issues in pipeline return objects.
+
 
 
 
