@@ -65,26 +65,34 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Automatic allocation of ₹25,000 provisional credit limit (`[A5]`).
   - Auto-detection banner on login for unregistered numbers directing to registration.
   - Duplicate phone number prevention (`HTTP 409 Conflict`).
+- [x] Single-Writer Concurrency Lock & Kirana Active Session Guard (`[A49]`):
+  - Strict single-writer constraint: only 1 user/session can place orders for a specific Kirana store at any time.
+  - Backed by `active_sessions` in Neon PostgreSQL and memory cache with 30-minute rolling inactivity timeout.
+  - Blocks concurrent logins for the same retailer with HTTP 409 Conflict and error `"User already logged in"`.
+  - Visible login banner: `"User already logged in"` (Devanagari: `"उपयोगकर्ता पहले से लॉगिन है"`) with a `[ Force Logout Existing Session & Login ]` action (`force: true`).
+  - Automatic session heartbeat via `touchRetailerSession` on authenticated requests (`/api/auth/me`).
+  - Instant session lock release via `releaseRetailerSession` on logout (`/api/auth/logout`).
 
 ### 2. Files Created / Modified
 - `distributor-app/`
-  - `src/db/schema.ts` - Database tables & relations
+  - `src/db/schema.ts` - Database tables & relations (including `active_sessions`)
   - `src/db/store.ts` - In-memory and PostgreSQL persistent repository
-  - `src/lib/auth/jwt.ts` - Signed JWT session utilities with `jose`
+  - `src/lib/auth/jwt.ts` - Signed JWT session utilities with `jose` (including `sessionId`)
   - `src/lib/auth/otp.ts` - OTP generation, SMS provider interface, verification
+  - `src/lib/auth/session-lock.ts` - Single-writer concurrency lock & Neon `active_sessions` management
   - `src/app/api/auth/send-otp/route.ts` - API endpoint to request OTP
-  - `src/app/api/auth/verify-otp/route.ts` - API endpoint to verify OTP & issue cookie
+  - `src/app/api/auth/verify-otp/route.ts` - API endpoint to verify OTP, acquire concurrency lock & issue cookie
   - `src/app/api/auth/lookup-phone/route.ts` - Phone identity & credit lookup endpoint
   - `src/app/api/auth/register/route.ts` - B2B Retailer onboarding & provisional credit allocation
-  - `src/app/api/auth/me/route.ts` - Active session profile endpoint
-  - `src/app/api/auth/logout/route.ts` - Session termination endpoint
-  - `src/app/(auth)/login/page.tsx` - Login screen with OTP input & Hindi toggle
+  - `src/app/api/auth/me/route.ts` - Active session profile endpoint with activity touch
+  - `src/app/api/auth/logout/route.ts` - Session termination & session lock release endpoint
+  - `src/app/(auth)/login/page.tsx` - Login screen with OTP input, Hindi toggle & "User already logged in" collision banner
   - `src/app/(auth)/register/page.tsx` - B2B Kirana registration page with beat routing
   - `src/middleware.ts` - Route protection & role enforcement
 
 ### 3. Verification & Tests
-- **Vitest Suite:** `src/__tests__/auth.test.ts`
-  - 13/13 unit tests passing covering:
+- **Vitest Suite:** `src/__tests__/auth.test.ts` (13 tests) & `src/__tests__/session-lock.test.ts` (5 tests)
+  - 18/18 unit tests passing covering:
     - 6-digit numeric cryptographic generation.
     - 10-digit Indian mobile number validation.
     - 30-second rate-limiting between re-sends.
@@ -94,6 +102,11 @@ This document tracks each Core Build Module step by step, its features, implemen
     - Role detection and profile loading (`retailer`, `desk`, `salesman`).
     - Cryptographic JWT session signing & tamper-detection.
     - New B2B kirana self-registration and ₹25,000 provisional credit limit allocation (`[A5]`).
+    - Kirana single-writer active session acquisition and timeout calculation (`[A49]`).
+    - Blocking second concurrent login for the same Kirana store with `"User already logged in"`.
+    - Cross-store independence: multiple distinct Kirana stores logging in concurrently without blocking (`[A50]`).
+    - Session lock release on logout.
+    - Force logout override execution.
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, all routes statically optimized or server-rendered dynamic.
 
 ---
@@ -210,24 +223,41 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Accessible via mobile bottom navigation (`BottomNav`).
 - [x] **Orders Query API (`src/app/api/orders/route.ts`):**
   - Scoped retrieval: Retailers fetch only their orders; desk clerks fetch all incoming beat orders.
+  - Automatic order re-hydration from Neon PostgreSQL (`hydrateOrdersFromNeon`) preventing order disappearance across serverless cold starts and relogins (`[A51]`).
+- [x] **Kirana-Scoped Cart & Multi-Tenant Isolation (`[A50]`):**
+  - Draft carts and media attachments dynamically partitioned by `retailerId` via `src/lib/catalogue/cart-storage.ts`:
+    - `isolabs_draft_cart_${retailerId}`
+    - `isolabs_order_media_${retailerId}`
+  - Completely segregates unplaced items between different Kirana accounts sharing a device/browser.
+- [x] **Neon PostgreSQL Cold-Start Order Re-hydration (`[A51]`):**
+  - Endpoints (`/api/orders`, `/api/desk/orders`, `/api/desk/orders/[id]`, `/api/orders/checkout`) auto-hydrate orders from Neon PostgreSQL if memory store is unpopulated.
+  - `dbStore.upsertOrder` populates memory without double-counting retailer ledger balance.
+  - Order ID generator queries existing persistent records to guarantee monotonically increasing, non-colliding IDs (`ORD-2026-XXXX`).
 
 ### 2. Files Created / Modified
 - `distributor-app/`
-  - `src/db/store.ts` - Added `createOrder`, `getOrderById`, `getOrdersByRetailerId`, `updateOrderStatus`, and `deductSkuStock`
-  - `src/app/api/orders/checkout/route.ts` - Order placement & credit validation API
-  - `src/app/api/orders/route.ts` - Order query API
-  - `src/app/(portal)/cart/page.tsx` - Screen 5 Cart & Credit Headroom review UI
-  - `src/app/(portal)/orders/page.tsx` - Orders history and status tracking UI
+  - `src/db/store.ts` - Added `createOrder`, `getOrderById`, `getOrdersByRetailerId`, `updateOrderStatus`, `deductSkuStock`, and `upsertOrder`
+  - `src/db/neon-sync.ts` - Added `hydrateOrdersFromNeon` for persistent order retrieval
+  - `src/lib/catalogue/cart-storage.ts` - Store-scoped storage keys (`isolabs_draft_cart_${retailerId}`)
+  - `src/app/api/orders/checkout/route.ts` - Order placement & credit validation API with sequence collision avoidance
+  - `src/app/api/orders/route.ts` - Order query API with Neon re-hydration
+  - `src/app/api/catalogue/route.ts` - Scoped catalog retrieval without hardcoded impersonation fallbacks
+  - `src/app/(portal)/cart/page.tsx` - Screen 5 Cart & Credit Headroom review UI with store-scoped cart storage
+  - `src/app/(portal)/orders/page.tsx` - Orders history and status tracking UI with store-scoped repeat ordering
+  - `src/app/(portal)/quick-order/page.tsx` - Vernacular AI order parser with store-scoped cart commitment
+  - `src/app/(portal)/catalogue/page.tsx` - Wholesale catalog with store-scoped cart storage
   - `src/components/layout/BottomNav.tsx` - Enhanced with `activeTab` and default export
   - `src/__tests__/orders.test.ts` - 4 unit tests covering order creation, credit holds, anti-backorder guards, and OCC versioning
 
 ### 3. Verification & Tests
-- **Vitest Suite:** `src/__tests__/orders.test.ts`
-  - 4/4 unit tests passing covering:
+- **Vitest Suite:** `src/__tests__/orders.test.ts` (4 tests) & `src/__tests__/session-lock.test.ts` (5 tests)
+  - All unit tests passing covering:
     - Successful order placement within credit limit, free goods deduction, and ledger balance update.
     - Automatic `CREDIT_HOLD` status flagging when projected balance exceeds credit limit (`[A14]`).
     - Anti-backorder physical inventory protection (`[A9]`).
     - OCC version increment and stale update conflict rejection (`[A19]`).
+    - Persistent order re-hydration from Neon PostgreSQL after serverless cold restarts (`[A51]`).
+    - Complete cart segregation across multiple Kirana stores (`[A50]`).
   - **Total Repository Tests:** 35/35 tests passing across all 4 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`).
 - **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/cart` and `/orders` compiled cleanly.
 

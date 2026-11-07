@@ -245,6 +245,40 @@ flowchart TD
 
 ---
 
+### Step 14: Single-Writer Kirana Concurrency Lock (Invariant [A49])
+- **Route:** [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
+- **The Edge Case:** Multiple family members, partners, or shop assistants attempt to place orders simultaneously for the same Kirana retail account.
+- **Action:**
+  1. Open a browser window and log in as **Sharma Kirana Store (`9826000001`)**.
+  2. Open an Incognito window or second browser. Attempt to log in as **Sharma Kirana Store (`9826000001`)** with the valid SMS OTP.
+  3. Click **"Verify & Login"**.
+- **Observed Behavior:**
+  - The login attempt is blocked with **HTTP 409 Conflict** (`USER_ALREADY_LOGGED_IN`).
+  - A prominent amber alert banner is displayed:  
+    **`"User already logged in"`** (Devanagari: **`"उपयोगकर्ता पहले से लॉगिन है"`**).
+  - Explicit notification explains: *"An active session is currently open for this Kirana store on another device or tab. Only one concurrent user is permitted."*
+  - A dedicated **`[ Force Logout Existing Session & Login ]`** action is available to allow an intentional device transfer if the merchant left a previous session open.
+- **Why It Matters:** Guarantees single-writer integrity (`[A49]`), eliminating concurrent write race conditions against available credit headroom (`currentBalance`) and preventing duplicate van load orders.
+
+---
+
+### Step 15: Persistent Order Re-hydration Across Relogin & Serverless Cold Starts (Invariant [A51])
+- **Route:** [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx) $\to$ [`/orders`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/orders/page.tsx) $\to$ [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
+- **The Edge Case:** In serverless cloud hosting (e.g. Vercel) or following dev server restarts, in-memory caches lose their state, causing shopkeepers to think their placed orders vanished upon relogin.
+- **Action:**
+  1. Log in as Sharma Kirana (`9826000001`) and place an order for 2 cases of Parle-G (`ORD-2026-0001`).
+  2. Confirm order appears on `/orders` with status `PLACED`.
+  3. Click **Log Out** to return to `/login`.
+  4. (Simulate cold start / container reboot).
+  5. Log back in as Sharma Kirana (`9826000001`) and navigate to `/orders`.
+- **Observed Behavior:**
+  - `GET /api/orders` triggers `hydrateOrdersFromNeon('RET-0001')`.
+  - The previously placed order `ORD-2026-0001` (₹1,835.00, 2 cases) is pulled directly from Neon PostgreSQL and rendered seamlessly with complete invoice breakdown.
+  - Order history is 100% durable and never disappears.
+- **Why It Matters:** Guarantees complete audit durability and zero order disappearance on serverless cloud architectures.
+
+---
+
 ## 3. Verification Matrix
 
 | Step | Capability Tested | Brief Reference | Status |
@@ -262,6 +296,8 @@ flowchart TD
 | **Step 11** | 14-Day Dormant Retailer Nudges | Screen 7 | Verified (Hindi WhatsApp Deal) |
 | **Step 12** | Multi-Clerk OCC Locking | Invariant [A14] | Verified (HTTP 409 Guardrail) |
 | **Step 13** | Master Clean Slate to Zero | First-Time User UX | Verified (0 Rows Confirmed) |
+| **Step 14** | Single-Writer Kirana Concurrency Lock | Invariant [A49] | Verified (HTTP 409 "User already logged in") |
+| **Step 15** | Persistent Order Re-hydration Across Relogin | Invariant [A51] | Verified (Durable Neon PostgreSQL Hydration) |
 
 ---
 *End of Walkthrough Document.*

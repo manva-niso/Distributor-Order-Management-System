@@ -454,5 +454,78 @@ This document records every error, build failure, test failure, runtime issue, a
   3. Added live integration test (`engine/src/__tests__/gemini-live.test.ts`) verifying live key resolution with Parle-G (`SKU-BS-PG075`).
 - **Prevention:** When integrating reasoning-capable LLM models, always provide sufficient output token budget for thinking tokens and set timeouts appropriate for remote cloud inference.
 
+---
+
+### [ERR-041] Order Disappearance on Kirana Re-login Due to Ephemeral In-Memory State in Serverless Functions
+- **Date & Time:** 2026-11-07 10:15:00
+- **Module:** Module 4 - Cart & Order Management / Neon PostgreSQL Sync
+- **Phase:** Production Deployment & Session Lifecycle
+- **Symptoms / Error Message:**
+  ```text
+  Kirana store places an order -> order confirms with status PLACED.
+  Storekeeper logs out and logs back in (or serverless instance recycles).
+  Navigating to /orders shows "No orders placed yet" - previous orders disappear.
+  ```
+- **Root Cause Analysis:** While `syncSingleOrderToNeon` persisted orders to Neon PostgreSQL, the `GET /api/orders` endpoint queried strictly from in-memory `dbStore.getOrdersByRetailerId(retailerId)`. In Vercel serverless functions (and after local dev server restarts), each lambda container launches with fresh memory containing 0 orders and never pulled historical orders from Neon.
+- **Resolution / Fix:**
+  1. Created `hydrateOrdersFromNeon(retailerId?)` in `src/db/neon-sync.ts` querying `orders` and `order_items` tables via tagged SQL.
+  2. Implemented `dbStore.upsertOrder(order, items)` in `src/db/store.ts` to populate in-memory state without double-charging the retailer's credit ledger.
+  3. Added `await hydrateOrdersFromNeon(...)` to `GET /api/orders`, `GET /api/desk/orders`, `GET /api/desk/orders/[id]`, and `POST /api/orders/checkout`.
+  4. Updated order ID generation in checkout to dynamically compute the next sequence number (`ORD-2026-XXXX`) from hydrated records, preventing primary key collisions.
+- **Prevention:** Any system combining fast in-memory caching with persistent database backends must implement deterministic cold-start hydration before serving read requests.
+
+---
+
+### [ERR-042] Uncontrolled Multi-User Concurrent Logins Causing Credit Ledger Race Conditions & Double Order Placements
+- **Date & Time:** 2026-11-07 10:45:00
+- **Module:** Module 1 - Scaffolding, Authentication & Write Concurrency
+- **Phase:** Concurrency Control / Multi-User Safety
+- **Symptoms / Error Message:**
+  ```text
+  Two users accessing the same Kirana store (e.g. store owner and shop clerk) simultaneously submit checkouts, racing on credit balance and warehouse stock.
+  ```
+- **Root Cause Analysis:** No single-writer concurrency lock existed. Anyone verifying the phone's OTP was issued an unconstrained JWT cookie. Multiple simultaneous checkouts could overdraw the retailer's credit headroom and double-deduct inventory.
+- **Resolution / Fix:**
+  1. Implemented `acquireRetailerSession`, `releaseRetailerSession`, and `forceReleaseRetailerSession` in `src/lib/auth/session-lock.ts` backed by Neon PostgreSQL `active_sessions` table and in-memory cache with a 30-minute rolling activity window.
+  2. Modified `POST /api/auth/verify-otp`: subsequent login attempts for the same Kirana store return HTTP 409 Conflict with `"User already logged in"` (`USER_ALREADY_LOGGED_IN`).
+  3. Added `"User already logged in"` / `"उपयोगकर्ता पहले से लॉगिन है"` banner in `login/page.tsx` with a `[ Force Logout Existing Session & Login ]` button (`force: true`) allowing intentional handoffs.
+  4. Added `releaseRetailerSession` into `POST /api/auth/logout` and `touchRetailerSession` into `GET /api/auth/me`.
+  5. Built dedicated test suite `src/__tests__/session-lock.test.ts` (5 automated tests) verifying initial login, concurrent block, multi-kirana independence, logout release, and force release.
+- **Prevention:** Core write operations (order placement, ledger debt updates) require strict single-writer seat exclusivity per business account.
+
+---
+
+### [ERR-043] Shared Global Cart State Leakage Between Different Kirana Accounts on Same Browser
+- **Date & Time:** 2026-11-07 11:10:00
+- **Module:** Module 2 & 4 - Catalogue & Draft Cart Isolation
+- **Phase:** Multi-Tenant Session Isolation
+- **Symptoms / Error Message:**
+  ```text
+  User logs in as Sharma Kirana, adds 5 cases of Parle-G to cart, then logs out.
+  User logs in as Verma General Store on the same device.
+  Verma's cart at /cart displays Sharma's 5 cases of Parle-G!
+  ```
+- **Root Cause Analysis:** Client-side draft cart state used a single global key `localStorage.getItem("isolabs_draft_cart")` across all Kirana accounts.
+- **Resolution / Fix:**
+  1. Built `src/lib/catalogue/cart-storage.ts` providing `getCartStorageKey(retailerId)` (`isolabs_draft_cart_${retailerId}`) and `getMediaStorageKey(retailerId)` (`isolabs_order_media_${retailerId}`).
+  2. Scoped cart reads and writes across `catalogue/page.tsx`, `cart/page.tsx`, `quick-order/page.tsx`, and `orders/page.tsx` to the logged-in `retailerId`.
+  3. Switching stores on the same device completely isolates draft carts.
+- **Prevention:** Never store user-specific transactional or cart state under un-namespaced global keys in client storage.
+
+---
+
+### [ERR-044] Hardcoded Catalogue Impersonation Fallback to Sharma Kirana (`RET-0001`)
+- **Date & Time:** 2026-11-07 11:30:00
+- **Module:** Module 2 - Catalogue API
+- **Phase:** API Scoping & Authentication Integrity
+- **Symptoms / Error Message:**
+  ```text
+  Unauthenticated requests or requests with unrecognized sessions to /api/catalogue returned Sharma Kirana Store (RET-0001) metadata and ledger balance.
+  ```
+- **Root Cause Analysis:** Lines 36–52 in `src/app/api/catalogue/route.ts` contained a legacy fallback `retailer = allR[0]` (`RET-0001` - Sharma Kirana) when unauthenticated or target retailer was missing.
+- **Resolution / Fix:** Removed the `allR[0]` fallback and fallback object. If no target retailer is authenticated or specified, `retailer` strictly returns `null`. Added dynamic Neon lookup if a valid `retailerId` exists in session but is missing from memory.
+- **Prevention:** Endpoints must return `null` or 401/404 for unauthenticated callers rather than silently impersonating a default customer account.
+
+
 
 

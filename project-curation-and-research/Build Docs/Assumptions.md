@@ -54,6 +54,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A42]** | Module 8: Van Manifest | Cargo Weight Approximation for Load Safety | Vehicle cargo manifests compute approximate payload weights per SKU based on case pack configuration to ensure vehicle axle limits are respected during milk-runs. |
 | **[A43]** | Module 9: Dormant Desk | Progressive Churn Risk Stratification | Inactivity categorized into High Risk (14-20 days) and Critical Churn (≥21 days) to prioritize salesman physical visits over simple WhatsApp reminders. |
 | **[A44]** | Module 9: Dormant Desk | Personalized Bilingual Promotional Nudge Format | WhatsApp re-order deep links pre-populate Devanagari Hindi text greeting the merchant by name, acknowledging days inactive, and highlighting today's live trade schemes. |
+| **[A45]** | Universal Scheme Engine | Multi-Tier Slab Ladders Non-Cumulative Selection | Highest achieved tier applied across gross value; tiers do not compound. |
+| **[A46]** | Universal Scheme Engine | Cross-SKU Free Goods Gifting & ₹0.00 Composite Valuation | Free bonus cases in secondary SKU awarded at ₹0.00 with zero additional GST liability (Circular 92/11/2019-GST). |
+| **[A47]** | Universal Scheme Engine | Flat Per-Case Trade Cash Rebates | Direct rupee deductions per case applied pre-tax with compliant 50/50 intra-state MP GST assessment. |
+| **[A48]** | Universal Scheme Engine | Real-Time Scheme Upsell Nudge Telemetry | Dynamically computes remaining cases to unlock next discount tier (`nextTierNudge`). |
+| **[A49]** | Module 1: Auth & Write Integrity | Single-Writer Constraint & Active Session Concurrency Lock | Only 1 user/session can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 "User already logged in" to prevent ledger race conditions and double bookings. |
+| **[A50]** | Module 4: Cart & Session Scoping | Kirana-Scoped Cart & Multi-Tenant Session Isolation | Draft carts partitioned by `retailerId` (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices. |
+| **[A51]** | Module 4: Orders & Persistence | Neon PostgreSQL Order Re-hydration Across Cold Starts | Persistent orders auto-hydrated from Neon into memory on reads and checkout; order sequence number (`ORD-2026-XXXX`) monotonically calculated to prevent primary key collision. |
 
 ---
 
@@ -329,3 +336,42 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A48]` Real-Time Scheme Upsell Nudge Telemetry
 - **Context:** Maximizing distributor average order value (AOV) and preventing shopkeeper post-order complaints ("If I knew 1 more case would give me 5%, I would have ordered 10!").
 - **Assumption:** For every active line item below the maximum promotional tier, the pricing engine computes `nextTierNudge: { casesNeeded, targetTierPct, potentialSavings }`, providing immediate telemetry for UI nudge banners and counter sales prompts.
+
+---
+
+### Concurrency, Session Management & Persistent Multi-Tenant Isolation
+
+#### `[A49]` Single-Writer Constraint & Active Session Concurrency Lock per Kirana Store
+- **Context:** Multiple family members, counter clerks, or shop assistants attempting to place wholesale orders on behalf of the same Kirana retail store account simultaneously.
+- **Core Architectural Assumption:** **At any given moment, only ONE person/session is allowed to place orders or maintain an active authenticated session for a specific Kirana/retailer store account.** Concurrent multi-user access for the same merchant is strictly prohibited.
+- **Why This Is Enforced (Write Collision & Race Condition Elimination):**
+  1. **Credit Ledger Headroom Corruption:** Wholesale buyers operate under credit limits (e.g. ₹50,000 ceiling, ₹12,000 existing balance = ₹38,000 available headroom). If User A and User B concurrently submit orders worth ₹25,000 each at time $T_0$, both checkouts would validate against the unupdated headroom, placing ₹50,000 in new debt against a ₹38,000 headroom and causing severe financial risk exposure for Company A.
+  2. **Warehouse Stock Decrement Race Conditions:** Concurrent deductions on limited inventory (`deductSkuStock`) cause dirty reads, lost updates, or negative physical stock in the Jabalpur warehouse.
+  3. **Duplicate Van Route Loading & Delivery Refusal:** Simultaneous orders from two store clerks create duplicate van dispatch manifests, leading to loading wasted cases onto morning vans and double billing that gets rejected at the store doorstep.
+- **Implementation & Operational Protocol:**
+  - Backed by the `active_sessions` table in Neon PostgreSQL (`retailer_id`, `session_id`, `user_id`, `phone`, `created_at`, `last_active_at`) and mirrored in-memory for instant single-server performance.
+  - Active sessions expire after a **30-minute rolling window of inactivity** (`touchRetailerSession` resets this window on user requests).
+  - Any subsequent login attempt for the same Kirana store within the active window returns HTTP 409 Conflict:
+    ```json
+    { "success": false, "error": "User already logged in", "code": "USER_ALREADY_LOGGED_IN", "activeSince": "2026-11-07T..." }
+    ```
+  - The login interface surfaces a high-visibility warning: **`"User already logged in"`** (in Devanagari Hindi: **`"उपयोगकर्ता पहले से लॉगिन है"`**).
+  - A prominent **`[ Force Logout Existing Session & Login ]`** action is provided (`force: true`), ensuring that if a shopkeeper closed a previous browser tab or switched phones, they can deliberately claim the active writer seat without waiting 30 minutes.
+  - Normal logout (`POST /api/auth/logout`) releases the lock immediately via `releaseRetailerSession`.
+
+#### `[A50]` Kirana-Scoped Cart & Multi-Tenant Session Isolation
+- **Context:** Multiple distinct Kirana stores logging into the portal on a shared browser, smartphone, or distributor counter terminal.
+- **Assumption:** Each Kirana store operates in a strictly isolated, independent session. Different Kirana accounts (e.g. *Sharma Kirana Store* `RET-0001` and *Verma General Store* `RET-0002`) can log in concurrently without cross-blocking or state sharing.
+- **Client Storage Scoping Policy:**
+  - Replaced all legacy global storage keys (`isolabs_draft_cart`, `isolabs_order_media`) with dynamically scoped keys:
+    - Cart items: `isolabs_draft_cart_${retailerId}`
+    - Audio/image media attachments: `isolabs_order_media_${retailerId}`
+  - When User 1 logs out of Sharma Kirana and User 2 logs into Verma General on the same device, Verma General's cart is loaded strictly from `isolabs_draft_cart_RET-0002`. Sharma's unplaced cart lines remain segregated and never leak into Verma's checkout invoice.
+
+#### `[A51]` Neon PostgreSQL Persistent Order Re-hydration Across Serverless Cold Starts
+- **Context:** Ephemeral execution environments on Vercel serverless functions, container recycling, and local development restarts.
+- **Assumption:** Neon PostgreSQL is the permanent, authoritative system of record for all confirmed B2B orders. The application must never rely solely on in-process memory (`dbStore`) for order history.
+- **Re-hydration Protocol (`hydrateOrdersFromNeon`):**
+  - All order retrieval endpoints (`GET /api/orders` for Kirana stores, `GET /api/desk/orders` for office clerks, and `GET /api/desk/orders/[id]` for order detail terminals) invoke `hydrateOrdersFromNeon(retailerId?)` to pull stored records and line items from Neon PostgreSQL into memory store via non-double-charging `upsertOrder`.
+  - When placing orders (`POST /api/orders/checkout`), the system calls `hydrateOrdersFromNeon()` prior to calculating the next sequence number, dynamically scanning all persistent orders to guarantee monotonic, non-colliding order identifiers (`ORD-2026-XXXX`).
+  - Previously placed orders remain permanently visible upon re-login, across browser sessions, and after complete server restarts.

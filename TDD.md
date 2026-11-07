@@ -262,12 +262,15 @@ All 48 operational and technical assumptions are cataloged with permanent identi
 - `[A46]`: Cross-SKU free goods gifting valued at ₹0.00 composite supply.
 - `[A47]`: Flat per-case trade cash rebates applied pre-tax.
 - `[A48]`: Real-time scheme upsell nudge telemetry (`casesNeeded`, `potentialSavings`).
+- `[A49]`: Single-writer constraint & active session concurrency lock: only 1 user can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 "User already logged in" to prevent ledger race conditions and double bookings.
+- `[A50]`: Kirana-scoped cart & session isolation (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices.
+- `[A51]`: Neon PostgreSQL persistent order re-hydration across serverless cold starts (`hydrateOrdersFromNeon`) and non-colliding order ID generation (`ORD-2026-XXXX`).
 
 ---
 
 ## 14. End-to-End Walkthrough Verification & Audit Matrix
 
-The complete 13-step operator journey defined in [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx) was rigorously verified end-to-end via an automated first-time user audit runner:
+The complete 15-step operator journey defined in [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx) was rigorously verified end-to-end via an automated first-time user audit runner:
 
 | Step # | Domain Operational Flow | Input Utterance / User Action | Verification Criteria & Invariants Enforced | Status |
 | :---: | :--- | :--- | :--- | :---: |
@@ -284,6 +287,8 @@ The complete 13-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 | **11** | **14-Day Dormant Retention** | Open *Dormant Kiranas* tab on `/desk` | • Scanned accounts; identified 3 churn-risk shops (Bajpai Provisions: 28 days)<br>• 1-click WhatsApp deep link generated personalized Hindi offer deal | **VERIFIED** |
 | **12** | **Multi-Clerk OCC Locking** | Clerk A saves changes; Clerk B submits with stale version | • Clerk A save: HTTP 200 (version 1 $\to$ 2)<br>• Clerk B save: **HTTP 409 Conflict** (`OCC Conflict: order was modified`) | **VERIFIED** |
 | **13** | **Master Clean Slate** | Click *Clean Slate (Wipe All to 0)* on `/setup` | • Database wiped to baseline 0 orders<br>• Baseline stock & credit limits restored in Neon PostgreSQL | **VERIFIED** |
+| **14** | **Single-Writer Kirana Concurrency Lock** | Attempt simultaneous login as *Sharma Kirana* from 2nd window | • Blocked with **HTTP 409 Conflict** (`USER_ALREADY_LOGGED_IN`)<br>• Visible banner: *"User already logged in"* / *"उपयोगकर्ता पहले से लॉगिन है"*<br>• Force override button available for intentional handoffs | **VERIFIED** |
+| **15** | **Persistent Order Re-hydration Across Relogin** | Place order, log out, restart/cold-boot container, re-login | • Order auto-hydrated from Neon PostgreSQL via `hydrateOrdersFromNeon`<br>• Order `ORD-2026-0001` remains intact with zero disappearance | **VERIFIED** |
 
 ---
 
@@ -305,3 +310,16 @@ The complete 13-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 - **Order Desk Mutations:** [`/api/desk/orders/[id]`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/desk/orders/[id]/route.ts) exports `PUT = PATCH` and accepts both `expectedOccVersion`/`occVersion` and `items`/`lines` naming conventions.
 - **Tally ERP Preview:** [`/api/tally/preview`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/tally/preview/route.ts) supports both `GET` (queue batch preview) and `POST` (targeted `{ orderIds }`), returning structured `<ENVELOPE>` snippets and validation flags.
 - **Credit Hold Release:** [`/api/desk/orders/[id]/release-hold`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/desk/orders/[id]/release-hold/route.ts) treats `expectedOccVersion` as optional, automatically reading the latest version from the stored order if omitted by external scripts.
+
+### Invariant 4: Single-Writer Kirana Concurrency Lock ([A49])
+- **Problem:** Simultaneous checkout write operations from multiple users accessing the same Kirana retail account corrupt credit headroom balance, oversell physical stock, and create duplicate delivery van loads.
+- **Architectural Guard:**
+  - Backed by `active_sessions` in Neon PostgreSQL and memory cache.
+  - Subsequent logins within the 30-minute active rolling inactivity window return **HTTP 409 Conflict** with `"User already logged in"`.
+  - Dedicated force override (`force: true`) enables deliberate device handoffs without waiting for timeout expiration.
+
+### Invariant 5: Neon PostgreSQL Durable Order Re-hydration Across Cold Starts ([A51])
+- **Problem:** Ephemeral serverless container recycling on cloud platforms (e.g. Vercel) clears in-process memory caches, causing orders to vanish upon relogin.
+- **Architectural Guard:**
+  - `hydrateOrdersFromNeon(retailerId?)` runs deterministically on read paths and checkout sequence calculations, populating orders and items into memory store without double-charging credit ledgers.
+  - Monotonically increasing order ID allocation (`ORD-2026-XXXX`) scans persistent records to eliminate primary key collisions.

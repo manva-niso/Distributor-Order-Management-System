@@ -15,15 +15,18 @@ A comprehensive audit confirms all core production criteria are fully satisfied:
 
 | Capability / Requirement | Status | Production Audit Evidence |
 | :--- | :---: | :--- |
-| **Next.js Production Build** | **PASSED** | `npm --prefix distributor-app run build` compiles 34 pages & API routes in 2.1s with Turbopack, 0 TypeScript errors, and 0 lint warnings. |
-| **Automated Test Suite** | **PASSED** | 100% pass rate: 192 automated tests across 22 suites (124 in `distributor-app` including live AI random words & vernacular tests, 68 in `engine` including live closed-set chooser tests, plus the 40-prompt benchmark dataset). |
-| **Live Database (Neon PostgreSQL)** | **PASSED** | Connected to serverless cloud Neon PostgreSQL over SSL (`sslmode=require`). Relational tables (`skus`, `retailers`, `orders`, `order_items`, `retailer_aliases`, `captures`) initialized. |
+| **Next.js Production Build** | **PASSED** | `npm --prefix distributor-app run build` compiles 34 pages & API routes in 2.5s with Turbopack, 0 TypeScript errors, and 0 lint warnings. |
+| **Automated Test Suite** | **PASSED** | 100% pass rate: 197 automated tests across 23 suites (129 in `distributor-app` including session lock, live AI random words & vernacular tests, 68 in `engine` including live closed-set chooser tests, plus the 40-prompt benchmark dataset). |
+| **Live Database (Neon PostgreSQL)** | **PASSED** | Connected to serverless cloud Neon PostgreSQL over SSL (`sslmode=require`). Relational tables (`skus`, `retailers`, `orders`, `order_items`, `retailer_aliases`, `captures`, `active_sessions`) initialized. |
+| **Single-Writer Concurrency Lock ([A49])** | **PASSED** | Only 1 user/session can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 Conflict ("User already logged in"). Eliminates credit headroom corruption and double bookings. |
+| **Kirana Session & Cart Isolation ([A50])** | **PASSED** | Store-scoped cart keys (`isolabs_draft_cart_${retailerId}`) prevent unplaced items from leaking across accounts on shared devices. |
+| **Order Cold-Start Re-hydration ([A51])** | **PASSED** | Orders automatically re-hydrate from Neon PostgreSQL (`hydrateOrdersFromNeon`) on reads and checkout, ensuring previously placed orders never disappear upon relogin. |
 | **Zero-Order Pristine Start** | **PASSED** | Live `GET /api/desk/orders` returns `0 orders`. No fake dummy orders exist; real orders are created exclusively by Kiranas and verified by the Order Desk. |
 | **Google Gemini AI Integration** | **PASSED** | Live multi-model fallback cascade: `gemini-3.1-flash-lite` $\to$ `gemini-3.6-flash` $\to$ `gemini-flash-lite-latest` (~1.2s latency). Handcuffed closed-set chooser guarantees zero hallucinations and handles colloquial dialect, out-of-catalog items, and random gibberish. |
 | **Authentication & Seat Isolation** | **PASSED** | Mobile SMS OTP authentication with cryptographically signed HS256 JWT cookies (`jose`). Strict seat boundary prevents Kirana buyers from accessing the desk. |
 | **Object Storage (S3 / MinIO)** | **PASSED** | S3-compatible object storage with presigned 7-day download links for paper slip photos & Hindi audio notes. Graceful fallback if S3 is omitted. |
 | **Tally Prime ERP XML Export** | **PASSED** | 1-click accounting voucher export compliant with Tally XML schema (`VCHTYPE="Sales Order"`). |
-| **Interactive Walkthrough Guide** | **PASSED** | Floating draggable/resizable walkthrough with 13 steps (Steps 1–6 Customer Demands, Steps 7–13 Rigorous Edge Cases). |
+| **Interactive Walkthrough Guide** | **PASSED** | Floating draggable/resizable walkthrough with 15 steps (Steps 1–6 Customer Demands, Steps 7–15 Rigorous Edge Cases & Concurrency Locks). |
 
 ---
 
