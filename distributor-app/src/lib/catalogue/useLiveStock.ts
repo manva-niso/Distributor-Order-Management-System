@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { clearAllKiranaClientData } from "./cart-storage";
 
 export interface SkuStockItem {
   id: string;
@@ -14,6 +15,7 @@ export interface StockPayload {
   stockVersion: number;
   timestamp: number;
   skus: SkuStockItem[];
+  mode?: string;
 }
 
 const BROADCAST_CHANNEL_NAME = "isolabs_warehouse_stock";
@@ -27,8 +29,9 @@ let sseConnection: EventSource | null = null;
 let broadcastChannel: BroadcastChannel | null = null;
 let pollTimer: NodeJS.Timeout | null = null;
 
-function notifyAll(skus: SkuStockItem[], version: number) {
-  const newMap: Record<string, number> = { ...globalStockMap };
+function notifyAll(skus: SkuStockItem[], version: number, isReset: boolean = false) {
+  // If reset or catalog sync, build fresh map rather than retaining stale SKUs
+  const newMap: Record<string, number> = isReset ? {} : { ...globalStockMap };
   for (const item of skus) {
     newMap[item.id] = item.stockCases;
     if (item.code) {
@@ -74,6 +77,33 @@ export function broadcastLocalStockChange(skus: Array<{ id: string; stockCases: 
   } catch {}
 }
 
+export function broadcastLocalDatabaseReset(mode: string = "clean_slate") {
+  if (typeof window === "undefined") return;
+
+  clearAllKiranaClientData();
+  globalStockMap = {};
+  globalStockVersion += 1;
+
+  for (const listener of globalListeners) {
+    listener({}, globalStockVersion);
+  }
+
+  try {
+    if (!broadcastChannel && typeof BroadcastChannel !== "undefined") {
+      broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+    }
+    broadcastChannel?.postMessage({
+      type: "DATABASE_RESET",
+      stockVersion: globalStockVersion,
+      timestamp: Date.now(),
+      mode,
+      skus: [],
+    });
+  } catch {}
+
+  window.dispatchEvent(new CustomEvent("isolabs_database_reset", { detail: { mode } }));
+}
+
 function initLiveStockSync() {
   if (typeof window === "undefined" || isInitialized) return;
   isInitialized = true;
@@ -83,8 +113,18 @@ function initLiveStockSync() {
     try {
       broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
       broadcastChannel.onmessage = (event) => {
-        if (event.data?.skus) {
-          notifyAll(event.data.skus, event.data.stockVersion || globalStockVersion + 1);
+        const payload = event.data;
+        if (!payload) return;
+
+        if (payload.type === "DATABASE_RESET") {
+          clearAllKiranaClientData();
+          notifyAll(payload.skus || [], payload.stockVersion || globalStockVersion + 1, true);
+          window.dispatchEvent(new CustomEvent("isolabs_database_reset", { detail: payload }));
+        } else if (payload.type === "CATALOG_SYNC") {
+          notifyAll(payload.skus || [], payload.stockVersion || globalStockVersion + 1, true);
+          window.dispatchEvent(new CustomEvent("isolabs_catalog_sync", { detail: payload }));
+        } else if (payload.skus) {
+          notifyAll(payload.skus, payload.stockVersion || globalStockVersion + 1, false);
         }
       };
     } catch (err) {
@@ -100,8 +140,17 @@ function initLiveStockSync() {
       sseConnection.onmessage = (event) => {
         try {
           const data: StockPayload = JSON.parse(event.data);
-          if (data && Array.isArray(data.skus)) {
-            notifyAll(data.skus, data.stockVersion || globalStockVersion + 1);
+          if (!data) return;
+
+          if (data.type === "DATABASE_RESET") {
+            clearAllKiranaClientData();
+            notifyAll(data.skus || [], data.stockVersion || globalStockVersion + 1, true);
+            window.dispatchEvent(new CustomEvent("isolabs_database_reset", { detail: data }));
+          } else if (data.type === "CATALOG_SYNC") {
+            notifyAll(data.skus || [], data.stockVersion || globalStockVersion + 1, true);
+            window.dispatchEvent(new CustomEvent("isolabs_catalog_sync", { detail: data }));
+          } else if (Array.isArray(data.skus)) {
+            notifyAll(data.skus, data.stockVersion || globalStockVersion + 1, false);
           }
         } catch {}
       };
@@ -121,7 +170,12 @@ function initLiveStockSync() {
       if (res.ok) {
         const data = await res.json();
         if (data.changed && Array.isArray(data.skus)) {
-          notifyAll(data.skus, data.stockVersion);
+          const isWiped = data.skus.length === 0;
+          notifyAll(data.skus, data.stockVersion, isWiped);
+          if (isWiped) {
+            clearAllKiranaClientData();
+            window.dispatchEvent(new CustomEvent("isolabs_database_reset", { detail: data }));
+          }
         }
       }
     } catch {}

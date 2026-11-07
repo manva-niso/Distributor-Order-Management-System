@@ -161,6 +161,7 @@ class MemoryStore {
   private orderItems: Map<string, StoredOrderItem[]> = new Map();
   private aliases: Map<string, StoredAlias> = new Map();
   private stockChangeListeners: Set<() => void> = new Set();
+  private isAbsoluteZero: boolean = false;
 
   public onStockChange(listener: () => void): () => void {
     this.stockChangeListeners.add(listener);
@@ -184,6 +185,7 @@ class MemoryStore {
   }
 
   public resetToAbsoluteZero() {
+    this.isAbsoluteZero = true;
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();
@@ -200,9 +202,12 @@ class MemoryStore {
       role: "desk",
       active: true,
     });
+
+    this.notifyStockChange();
   }
 
   public reset(includeDefaultOrders: boolean = false) {
+    this.isAbsoluteZero = false;
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();
@@ -224,9 +229,12 @@ class MemoryStore {
     if (includeDefaultOrders) {
       this.seedDefaultOrders();
     }
+
+    this.notifyStockChange();
   }
 
   public loadMasterCatalog(includeDefaultOrders: boolean = false) {
+    this.isAbsoluteZero = false;
     this.users.clear();
     this.retailers.clear();
     this.skus.clear();
@@ -248,6 +256,8 @@ class MemoryStore {
     if (includeDefaultOrders) {
       this.seedDefaultOrders();
     }
+
+    this.notifyStockChange();
   }
 
   private seedDefaultOrders() {
@@ -465,7 +475,7 @@ class MemoryStore {
     let user = Array.from(this.users.values()).find(
       (u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone
     );
-    if (!user) {
+    if (!user && !this.isAbsoluteZero) {
       const seedUser =
         SEED_USERS.find((u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone) ||
         MASTER_USERS.find((u) => u.phone.replace(/\D/g, "").slice(-10) === cleanPhone);
@@ -479,7 +489,7 @@ class MemoryStore {
 
   public getUserById(id: string): SeedUser | undefined {
     let user = this.users.get(id);
-    if (!user) {
+    if (!user && !this.isAbsoluteZero) {
       const seedUser =
         SEED_USERS.find((u) => u.id === id) ||
         MASTER_USERS.find((u) => u.id === id);
@@ -492,7 +502,7 @@ class MemoryStore {
   }
 
   public getAllUsers(): SeedUser[] {
-    if (this.users.size === 0) {
+    if (!this.isAbsoluteZero && this.users.size === 0) {
       for (const u of SEED_USERS) {
         this.users.set(u.id, { ...u });
       }
@@ -511,7 +521,7 @@ class MemoryStore {
     let ret = Array.from(this.retailers.values()).find(
       (r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone
     );
-    if (!ret) {
+    if (!ret && !this.isAbsoluteZero) {
       const seedRet =
         SEED_RETAILERS.find((r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone) ||
         MASTER_RETAILERS.find((r) => r.phone.replace(/\D/g, "").slice(-10) === cleanPhone);
@@ -525,7 +535,7 @@ class MemoryStore {
 
   public getRetailerById(id: string): SeedRetailer | undefined {
     let ret = this.retailers.get(id);
-    if (!ret) {
+    if (!ret && !this.isAbsoluteZero) {
       const seedRet =
         SEED_RETAILERS.find((r) => r.id === id) ||
         MASTER_RETAILERS.find((r) => r.id === id);
@@ -543,7 +553,7 @@ class MemoryStore {
   }
 
   public getAllRetailers(): SeedRetailer[] {
-    if (this.retailers.size === 0) {
+    if (!this.isAbsoluteZero && this.retailers.size === 0) {
       for (const r of SEED_RETAILERS) {
         this.retailers.set(r.id, { ...r });
       }
@@ -578,6 +588,7 @@ class MemoryStore {
 
   // --- Batch Import & Master Data Operations ---
   public importSkus(newSkus: SeedSku[], mode: "replace" | "merge" = "merge"): { count: number } {
+    this.isAbsoluteZero = false;
     if (mode === "replace") {
       this.skus.clear();
     }
@@ -589,6 +600,7 @@ class MemoryStore {
   }
 
   public importRetailers(newRetailers: SeedRetailer[], mode: "replace" | "merge" = "merge"): { count: number } {
+    this.isAbsoluteZero = false;
     if (mode === "replace") {
       this.retailers.clear();
       // Keep desk and salesman users, clear retailer users

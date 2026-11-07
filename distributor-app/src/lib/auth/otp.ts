@@ -198,13 +198,14 @@ export async function createAndSendOtp(rawPhone: string): Promise<SendOtpResult>
   // Dispatch via configured SMS gateway or local console
   const smsResult = await dispatchSms(cleanPhone, otpCode);
 
-  const isDevOrConsole = !process.env.SMS_API_KEY || smsResult.provider === "console";
+  const isDevOrConsole = !process.env.SMS_API_KEY || process.env.NODE_ENV !== "production" || process.env.SMS_PROVIDER === "console";
+  const isDevReturn = isDevOrConsole || smsResult.provider === "console";
 
   return {
     success: true,
     message: `OTP sent successfully to +91 ${cleanPhone.slice(0, 2)}****${cleanPhone.slice(-4)}.`,
     expiresInSeconds: 300,
-    devOtp: isDevOrConsole ? otpCode : undefined,
+    devOtp: isDevReturn ? otpCode : undefined,
   };
 }
 
@@ -261,26 +262,26 @@ export async function verifyOtp(
 
   const isDevOrConsole = !process.env.SMS_API_KEY || process.env.NODE_ENV !== "production" || process.env.SMS_PROVIDER === "console";
 
-  // Master demo code fallback in dev/sandbox: if user enters 716716, always accept it in dev/console mode
-  if (isDevOrConsole && cleanCode === "716716") {
-    if (!activeOtp) {
-      activeOtp = {
-        id: "otp_demo_" + crypto.randomUUID().slice(0, 8),
-        phone: cleanPhone,
-        otpCode: "716716",
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-        attempts: 0,
-        verified: false,
-        createdAt: new Date(),
-      };
-      dbStore.saveOtp(activeOtp);
-    } else {
-      activeOtp.otpCode = "716716";
-      activeOtp.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-      activeOtp.attempts = 0;
-      activeOtp.verified = false;
-      dbStore.saveOtp(activeOtp);
-    }
+  // Master demo code fallback in dev/sandbox: if user enters 716716 or 123456, accept in dev mode
+  const isMasterDemoCode = isDevOrConsole && (cleanCode === "716716" || cleanCode === "123456");
+
+  if (isMasterDemoCode && !activeOtp) {
+    activeOtp = {
+      id: "otp_demo_" + crypto.randomUUID().slice(0, 8),
+      phone: cleanPhone,
+      otpCode: cleanCode,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      attempts: 0,
+      verified: false,
+      createdAt: new Date(),
+    };
+    dbStore.saveOtp(activeOtp);
+  } else if (isDevOrConsole && cleanCode === "716716" && activeOtp) {
+    activeOtp.otpCode = "716716";
+    activeOtp.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    activeOtp.attempts = 0;
+    activeOtp.verified = false;
+    dbStore.saveOtp(activeOtp);
   }
 
   if (!activeOtp) {

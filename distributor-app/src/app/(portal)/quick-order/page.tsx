@@ -62,7 +62,7 @@ export default function QuickOrderPage() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [mediaFileName, setMediaFileName] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  const loadCatalogue = React.useCallback(() => {
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
@@ -78,6 +78,29 @@ export default function QuickOrderPage() {
       })
       .catch(() => {});
   }, []);
+
+  React.useEffect(() => {
+    loadCatalogue();
+
+    const handleReset = () => {
+      setParsedLines(null);
+      setInputText("");
+      setUploadedMediaUrl(null);
+      setUploadedMediaType(null);
+      setMediaFileName(null);
+      loadCatalogue();
+    };
+
+    window.addEventListener("isolabs_database_reset", handleReset);
+    window.addEventListener("isolabs_catalog_sync", loadCatalogue);
+    window.addEventListener("focus", loadCatalogue);
+
+    return () => {
+      window.removeEventListener("isolabs_database_reset", handleReset);
+      window.removeEventListener("isolabs_catalog_sync", loadCatalogue);
+      window.removeEventListener("focus", loadCatalogue);
+    };
+  }, [loadCatalogue]);
 
   // Quick Demo Templates
   const loadTemplate = (text: string) => {

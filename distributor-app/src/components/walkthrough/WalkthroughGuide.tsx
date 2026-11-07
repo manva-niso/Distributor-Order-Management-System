@@ -19,6 +19,8 @@ import {
   Languages,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { clearAllKiranaClientData } from "@/lib/catalogue/cart-storage";
+import { broadcastLocalDatabaseReset } from "@/lib/catalogue/useLiveStock";
 
 export type StepCategory = "DEMAND" | "EDGE_CASE";
 
@@ -626,10 +628,10 @@ export default function WalkthroughGuide() {
       if (data.success) {
         setCompletedSteps({});
         setExpandedSteps({ 1: true });
+        clearAllKiranaClientData();
+        broadcastLocalDatabaseReset("absolute_zero");
         try {
           localStorage.removeItem("isolabs_walkthrough_completed");
-          localStorage.removeItem("isolabs_draft_cart");
-          localStorage.removeItem("isolabs_order_media");
         } catch {}
         router.push("/setup");
       }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/db/store";
 import { getNeonSql } from "@/db/neon";
 import { syncDatasetToNeon } from "@/db/neon-sync";
+import { broadcastDatabaseReset } from "@/lib/catalogue/inventory-events";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 3. Broadcast system-wide reset event to instantly purge all client carts and SSE streams
+      broadcastDatabaseReset("absolute_zero");
+
       return NextResponse.json({
         success: true,
         mode: "absolute_zero",
@@ -50,6 +54,9 @@ export async function POST(req: NextRequest) {
         users: dbStore.getAllUsers(),
         wipeFirst: true,
       });
+
+      // Broadcast system-wide reset event to instantly purge all client carts and SSE streams
+      broadcastDatabaseReset("clean_slate");
 
       return NextResponse.json({
         success: true,
@@ -75,6 +82,9 @@ export async function POST(req: NextRequest) {
         orderItemsMap: dbStore.getAllOrderItemsMap(),
         wipeFirst: true,
       });
+
+      // Broadcast system-wide reset event to instantly purge all client carts and SSE streams
+      broadcastDatabaseReset("factory_demo");
 
       return NextResponse.json({
         success: true,

@@ -28,6 +28,7 @@ import {
   DraftCartItem,
   loadScopedCart,
   saveScopedCart,
+  clearAllKiranaClientData,
 } from "@/lib/catalogue/cart-storage";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useLiveStock } from "@/lib/catalogue/useLiveStock";
@@ -79,30 +80,72 @@ export default function CataloguePage() {
   }, [stockMap]);
 
   // 1. Load Catalogue & Retailer Session
-  useEffect(() => {
-    // Immediate optimistic draft cart load for 0ms initial render
-    setCartMap(loadScopedCart());
-
+  const loadCatalogueData = React.useCallback(() => {
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          setSkus(data.skus || []);
+          const freshSkus: SeedSku[] = data.skus || [];
+          setSkus(freshSkus);
           setRetailer(data.retailer || null);
           if (data.retailer?.id) {
             try {
               localStorage.setItem("isolabs_current_retailer_id", data.retailer.id);
             } catch {}
-            setCartMap(loadScopedCart(data.retailer.id));
           }
           if (data.userRole) {
             setUserRole(data.userRole);
           }
+
+          // Purge stale SKUs from cartMap that no longer exist in the warehouse catalog
+          const validIds = new Set(freshSkus.map((s) => s.id));
+          setCartMap((prev) => {
+            let hasStale = false;
+            const clean: Record<string, DraftCartItem> = {};
+            for (const [id, val] of Object.entries(prev)) {
+              if (validIds.has(id)) {
+                clean[id] = val;
+              } else {
+                hasStale = true;
+              }
+            }
+            if (hasStale) {
+              saveScopedCart(clean, data.retailer?.id);
+            }
+            return clean;
+          });
         }
       })
       .catch((err) => console.error("Failed to load catalogue:", err))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    // Immediate optimistic draft cart load for 0ms initial render
+    setCartMap(loadScopedCart());
+    loadCatalogueData();
+
+    // Listen for database resets & catalog syncs across tabs and SSE
+    const handleReset = () => {
+      setCartMap({});
+      clearAllKiranaClientData();
+      loadCatalogueData();
+    };
+
+    const handleCatalogSync = () => {
+      loadCatalogueData();
+    };
+
+    window.addEventListener("isolabs_database_reset", handleReset);
+    window.addEventListener("isolabs_catalog_sync", handleCatalogSync);
+    window.addEventListener("focus", loadCatalogueData);
+
+    return () => {
+      window.removeEventListener("isolabs_database_reset", handleReset);
+      window.removeEventListener("isolabs_catalog_sync", handleCatalogSync);
+      window.removeEventListener("focus", loadCatalogueData);
+    };
+  }, [loadCatalogueData]);
 
   // Sync cart changes to scoped localStorage for both wholesale cases and loose packets
   const updateCartQty = (skuId: string, field: "cases" | "packs", delta: number) => {

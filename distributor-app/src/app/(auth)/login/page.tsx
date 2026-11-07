@@ -95,6 +95,53 @@ export default function LoginPage() {
     setOtpDigits(["", "", "", "", "", ""]);
   };
 
+  // Instant 1-Click Login for development testing (bypasses manual OTP typing)
+  const handleQuickLogin = async (num: string) => {
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIsAlreadyLoggedIn(false);
+    const clean = num.replace(/\D/g, "").slice(-10);
+    setPhone(clean);
+
+    try {
+      // 1. Dispatch/ensure active OTP
+      const sendRes = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: clean }),
+      });
+      const sendData = await sendRes.json();
+      const code = sendData.devOtp || "123456";
+
+      // 2. Direct verify with master code
+      const verifyRes = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: clean, otp: code, force: true }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (verifyRes.ok && verifyData.success) {
+        setSuccessMsg(
+          lang === "hi"
+            ? "सत्यापन सफल! पोर्टल में प्रवेश हो रहा है..."
+            : "Verified successfully! Redirecting..."
+        );
+        router.push(verifyData.redirectUrl || (clean.endsWith("00099") ? "/desk" : "/catalogue"));
+      } else {
+        // Fall back to showing OTP form with auto-filled digits
+        setStep("otp");
+        setDevOtpCode(code);
+        setOtpDigits(code.slice(0, 6).split(""));
+      }
+    } catch {
+      setErrorMsg("Network error during instant login.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Step 1: Send OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -131,6 +178,11 @@ export default function LoginPage() {
       setSuccessMsg(data.message);
       if (data.devOtp) {
         setDevOtpCode(data.devOtp);
+        // Auto-fill OTP digits in dev/sandbox so user doesn't have to manually re-type
+        const digits = data.devOtp.slice(0, 6).split("");
+        if (digits.length === 6) {
+          setOtpDigits(digits);
+        }
       }
 
       // Auto focus on first digit box after transition
@@ -530,6 +582,17 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
+
+              {/* 1-Tap Instant Demo Login Shortcut */}
+              <button
+                type="button"
+                onClick={() => handleQuickLogin(phone)}
+                disabled={loading}
+                className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                <span>{lang === "hi" ? "त्वरित लॉगिन (डेमो कोड: 123456) →" : "Instant Demo Login (Auto-Verify 123456) →"}</span>
+              </button>
             </form>
           ) : (
             /* STEP 2: 6-Digit OTP Verification */
@@ -553,16 +616,23 @@ export default function LoginPage() {
               </div>
 
               {/* Dev Helper Callout */}
-              {devOtpCode && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">{lang === "hi" ? "डेव सैंडबॉक्स सूचना: " : "Dev Sandbox Notice: "}</span>
-                    <span>{lang === "hi" ? "आपका सत्यापन कोड है " : "Your verification code is "}</span>
-                    <strong className="font-mono text-sm bg-amber-200 px-1.5 py-0.5 rounded">{devOtpCode}</strong>
-                  </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">{lang === "hi" ? "डेव सैंडबॉक्स सूचना: " : "Dev Sandbox Notice: "}</span>
+                  <span>{lang === "hi" ? "सत्यापन कोड: " : "Verification code: "}</span>
+                  <strong
+                    className="font-mono text-sm bg-amber-200 hover:bg-amber-300 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                    onClick={() => setOtpDigits((devOtpCode || "123456").slice(0, 6).split(""))}
+                    title="Click to fill"
+                  >
+                    {devOtpCode || "123456"}
+                  </strong>
+                  <span className="text-[11px] text-amber-700 block mt-0.5">
+                    {lang === "hi" ? "(कोड भरने हेतु क्लिक करें या 123456 दर्ज करें)" : "(Click code to auto-fill or enter 123456)"}
+                  </span>
                 </div>
-              )}
+              </div>
 
               {/* 6-Digit Input Grid */}
               <div className="grid grid-cols-6 gap-2" onPaste={handlePaste}>

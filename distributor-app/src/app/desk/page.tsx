@@ -40,7 +40,8 @@ import {
 } from "lucide-react";
 import AddProductModal from "@/components/desk/AddProductModal";
 import { SeedSku } from "@/db/seed-data";
-import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
+import { useLiveStock, broadcastLocalStockChange, broadcastLocalDatabaseReset } from "@/lib/catalogue/useLiveStock";
+import { clearAllKiranaClientData } from "@/lib/catalogue/cart-storage";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSkuDisplay, getRetailerDisplay, RETAILER_NAME_FALLBACK_MAP, ROUTE_HINDI_MAP } from "@/lib/i18n/trade-dict";
 
@@ -209,8 +210,11 @@ export default function OrderDeskPage() {
       });
       const data = await res.json();
       if (data.success) {
+        clearAllKiranaClientData();
+        broadcastLocalDatabaseReset(mode);
         setShowCleanSlateModal(false);
         await fetchOrders();
+        await fetchCatalogue();
       }
     } catch (err) {
       console.error("Clean slate reset error:", err);

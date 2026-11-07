@@ -28,6 +28,8 @@ import {
 
 import { getSkuDisplay, getRetailerDisplay, Language } from "@/lib/i18n/trade-dict";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { clearAllKiranaClientData } from "@/lib/catalogue/cart-storage";
+import { broadcastLocalDatabaseReset } from "@/lib/catalogue/useLiveStock";
 
 interface StoreStats {
   totalSkus: number;
@@ -107,6 +109,8 @@ export default function SetupPage() {
       });
       const data = await res.json();
       if (data.success) {
+        clearAllKiranaClientData();
+        broadcastLocalDatabaseReset(mode);
         setUploadSuccess(data.message);
         setShowResetModal(false);
         await loadStatus();

@@ -697,7 +697,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### G. Test Suite (`src/__tests__/` — 19 Suites, 147 Tests)
+### G. Test Suite (`src/__tests__/` — 22 Suites, 165 Tests)
 - **`src/__tests__/auth.test.ts`**: 13 automated unit tests verifying OTP generation, rate limits, expirations, attempt lockouts, constant-time comparisons, JWT signature verification, and B2B kirana self-registration.
 - **`src/__tests__/session-lock.test.ts`**: 6 automated unit tests verifying single-writer concurrency acquisition, HTTP 409 conflict blocking, deferred OTP consumption, and force-logout purge (`[A49]`).
 - **`src/__tests__/catalogue.test.ts`**: 8 automated unit tests verifying pack calculations, GST rounding, out-of-stock guards, Buy 10 Get 1 mechanics, 3% slab calculations, and cart mutations.
@@ -719,6 +719,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/cart-storage.test.ts`**: 7 automated unit tests verifying Kirana cart isolation (`[A50]`), zero-drop dual writes, and fallback auto-migration (`[A53]`).
 - **`src/__tests__/deterministic-guardrails.test.ts`**: 6 automated unit tests verifying deterministic packaging guardrail isolation, 0ms negative catalog rejection floor (`[A59]`), ARTPARK-IISc Vaani Hindi ASR cascade (`[A58]`), and offline multimodal fallback execution.
 - **`src/__tests__/knowledge-graph.test.ts`**: 5 automated unit tests verifying 12-domain categorization, longest-phrase-first compound resolution (`[A61]`), category-grounded suggestions, zero biscuit hallucinations, and honest out-of-domain rejections.
+- **`src/__tests__/reset-sync-and-auth.test.ts`**: 7 automated unit tests verifying universal Kirana client storage purge (`[A62]`), cross-tab `DATABASE_RESET` and `CATALOG_SYNC` SSE broadcasts, Absolute Zero store isolation, and dev sandbox master OTP reliability (`[A64]`).
 
 ---
 
@@ -743,3 +744,4 @@ This table details the implemented directories, screens, backend logic, API endp
 | **Module 12: Zero-AI Transliteration** | All screens (`LanguageProvider`) | `src/lib/i18n/LanguageContext.tsx`<br/>`src/lib/i18n/transliterate.ts` | Dynamic enrichment on ingestion & auth | `src/__tests__/dynamic-transliteration.test.ts` (5 tests) |
 | **Module 13: Deterministic Guardrails & ASR** | `/quick-order` & Multimodal Engine | `src/lib/ai/vaani-asr.ts`<br/>`src/lib/ai/multimodal.ts` | `POST /api/upload/media` | `src/__tests__/deterministic-guardrails.test.ts` (6 tests) |
 | **Module 14: FMCG Trade Knowledge Graph** | `/quick-order` & Parser Pipeline | `src/lib/ai/knowledge-graph.ts`<br/>`src/lib/ai/candidate-retriever.ts` | `POST /api/capture/parse-text`<br/>`POST /api/upload/media` | `src/__tests__/knowledge-graph.test.ts` (5 tests) |
+| **Module 15: Master Reset, Kirana Sync & Dev OTP** | `/setup`, `/desk`, `/login`, `/catalogue` | `src/lib/catalogue/cart-storage.ts`<br/>`src/lib/catalogue/inventory-events.ts`<br/>`src/lib/auth/otp.ts`<br/>`src/db/store.ts` | `POST /api/setup/reset-db`<br/>`POST /api/setup/import-excel`<br/>`POST /api/auth/verify-otp` | `src/__tests__/reset-sync-and-auth.test.ts` (7 tests) |

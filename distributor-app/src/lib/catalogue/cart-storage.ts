@@ -3,14 +3,24 @@ export interface DraftCartItem {
   packs: number;
 }
 
+function getStoredRetailerId(): string | null {
+  try {
+    if (typeof localStorage !== "undefined") {
+      return localStorage.getItem("isolabs_current_retailer_id");
+    }
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.getItem("isolabs_current_retailer_id");
+    }
+  } catch {}
+  return null;
+}
+
 /**
  * Returns a localized storage key scoped to the specific Kirana store (retailerId).
  * Ensures that two Kirana stores accessing on the same browser or session never share a cart.
  */
 export function getCartStorageKey(retailerId?: string | null): string {
-  const targetId =
-    (retailerId && retailerId.trim()) ||
-    (typeof window !== "undefined" ? localStorage.getItem("isolabs_current_retailer_id") : null);
+  const targetId = (retailerId && retailerId.trim()) || getStoredRetailerId();
 
   if (targetId && targetId.trim()) {
     return `isolabs_draft_cart_${targetId.trim()}`;
@@ -22,9 +32,7 @@ export function getCartStorageKey(retailerId?: string | null): string {
  * Returns a localized storage key for media attachments (audio/photo) scoped by Kirana store.
  */
 export function getMediaStorageKey(retailerId?: string | null): string {
-  const targetId =
-    (retailerId && retailerId.trim()) ||
-    (typeof window !== "undefined" ? localStorage.getItem("isolabs_current_retailer_id") : null);
+  const targetId = (retailerId && retailerId.trim()) || getStoredRetailerId();
 
   if (targetId && targetId.trim()) {
     return `isolabs_order_media_${targetId.trim()}`;
@@ -37,7 +45,7 @@ export function getMediaStorageKey(retailerId?: string | null): string {
  * Checks the scoped key first, falls back to legacy/un-scoped key, and auto-migrates.
  */
 export function loadScopedCart(retailerId?: string | null): Record<string, DraftCartItem> {
-  if (typeof window === "undefined") return {};
+  if (typeof window === "undefined" && typeof localStorage === "undefined") return {};
   try {
     const key = getCartStorageKey(retailerId);
     let raw = localStorage.getItem(key);
@@ -62,7 +70,7 @@ export function saveScopedCart(
   cartMap: Record<string, DraftCartItem>,
   retailerId?: string | null
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" && typeof localStorage === "undefined") return;
   try {
     const key = getCartStorageKey(retailerId);
     const serialized = JSON.stringify(cartMap);
@@ -76,12 +84,56 @@ export function saveScopedCart(
  * Clears the draft cart from localStorage for the given retailer and removes universal fallback.
  */
 export function clearScopedCart(retailerId?: string | null): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" && typeof localStorage === "undefined") return;
   try {
     const key = getCartStorageKey(retailerId);
     localStorage.removeItem(key);
     localStorage.removeItem("isolabs_draft_cart");
   } catch {}
+}
+
+/**
+ * Universally purges all Kirana store client-side data (draft carts, media files, retailer keys).
+ * Called whenever a Master Reset or Clean Slate operation occurs.
+ */
+export function clearAllKiranaClientData(): void {
+  if (typeof window === "undefined" && typeof localStorage === "undefined") return;
+  try {
+    const storage =
+      typeof localStorage !== "undefined"
+        ? localStorage
+        : typeof window !== "undefined"
+        ? window.localStorage
+        : null;
+
+    if (!storage) return;
+
+    const keysToRemove: string[] = [];
+    const total = storage.length;
+    for (let i = 0; i < total; i++) {
+      const k = storage.key(i);
+      if (k) keysToRemove.push(k);
+    }
+    try {
+      for (const k of Object.keys(storage)) {
+        if (!keysToRemove.includes(k)) keysToRemove.push(k);
+      }
+    } catch {}
+
+    for (const k of keysToRemove) {
+      if (
+        k &&
+        (k.startsWith("isolabs_draft_cart") ||
+          k.startsWith("isolabs_order_media") ||
+          k === "isolabs_current_retailer_id" ||
+          k === "isolabs_quick_order_draft")
+      ) {
+        storage.removeItem(k);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to clear Kirana client data:", err);
+  }
 }
 
 /**

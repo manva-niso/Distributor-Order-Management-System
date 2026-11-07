@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseWorkbookBuffer } from "@/lib/excel/importer";
 import { dbStore } from "@/db/store";
 import { syncDatasetToNeon } from "@/db/neon-sync";
+import { broadcastCatalogSync } from "@/lib/catalogue/inventory-events";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     // Ingest into active MemoryStore
     if (parseResult.skus.length > 0) {
       dbStore.importSkus(parseResult.skus, mode);
+      broadcastCatalogSync();
     }
 
     if (parseResult.retailers.length > 0) {

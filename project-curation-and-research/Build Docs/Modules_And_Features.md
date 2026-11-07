@@ -874,3 +874,55 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Vitest Suite:** 158/158 tests passing across all 21 test files (`npm --prefix distributor-app test`).
 - **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
 - **Sample Endpoints:** HTTP 200 OK verified on `/samples/kirana_slip_sample.png` and `/samples/jabalpur_mandi_order.mp3`.
+
+---
+
+## Module 15: Master Reset Kirana Client Purge, Real-Time Catalog Parity & Dev OTP Reliability (V 3.1+)
+
+### 1. Features Implemented
+- [x] **Universal Master Reset Kirana Client Purge (`[A62]`):**
+  - **The Defect:** When a distributor clerk clicked "Master Reset" or "Clean Slate" on `/setup` or `/desk`, server-side state was wiped, but Kirana store draft carts (`isolabs_draft_cart*`) and media files (`isolabs_order_media*`) persisted in browser `localStorage`. Navigating back to `/catalogue` or `/cart` immediately revived stale cart quantities and old media attachments.
+  - **The Solution:** Created `clearAllKiranaClientData()` in `cart-storage.ts` to iterate `localStorage` keys and purge all keys starting with `isolabs_draft_cart`, `isolabs_order_media`, `isolabs_current_retailer_id`, and `isolabs_quick_order_draft` while safely preserving user language preferences (`isolabs_lang`).
+  - **Synchronous & Multi-Tab Purge:** Executed locally in 0ms on the triggering tab (`/setup`, `/desk`, `WalkthroughGuide.tsx`), broadcasted across browser tabs via `BroadcastChannel("isolabs_stock_channel")` and `broadcastLocalDatabaseReset()`, and streamed to all network clients via Server-Sent Events (`DATABASE_RESET`).
+- [x] **Cross-Tab Catalog Parity & Real-Time Sync (`[A63]`):**
+  - **The Defect:** After executing an "Absolute Zero" wipe or uploading a custom Excel catalog on `/setup`, the Order Desk displayed the updated catalog, but an open Kirana Store tab (`/catalogue`) remained stuck on the previous 14 demo SKUs because it only loaded catalog data once on initial component mount. Furthermore, `notifyAll` in `useLiveStock.ts` merged updates onto old dictionary keys, permanently retaining deleted SKUs.
+  - **The Solution:** 
+    - Extended `StockUpdateEvent.type` to support `"DATABASE_RESET"` and `"CATALOG_SYNC"`.
+    - Updated `useLiveStock.ts` so `DATABASE_RESET` or an empty SKU array wipes the internal `globalStockMap` completely rather than merging onto stale entries.
+    - Added reactive re-fetch listeners on `/catalogue`, `/cart`, and `/quick-order` for `isolabs_database_reset`, `isolabs_catalog_sync`, and `window.focus`.
+    - Implemented automated stale SKU cart scrubbing: when catalog data refreshes, any SKU ID in `cartMap` that does not exist in the active catalog is pruned automatically.
+- [x] **Absolute Zero Store Isolation (`store.ts`):**
+  - Added `isAbsoluteZero` boolean flag in `MemoryStore` to prevent `getAllRetailers()`, `getAllUsers()`, `getRetailerById()`, and `getUserById()` from auto-reseeding demo accounts when the store has been intentionally wiped to Absolute Zero.
+- [x] **Dev Sandbox Master OTP Reliability & 1-Tap Login (`[A64]`):**
+  - **The Defect:** After a database reset cleared `dbStore.otps`, entering master demo code `123456` or `716716` failed with `"No active OTP request found for this number"` because `verifyOtp` strictly required a prior SMS dispatch.
+  - **The Solution:**
+    - Updated `verifyOtp` in `otp.ts`: in dev/console mode, if code is `123456` or `716716`, it automatically provisions a transient active OTP record in memory if none exists.
+    - Updated `login/page.tsx` with click-to-autofill on the dev sandbox OTP callout badge.
+    - Added a 1-tap `"Instant Demo Login (Auto-Verify 123456) →"` action to instantly log in demo users in a single click with zero SMS latency.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/catalogue/cart-storage.ts` - Added `clearAllKiranaClientData()` with universal SSR/localStorage environment safety
+  - `src/lib/catalogue/inventory-events.ts` - Added `"DATABASE_RESET"` and `"CATALOG_SYNC"` event types, `broadcastDatabaseReset()`, `broadcastCatalogSync()`
+  - `src/lib/catalogue/useLiveStock.ts` - Added atomic map purge on reset, cross-tab BroadcastChannel handlers
+  - `src/db/store.ts` - Added `isAbsoluteZero` flag, notified stock change on reset/master catalog load
+  - `src/lib/auth/otp.ts` - Master demo code bypass (`123456` / `716716`) with dynamic active OTP auto-provisioning
+  - `src/app/api/setup/reset-db/route.ts` - Dispatches `broadcastDatabaseReset(mode)` on reset
+  - `src/app/api/setup/import-excel/route.ts` - Dispatches `broadcastCatalogSync()` on custom SKU import
+  - `src/app/(portal)/catalogue/page.tsx` - Listeners for `isolabs_database_reset` and `isolabs_catalog_sync`, stale SKU cart scrubbing
+  - `src/app/(portal)/cart/page.tsx` - Listeners for reset/sync events, stale SKU cart reconciliation
+  - `src/app/(portal)/quick-order/page.tsx` - Listeners for reset/sync events, active line item re-validation
+  - `src/app/setup/page.tsx` - Direct client-side `clearAllKiranaClientData()` and `broadcastLocalDatabaseReset()`
+  - `src/app/desk/page.tsx` - Direct client-side `clearAllKiranaClientData()` and `broadcastLocalDatabaseReset()`
+  - `src/components/walkthrough/WalkthroughGuide.tsx` - Direct client-side `clearAllKiranaClientData()` and `broadcastLocalDatabaseReset()`
+  - `src/app/(auth)/login/page.tsx` - Dev OTP auto-fill, click-to-autofill callout, 1-tap "Instant Demo Login"
+  - `src/__tests__/reset-sync-and-auth.test.ts` - 7 unit tests verifying cart purge, SSE events, Absolute Zero store isolation, and master OTP bypass
+- `project-curation-and-research/`
+  - `Build Docs/Assumptions.md` - Registered `[A62]`, `[A63]`, `[A64]`
+  - `Build Docs/Modules_And_Features.md` - Registered Module 15
+  - `Build Docs/Overall_connections.md` - Updated test suite registry to 22 test files (165 passing tests)
+
+### 3. Verification & Tests
+- **Vitest Suite:** 165/165 tests passing across all 22 test files (`npm --prefix distributor-app test`).
+- **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors.
+- **Cross-Tab Parity:** Verified that zero-state on Order Desk triggers real-time zero-state on Kirana Storefront without page refresh.

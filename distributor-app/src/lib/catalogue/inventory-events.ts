@@ -8,10 +8,11 @@ export interface SkuStockSnapshot {
 }
 
 export interface StockUpdateEvent {
-  type: "STOCK_UPDATE" | "INITIAL_SYNC";
+  type: "STOCK_UPDATE" | "INITIAL_SYNC" | "DATABASE_RESET" | "CATALOG_SYNC";
   stockVersion: number;
   timestamp: number;
   skus: SkuStockSnapshot[];
+  mode?: string;
 }
 
 type StockListener = (event: StockUpdateEvent) => void;
@@ -97,6 +98,75 @@ export function broadcastStockUpdate(
       listener(event);
     } catch (err) {
       console.warn("Stock listener execution error:", err);
+    }
+  }
+
+  return event;
+}
+
+/**
+ * Broadcasts a system-wide database reset event to all connected clients.
+ * Instructs Kirana store clients and Order Desk clients to immediately purge
+ * local draft carts and re-synchronize inventory state.
+ */
+export function broadcastDatabaseReset(mode: string = "clean_slate"): StockUpdateEvent {
+  globalThis.__isolabs_stock_version = (globalThis.__isolabs_stock_version ?? 1) + 1;
+  const currentVersion = globalThis.__isolabs_stock_version;
+
+  const skus = dbStore.getAllSkus().map((s) => ({
+    id: s.id,
+    code: s.code,
+    stockCases: s.stockCases,
+    active: s.active,
+  }));
+
+  const event: StockUpdateEvent = {
+    type: "DATABASE_RESET",
+    stockVersion: currentVersion,
+    timestamp: Date.now(),
+    skus,
+    mode,
+  };
+
+  const listeners = globalThis.__isolabs_stock_listeners!;
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      console.warn("Reset listener execution error:", err);
+    }
+  }
+
+  return event;
+}
+
+/**
+ * Broadcasts when wholesale catalogue structure is replaced or updated via Excel import.
+ */
+export function broadcastCatalogSync(): StockUpdateEvent {
+  globalThis.__isolabs_stock_version = (globalThis.__isolabs_stock_version ?? 1) + 1;
+  const currentVersion = globalThis.__isolabs_stock_version;
+
+  const skus = dbStore.getAllSkus().map((s) => ({
+    id: s.id,
+    code: s.code,
+    stockCases: s.stockCases,
+    active: s.active,
+  }));
+
+  const event: StockUpdateEvent = {
+    type: "CATALOG_SYNC",
+    stockVersion: currentVersion,
+    timestamp: Date.now(),
+    skus,
+  };
+
+  const listeners = globalThis.__isolabs_stock_listeners!;
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      console.warn("Catalog sync listener execution error:", err);
     }
   }
 
