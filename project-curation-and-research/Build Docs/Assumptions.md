@@ -478,3 +478,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Compression Specification (`quick-order/page.tsx`):**
   - Uses native off-screen HTML5 Canvas / `createImageBitmap` to downscale photos to a maximum dimension of 1280px at 0.82 JPEG quality.
   - Compresses 8MB raw photos to ~120KB in <100ms on the phone, enabling sub-second uploads even on congested 3G cellular connections.
+
+#### `[A61]` FMCG Trade Knowledge Graph & Category Intent Disambiguation
+- **Context:** Kirana shopkeepers frequently place unstructured orders using broad category terms or Mandi vernacular slang (e.g., *"सर्फ"*, *"नहाने की साबुन"*, *"बर्तन की साबुन"*, *"कनकी"*, *"साइकिल का टायर"*). When an item had no direct token hit or was out-of-catalog, legacy retrieval pipelines hardcoded blind fallbacks (`skus.slice(0, 3)` and `allSkus.slice(0, 6)`), causing the engine to bizarrely suggest Parle-G, Good Day, and Marie Gold sweet biscuits for detergents, dishwash, and automotive tyres.
+- **Core Architectural Assumption:** **Candidate suggestions presented to the retailer must strictly preserve semantic category fidelity. Under no circumstances may confectionery or biscuits be suggested for non-confectionery trade queries; out-of-domain requests must receive honest category explanations.**
+- **Knowledge Graph & Semantic Suggester Specifications (`knowledge-graph.ts`):**
+  1. **12 Trade Domain Ontology:** Encodes 400+ Indic Devanagari and Hinglish trade tokens into 12 domains: `LAUNDRY_DETERGENT`, `TOILET_SOAP`, `DISHWASH`, `EDIBLE_OIL`, `TEA_BEVERAGE`, `BISCUITS_CONFECTIONERY`, `PACKAGED_FOODS_NOODLES`, `STAPLES_GRAINS`, `SPICES_MASALA`, `PEST_CONTROL`, `AUTOMOTIVE_HARDWARE`, and `CARBONATED_BEVERAGES`.
+  2. **Longest-Phrase-First Compound Resolution:** Compounds are sorted and evaluated in descending order of character length before single-word tokens. This prevents sub-token false triggers (e.g. guaranteeing that *"बर्तन की साबुन"* matches `DISHWASH` rather than greedily colliding with *"साबुन"* in `TOILET_SOAP`).
+  3. **Honest Category-Grounded Candidates:** If an item is in-domain (e.g. *"सर्फ"*), candidate retrieval queries the Knowledge Graph to return category-relevant SKUs (Surf Excel 1kg, Ghadi 1kg). If out-of-domain (e.g. *"साइकिल का टायर"*, *"सीमेंट"*), it returns zero candidate biscuits (`candidates: []`) with an explicit plain-code domain rejection note.
+  4. **Dynamic UI Suggestion Chips:** In `/quick-order`, `LineItemCard` consumes `line.candidates` to render interactive 1-tap candidate chips (`+ Brand Name (PackSize)`), enabling instant disambiguation with zero arbitrary catalog noise.
+

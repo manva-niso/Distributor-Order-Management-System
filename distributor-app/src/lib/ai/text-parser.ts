@@ -12,6 +12,7 @@ import {
 } from "./types";
 import { CandidateRetriever } from "./candidate-retriever";
 import { defaultCalibratedScorer } from "./calibrated-scorer";
+import { fmcgKnowledgeGraph } from "./knowledge-graph";
 
 // Hindi Devanagari digit translation map
 export const DEVANAGARI_DIGITS: Record<string, string> = {
@@ -782,8 +783,12 @@ export function matchSkuWithRetrieval(
   ];
   const isOutOfCatalog = cleanTokens.some((t) => KNOWN_OOC_KEYWORDS.includes(t));
   if (isOutOfCatalog) {
-    const fallbackCandidates = skus.slice(0, 3).map((s) => ({ sku: s, score: 0.0 }));
-    return { matched: null, candidates: fallbackCandidates, aliasHit: false };
+    const suggestions = fmcgKnowledgeGraph.getSmartSuggestions({
+      rawUtterance: rawCleaned.join(" "),
+      catalog: skus,
+      topK: 3,
+    });
+    return { matched: null, candidates: suggestions.candidates, aliasHit: false };
   }
 
   const rankedCandidates = retriever.retrieve(cleanTokens, 3);
@@ -883,11 +888,23 @@ export function parseSingleUtterance(
   let isAmbiguous = scoreResult.isAmbiguous;
   let ambiguityReason = scoreResult.ambiguityReason;
 
-  // Invariant [A16]: Strict Guardrail against ungrounded / out-of-catalog items (e.g. "chips")
+  // Invariant [A16] & [A61]: Strict Guardrail against ungrounded items & Knowledge Graph suggestions
   if (!matched) {
     isAmbiguous = true;
     ambiguityReason = "UNKNOWN_SKU";
     confidence = Math.min(0.20, confidence);
+
+    // If candidates is empty or has zero score, consult Knowledge Graph for category suggestions
+    if (candidates.length === 0 || (candidates[0] && candidates[0].score <= 0.0)) {
+      const kg = fmcgKnowledgeGraph.getSmartSuggestions({
+        rawUtterance,
+        catalog: skus,
+        topK: 3,
+      });
+      if (kg.candidates.length > 0) {
+        candidates = kg.candidates;
+      }
+    }
   }
 
   // 6. Compute resolved quantities for cart

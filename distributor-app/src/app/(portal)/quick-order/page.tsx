@@ -207,20 +207,29 @@ function compressImageFor3g(file: File): Promise<Blob> {
     }
   };
 
-  // Instant 1-Click Simulation for Demos & Evaluations
+  // Instant 1-Click Test for Real Samples (Handwritten Kirana Slip & Jabalpur Mandi Voice Note)
   const handleSimulateMedia = async (type: "image" | "audio") => {
     setUploadingMedia(true);
     setErrorMsg(null);
-    const demoName =
-      type === "image" ? "kirana_handwritten_slip.jpg" : "jabalpur_hindi_voice_note.m4a";
-    setMediaFileName(demoName);
+    const samplePath =
+      type === "image" ? "/samples/kirana_slip_sample.png" : "/samples/jabalpur_mandi_order.mp3";
+    const sampleFileName =
+      type === "image" ? "kirana_slip_sample.png" : "jabalpur_mandi_order.mp3";
+    const mimeType = type === "image" ? "image/png" : "audio/mpeg";
+    setMediaFileName(sampleFileName);
 
     try {
-      const dummyBlob = new Blob([demoName], {
-        type: type === "image" ? "image/jpeg" : "audio/m4a",
-      });
+      // Fetch the actual real sample file hosted locally in /public/samples
+      const sampleRes = await fetch(samplePath);
+      let mediaBlob: Blob;
+      if (sampleRes.ok) {
+        mediaBlob = await sampleRes.blob();
+      } else {
+        mediaBlob = new Blob([sampleFileName], { type: mimeType });
+      }
+
       const formData = new FormData();
-      formData.append("file", dummyBlob, demoName);
+      formData.append("file", mediaBlob, sampleFileName);
       formData.append("mediaType", type);
 
       const res = await fetch("/api/upload/media", {
@@ -231,12 +240,12 @@ function compressImageFor3g(file: File): Promise<Blob> {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMsg(data.error || "Media simulation failed.");
+        setErrorMsg(data.error || "Failed to process sample media file.");
         setUploadingMedia(false);
         return;
       }
 
-      setUploadedMediaUrl(data.mediaUrl);
+      setUploadedMediaUrl(data.mediaUrl || samplePath);
       setUploadedMediaType(type);
       if (data.rawText) {
         setInputText(data.rawText);
@@ -245,7 +254,7 @@ function compressImageFor3g(file: File): Promise<Blob> {
         setParsedLines(data.lines);
       }
     } catch {
-      setErrorMsg("Failed to simulate media capture.");
+      setErrorMsg("Failed to load and process test sample.");
     } finally {
       setUploadingMedia(false);
     }
@@ -881,21 +890,52 @@ function compressImageFor3g(file: File): Promise<Blob> {
                           </div>
                         )}
 
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {allSkus.slice(0, 6).map((s) => {
-                            const sDisp = getSkuDisplay(s, lang);
-                            return (
-                              <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => manuallyAssignSku(line.id, s)}
-                                className="px-2 py-1 bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-900 border border-slate-300 hover:border-emerald-500 rounded text-[11px] font-medium transition-colors cursor-pointer shadow-2xs"
-                              >
-                                + {sDisp.brand} {sDisp.name.split(",")[0]}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {/* Relevant Category Suggestions from Knowledge Graph */}
+                        {line.candidates && line.candidates.length > 0 ? (
+                          <div className="space-y-1.5 pt-1">
+                            <span className="text-[11px] font-bold text-emerald-800 block">
+                              {lang === "hi" ? "💡 संबंधित कैटलॉग उत्पाद (Category Suggestions):" : "💡 Matching Category Suggestions:"}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {line.candidates.map((c) => {
+                                const sDisp = getSkuDisplay(c.sku, lang);
+                                return (
+                                  <button
+                                    key={c.sku.id}
+                                    type="button"
+                                    onClick={() => manuallyAssignSku(line.id, c.sku)}
+                                    className="px-2.5 py-1.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 hover:border-emerald-500 rounded-md text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                                  >
+                                    <span className="text-emerald-600">+</span>
+                                    <span>{sDisp.brand} {sDisp.name.split(",")[0]}</span>
+                                    <span className="text-[10px] text-slate-500 font-normal">({c.sku.packSize})</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 pt-1">
+                            <span className="text-[11px] text-slate-500 block">
+                              {lang === "hi" ? "कैटलॉग में से कोई अन्य उत्पाद चुनें:" : "Or select manually from active inventory:"}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {allSkus.slice(0, 6).map((s) => {
+                                const sDisp = getSkuDisplay(s, lang);
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => manuallyAssignSku(line.id, s)}
+                                    className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                                  >
+                                    + {sDisp.brand} {sDisp.name.split(",")[0]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

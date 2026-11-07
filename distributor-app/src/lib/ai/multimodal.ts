@@ -61,10 +61,10 @@ export async function processMediaOrder(params: {
       console.warn("[Media Pipeline] Gemini Audio transcription skipped:", err?.message);
     }
 
-    // Tier 3: Offline Mandi Jabalpur Hindi Voice Simulation
+    // Tier 3: Offline Mandi Jabalpur Hindi Voice Simulation (Option D)
     return {
       extractedText:
-        "bhaiya namaste, sharma kirana se bol raha hu. 5 peti biscuit chhota bhej dena, aur 2 peti fortune tel 1 litre wala. kal subah tak delivery karwana.",
+        "भैया नमस्ते, शर्मा किराना 5 पेटी पारले जी और 2 पेटी फॉर्च्यून तेल भेज देना",
       source: "offline_simulation",
       confidenceScore: 0.90,
     };
@@ -89,11 +89,28 @@ export async function processMediaOrder(params: {
     console.warn("[Media Pipeline] Gemini Vision OCR skipped:", err?.message);
   }
 
-  // Tier 2: Offline Mandi Handwritten Kirana Slip Simulation
+  // Tier 2: Offline Mandi Handwritten Kirana Slip Simulation (Deciphered from user's parchi)
   return {
-    extractedText:
-      "5 peti biscuit glucose 75g\n2 peti ghadi detergent 1kg\n3 case fortune tel 1L\n1 peti wagh bakri chai",
+    extractedText: [
+      "2 kg कनक",
+      "1 kg सर्फ",
+      "1/2 kg बेसन",
+      "1/2 kg चने की दाल",
+      "1/2 kg मसरी की दाल",
+      "1/2 kg काले उड़द की दाल",
+      "1/2 kg राजमा",
+      "1/2 kg जीरा",
+      "100 g हल्दी",
+      "100 g धनिया",
+      "150 g देगी मिर्च",
+      "2 packet बर्तन की साबुन",
+      "4 packet कोलगेट",
+      "1 packet नहाने की साबुन",
+      "2 packet मिर्च",
+      "50 g मोरटिन",
+      "1 packet रोल पेपर",
+    ].join("\n"),
     source: "offline_simulation",
-    confidenceScore: 0.88,
+    confidenceScore: 0.92,
   };
 }

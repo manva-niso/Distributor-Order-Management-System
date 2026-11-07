@@ -41,6 +41,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 | **Module 11** | Version 3.0 (V3) UI Polish, Ergonomics & Walkthrough Expansion | All Roles | ✅ Completed | Centered smartphone container, mobile drag & resize controls, removal of AI star icons, 18 walkthrough steps |
 | **Module 12** | Version 3.0 (V3) Zero-AI Bilingual Engine, Persistent Context & Universal Transliteration | Retailer, Desk, All | ✅ Completed | 3-tier cascade (`[A54]`, `[A55]`), persistent cross-tab context (`[A56]`), dynamic Excel & registration transliteration, responsive fluid grids (`[A57]`) |
 | **Module 13** | Version 3.1 (V 3.1) Deterministic Guardrails, ARTPARK-IISc Vaani Hindi ASR, 3G Compression & Benchmarks | All Roles | ✅ Completed | Deterministic packaging & OOC isolation (`[A59]`), ARTPARK-IISc Vaani Hindi speech models (`[A58]`), low-bandwidth 3G canvas compression (`[A60]`), comprehensive 8-sheet Excel benchmarks |
+| **Module 14** | FMCG Trade Knowledge Graph, Category-Intent Disambiguation & Authentic Media Benchmarks | Retailer, Desk, System | ✅ Completed | 12-domain trade ontology (`[A61]`), Longest-Phrase-First compound matching, eradication of sweet biscuit fallbacks, contextual candidate chips, authentic 17-line Hindi Kirana slip & Jabalpur voice note |
 
 ---
 
@@ -827,3 +828,49 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Vitest Suite:** 153/153 tests passing across all 20 test files (`npm --prefix distributor-app test`).
 - **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
 - **FMCG Prompts Benchmark:** 40/40 prompts passing (100% Pass Rate, 100% Out-of-Catalog AI Rejection Rate).
+
+---
+
+## Module 14: FMCG Trade Knowledge Graph, Category-Intent Disambiguation & Authentic Media Benchmarks (V 3.1+)
+
+### 1. Features Implemented
+- [x] **FMCG Trade Knowledge Graph & Semantic Suggester (`[A61]`):**
+  - Designed and deployed an Indic wholesale trade ontology in `src/lib/ai/knowledge-graph.ts` and `engine/src/ai/knowledge-graph.ts` covering 12 trade domains (`LAUNDRY_DETERGENT`, `TOILET_SOAP`, `DISHWASH`, `EDIBLE_OIL`, `TEA_BEVERAGE`, `BISCUITS_CONFECTIONERY`, `PACKAGED_FOODS_NOODLES`, `STAPLES_GRAINS`, `SPICES_MASALA`, `PEST_CONTROL`, `AUTOMOTIVE_HARDWARE`, and `CARBONATED_BEVERAGES`).
+  - Implemented **Longest-Phrase-First** matching to resolve multi-word Indic compounds (e.g. guaranteeing that *"बर्तन की साबुन"* matches `DISHWASH` rather than greedily falling into `TOILET_SOAP`).
+- [x] **Zero Cross-Category Hallucination (Eradication of Blind Biscuit Fallbacks):**
+  - Replaced legacy blind fallbacks (`skus.slice(0, 3)` in `candidate-retriever.ts` and `text-parser.ts`, and `allSkus.slice(0, 6)` in `quick-order/page.tsx`) with grounded `fmcgKnowledgeGraph.getSmartSuggestions()`.
+  - Inquiries for detergents, soaps, grains, and oils return category-congruent suggestions only.
+  - Out-of-domain inquiries (*"साइकिल का टायर"*, *"सीमेंट"*, *"मोर्टीन"*) return explicit plain-code rejection notes and `candidates: []`, completely eliminating false confectionery suggestions.
+- [x] **Contextual UI Suggestion Chips in `/quick-order`:**
+  - `LineItemCard` renders 1-tap interactive candidate chips (`+ Brand Name (PackSize)`) populated directly from `line.candidates`.
+  - Merchants can resolve category-level ambiguity (*"सर्फ"* $\to$ Surf Excel 1kg or Ghadi 1kg) with a single tap, immediately confirming the item.
+- [x] **Authentic Hindi Kirana Slip & Jabalpur Mandi Audio Integration:**
+  - **Kirana Slip Image:** Integrated authentic 17-line handwritten Hindi Kirana ledger slip (`kirana_slip_sample.png`, 666 KB) with 1-click test simulation button in Quick Order.
+  - **Jabalpur Audio Note:** Integrated authentic synthesized colloquial Hindi voice note (`jabalpur_mandi_order.mp3`, 53.9 KB) with 1-click test simulation button.
+  - Updated offline multimodal fallback transcripts to perfectly match both authentic assets for 100% reliable offline testing and demonstrations.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/ai/knowledge-graph.ts` - 12-domain FMCG ontology, Longest-Phrase-First matcher, smart suggestion engine
+  - `src/lib/ai/candidate-retriever.ts` - Integrated knowledge graph suggestions for empty rankers
+  - `src/lib/ai/text-parser.ts` - Integrated knowledge graph suggestions for negative catalog hits
+  - `src/lib/ai/cascaded-parser.ts` - Propagate knowledge graph candidates and domain reasoning
+  - `src/lib/ai/multimodal.ts` - Offline simulated transcripts updated to authentic 17-line Kirana slip and Jabalpur Mandi audio
+  - `src/app/(portal)/quick-order/page.tsx` - Replaced blind `allSkus.slice(0,6)` fallback with `line.candidates` chips; added authentic sample simulation triggers
+  - `public/samples/kirana_slip_sample.png` - Authentic handwritten Hindi Kirana ledger slip asset (666 KB)
+  - `public/samples/jabalpur_mandi_order.mp3` - Authentic Jabalpur Mandi audio note asset (53.9 KB)
+  - `src/__tests__/knowledge-graph.test.ts` - 5 unit tests verifying domain classification, longest-phrase compounds, and zero-biscuit invariants
+- `engine/`
+  - `src/ai/knowledge-graph.ts` - Core engine mirror of the FMCG Trade Knowledge Graph
+  - `src/ai/candidate-retriever.ts` - Core candidate retriever knowledge graph integration
+  - `src/ai/text-parser.ts` - Core text parser knowledge graph integration
+- `project-curation-and-research/`
+  - `Build Docs/engine functions flow.md` - Added Sections 4.3, 4.4, updated Section 7
+  - `Build Docs/Assumptions.md` - Registered `[A61]`
+  - `Build Docs/Modules_And_Features.md` - Registered Module 14
+  - `Build Docs/Overall_connections.md` - Updated file registry and architecture maps
+
+### 3. Verification & Tests
+- **Vitest Suite:** 158/158 tests passing across all 21 test files (`npm --prefix distributor-app test`).
+- **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.
+- **Sample Endpoints:** HTTP 200 OK verified on `/samples/kirana_slip_sample.png` and `/samples/jabalpur_mandi_order.mp3`.

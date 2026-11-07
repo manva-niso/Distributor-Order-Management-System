@@ -328,7 +328,7 @@ All integrations can be flipped between **Development Mode** (console output) an
 
 ---
 
-## 5. Comprehensive Automated Test Suite (153 Tests across 20 Suites)
+## 5. Comprehensive Automated Test Suite (158 Tests across 21 Suites)
 
 All test suites are fully automated and pass in <2 seconds with zero network dependencies:
 
@@ -341,7 +341,8 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 10: Scoped Carts** | `npx vitest run src/__tests__/cart-storage.test.ts` | Kirana draft cart isolation (`[A50]`), zero-drop dual-writes, auto-migration (`[A53]`) | 7 tests |
 | **Module 3: Scheme Engine** | `npx vitest run src/__tests__/schemes.test.ts` | Buy 10 Get 1 floor division, 3% slab tiers, Rule 46 50/50 GST formulas | 13 tests |
 | **Module 12: Transliteration**| `npx vitest run src/__tests__/dynamic-transliteration.test.ts` | 3-tier cascade, Mandi lexicon mapping, phonetic syllable conversion, Excel enrichment (`[A55]`) | 5 tests |
-| **Module 5: Deterministic Guardrails** | `npx vitest run src/__tests__/deterministic-guardrails.test.ts` | Strictly deterministic packaging isolation (`[A59]`), zero-Gemini out-of-catalog rejection, Vaani ASR fallback (`[A58]`) | 6 tests |
+| **Module 13: Deterministic Guardrails** | `npx vitest run src/__tests__/deterministic-guardrails.test.ts` | Strictly deterministic packaging isolation (`[A59]`), zero-Gemini out-of-catalog rejection, Vaani ASR fallback (`[A58]`) | 6 tests |
+| **Module 14: Trade Knowledge Graph** | `npx vitest run src/__tests__/knowledge-graph.test.ts` | 12-domain categorization, longest-phrase-first compound resolution (`[A61]`), category-grounded suggestions, zero biscuit hallucinations | 5 tests |
 | **Module 4: Cart & Orders** | `npx vitest run src/__tests__/orders.test.ts` | Atomic stock reservation, ledger credit headroom ceiling check, OCC versioning | 4 tests |
 | **Master Setup (Excel)** | `npx vitest run src/__tests__/excel-import.test.ts` | Excel workbook parsing, column synonym tolerance, dynamic catalog replacement | 4 tests |
 | **Module 5: Text Parser** | `npx vitest run src/__tests__/text-parser.test.ts` | Devanagari numerals, Hinglish extraction, unit ambiguity guardrails, broken case handling | 14 tests |
@@ -354,7 +355,23 @@ All test suites are fully automated and pass in <2 seconds with zero network dep
 | **Module 7: Tally Export** | `npx vitest run src/__tests__/tally.test.ts` | Schema-valid Tally ERP 9 / Prime XML `<ENVELOPE>`, Actual vs Billed quantities, double-entry balance | 8 tests |
 | **Module 8: Van Manifest** | `npx vitest run src/__tests__/manifest.test.ts` | Route aggregation, case picking totals, stop sequencing, payload weight calculation | 4 tests |
 | **Module 9: Dormant Desk** | `npx vitest run src/__tests__/dormant.test.ts` | $\ge 14$ day inactivity queries, churn risk tiers, pre-filled Hindi WhatsApp nudges | 4 tests |
-| **Total Test Coverage** | `npm run test` | **All 20 test suites executing collectively** | **153 tests (100% Passing)** |
+| **Total Test Coverage** | `npm run test` | **All 21 test suites executing collectively** | **158 tests (100% Passing)** |
+
+---
+
+### 5.1 Testing Multimodal & Knowledge Graph via Real Assets in `/quick-order`
+
+In addition to automated CLI unit tests, you can visually test multimodal ingestion and knowledge graph disambiguation in the browser:
+
+1. **Launch Browser:** Open `http://localhost:3000/quick-order` (log in as Retailer: `9826000001` with OTP `123456`).
+2. **Authentic 17-Line Kirana Slip Test:**
+   - Under the photo upload area, tap the purple button: **`"Try Authentic Kirana Slip (17 Items)"`**.
+   - The app loads `/samples/kirana_slip_sample.png`, downscales it via offscreen canvas `[A60]`, sends it through multimodal OCR, and parses all 17 handwritten items (*कनकी, सर्फ, बेसन, चने की दाल, बर्तन की साबुन, नहाने की साबुन...*).
+   - **Verification:** Notice that *"सर्फ"* suggests Surf Excel / Ghadi 1kg, *"बर्तन की साबुन"* suggests Vim Bar, and *"नहाने की साबुन"* suggests Dettol / Lifebuoy. Non-inventory items (*"मोर्टीन"*, *"रोल पेपर"*) are honestly flagged without showing sweet biscuits!
+3. **Jabalpur Mandi Audio Note Test:**
+   - Under the audio upload area, tap the purple button: **`"Try Jabalpur Mandi Audio"`**.
+   - The app loads `/samples/jabalpur_mandi_order.mp3` and transcribes colloquial Hindi speech (*10 packet parle-g 250g, 5 katti atta 5kg, 2 peti vim bar, 1 peti surf excel 1kg*).
+   - **Verification:** Automatically confirms all 4 FMCG lines in <15ms with full pack and case unit resolution.
 
 ---
 

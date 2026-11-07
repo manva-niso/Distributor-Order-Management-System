@@ -544,6 +544,12 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Pipeline contracts (`OrderParserPipeline`), parsed item structures (`ParsedLineItem`, `ParseResult`), unit types (`CASE`, `PACK`, `KG`, `UNKNOWN`).
 - **`src/lib/ai/text-parser.ts`**:
   - Context-aware multilingual order text parser with explanatory clause stripping (`extractAndStripExplanatoryClause`), Devanagari digits (`०-९`), number words, category keyword boosts (`+0.55`), and unit disambiguation (`[A16]`).
+- **`src/lib/ai/knowledge-graph.ts`**:
+  - FMCG Trade Knowledge Graph & Semantic Suggester (`[A61]`). Maps 400+ Indic Devanagari & Hinglish tokens to 12 trade domains with Longest-Phrase-First compound matching. Eliminates blind sweet biscuit fallbacks and returns category-grounded suggestions or honest domain rejection notes.
+- **`src/lib/ai/vaani-asr.ts`**:
+  - ARTPARK-IISc Vaani Hindi Speech Recognition client (`[A58]`). Queries Hugging Face serverless endpoints trained on the 14,000-hour multi-district Indian dialect corpus with circuit-breaker timeout protection.
+- **`src/lib/ai/multimodal.ts`**:
+  - Unified multimodal perception layer orchestrating 3-tier audio ASR (Vaani Whisper $\to$ Gemini Audio $\to$ Jabalpur Mandi simulation) and 2-tier handwritten slip vision (Gemini 2.5 Flash Vision $\to$ Authentic Kirana slip simulation).
 - **`src/lib/tally/xml-builder.ts`**:
   - Tally ERP 9 / TallyPrime compliant XML batch export engine (`[A21]`).
   - Generates native `<ACTUALQTY>` vs `<BILLEDQTY>` scheme tags (`[A39]`) and zero-sum double-entry accounting lines (`[A40]`).
@@ -554,7 +560,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 
 ---
 
-### E. Automated Test Matrix (`src/__tests__/` — 19 Suites, 147/147 Passing)
+### E. Automated Test Matrix (`src/__tests__/` — 21 Suites, 158/158 Passing)
 
 | Test Suite File | Module Verified | Tests | Critical Assertions Covered |
 | :--- | :--- | :--- | :--- |
@@ -573,6 +579,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 | **`cascaded-parser.test.ts`** | Module 5: AI Cascade | 12 | Three-tier cascade execution, early abstention thresholds, confidence fusion |
 | **`gemini-chooser.test.ts`** | Module 5: Closed-Set Chooser | 6 | Gemini 2.5 closed-set candidate selector, out-of-catalog rejection floor (`[A16]`) |
 | **`gemini-random-words.test.ts`** | Module 5: Resilience | 6 | Typo and gibberish handling, zero false-positive biscuits, polite vernacular explanations |
+| **`deterministic-guardrails.test.ts`** | Module 13: Determinism & Multimodal | 6 | Packaging guardrail isolation (`[A59]`), negative catalog floor, Vaani ASR cascade (`[A58]`), multimodal fallback execution |
+| **`knowledge-graph.test.ts`** | Module 14: Trade Knowledge Graph | 5 | 12-domain categorization, longest-phrase-first compound resolution (`[A61]`), category-grounded suggestions, zero biscuit hallucinations |
 | **`desk.test.ts`** | Module 6: Desk & OCC | 8 | Optimistic Concurrency Control collision rejection (`[A19]`), credit hold release notes (`[A37]`), alias auto-learning (`[A20]`) |
 | **`tally.test.ts`** | Module 7: Tally Export | 8 | Tally XML `<ENVELOPE>`, `<ACTUALQTY>` vs `<BILLEDQTY>` (`[A39]`), double-entry balance (`[A40]`), `EXPORTED_TALLY` transition |
 | **`manifest.test.ts`** | Module 8: Van Manifest | 4 | Route aggregation, total case picking (`paid + free`, `[A41]`), vehicle payload weights (`[A42]`), drop stops |
@@ -709,6 +717,8 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/__tests__/dormant.test.ts`**: 4 automated unit tests verifying 14-day inactivity threshold filtering, churn risk tiers (High vs Critical), credit headroom analytics, and Devanagari Hindi WhatsApp nudge formatting (`[A23]`, `[A43]`, `[A44]`).
 - **`src/__tests__/realtime-stock.test.ts`**: 5 automated unit tests verifying inventory versioning, SSE subscriber broadcasts, and out-of-stock stepper locks (`[A52]`).
 - **`src/__tests__/cart-storage.test.ts`**: 7 automated unit tests verifying Kirana cart isolation (`[A50]`), zero-drop dual writes, and fallback auto-migration (`[A53]`).
+- **`src/__tests__/deterministic-guardrails.test.ts`**: 6 automated unit tests verifying deterministic packaging guardrail isolation, 0ms negative catalog rejection floor (`[A59]`), ARTPARK-IISc Vaani Hindi ASR cascade (`[A58]`), and offline multimodal fallback execution.
+- **`src/__tests__/knowledge-graph.test.ts`**: 5 automated unit tests verifying 12-domain categorization, longest-phrase-first compound resolution (`[A61]`), category-grounded suggestions, zero biscuit hallucinations, and honest out-of-domain rejections.
 
 ---
 
@@ -731,3 +741,5 @@ This table details the implemented directories, screens, backend logic, API endp
 | **Module 10: Real-Time Stock & Carts** | Real-time SSE across all screens | `src/lib/catalogue/inventory-events.ts`<br/>`src/lib/catalogue/cart-storage.ts` | `GET /api/catalogue/live-stock` | `src/__tests__/realtime-stock.test.ts` (5 tests)<br/>`src/__tests__/cart-storage.test.ts` (7 tests) |
 | **Module 11: V2 UI Polish & Guidance** | Centered layout, draggable guide | `src/components/walkthrough/WalkthroughGuide.tsx` | Client UI components | Verified in browser across mobile/desktop |
 | **Module 12: Zero-AI Transliteration** | All screens (`LanguageProvider`) | `src/lib/i18n/LanguageContext.tsx`<br/>`src/lib/i18n/transliterate.ts` | Dynamic enrichment on ingestion & auth | `src/__tests__/dynamic-transliteration.test.ts` (5 tests) |
+| **Module 13: Deterministic Guardrails & ASR** | `/quick-order` & Multimodal Engine | `src/lib/ai/vaani-asr.ts`<br/>`src/lib/ai/multimodal.ts` | `POST /api/upload/media` | `src/__tests__/deterministic-guardrails.test.ts` (6 tests) |
+| **Module 14: FMCG Trade Knowledge Graph** | `/quick-order` & Parser Pipeline | `src/lib/ai/knowledge-graph.ts`<br/>`src/lib/ai/candidate-retriever.ts` | `POST /api/capture/parse-text`<br/>`POST /api/upload/media` | `src/__tests__/knowledge-graph.test.ts` (5 tests) |

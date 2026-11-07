@@ -1,5 +1,6 @@
 import { SeedSku, SEED_SKUS } from "../data/catalog";
 import { SkuCandidate } from "./types";
+import { fmcgKnowledgeGraph } from "./knowledge-graph";
 
 export interface RetrievalRankDetail {
   trigramRank: number;
@@ -277,14 +278,24 @@ export class CandidateRetriever {
       (keywordMap.size > 0 ? 1 : 0) +
       (phoneticMap.size > 0 ? 1 : 0);
 
-    // If no ranker found any match, return top catalog items with zero scores
+    // If no ranker found any match, query the FMCG Trade Knowledge Graph for category intent
     if (numActiveRankers === 0) {
-      return this.catalog.slice(0, topK).map((sku) => ({
-        sku,
-        score: 0.0,
-        rrfScore: 0.0,
-        ranks: { trigramRank: 999, keywordRank: 999, phoneticRank: 999 },
-      }));
+      const suggestions = fmcgKnowledgeGraph.getSmartSuggestions({
+        rawUtterance: queryText,
+        catalog: this.catalog,
+        topK,
+      });
+
+      if (suggestions.candidates.length > 0) {
+        return suggestions.candidates.map((c, idx) => ({
+          sku: c.sku,
+          score: c.score,
+          rrfScore: Math.round(c.score * 1000) / 1000,
+          ranks: { trigramRank: idx + 1, keywordRank: idx + 1, phoneticRank: idx + 1 },
+        }));
+      }
+
+      return [];
     }
 
     // Effective ranker count prevents a single weak ranker from claiming 100% confidence

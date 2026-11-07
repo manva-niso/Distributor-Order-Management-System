@@ -8,6 +8,7 @@ import {
 } from "./types";
 import { parseSingleUtterance, splitOrderTextIntoLines } from "./text-parser";
 import { GeminiClosedSetChooser, defaultGeminiChooser } from "./gemini-chooser";
+import { fmcgKnowledgeGraph } from "./knowledge-graph";
 
 export interface CascadedParserOptions {
   geminiChooser?: GeminiClosedSetChooser;
@@ -55,12 +56,19 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
         const hasPlausibleCandidates = line.candidates.length > 0 && topCandidateScore >= 0.20;
 
         if (line.matchedSku === null && !hasPlausibleCandidates) {
+          const kg = fmcgKnowledgeGraph.getSmartSuggestions({
+            rawUtterance: line.rawUtterance,
+            catalog: activeSkus,
+            topK: 3,
+          });
+
           return {
             ...line,
             isAmbiguous: true,
             ambiguityReason: "UNKNOWN_SKU" as AmbiguityReason,
             confidence: 0.15,
-            reasoning: `The requested item "${line.rawUtterance}" is not available in Company A's wholesale catalog.`,
+            candidates: kg.candidates.length > 0 ? kg.candidates : line.candidates,
+            reasoning: kg.explanation || `The requested item "${line.rawUtterance}" is not available in Company A's wholesale catalog.`,
             source: "rules" as const,
           };
         }
