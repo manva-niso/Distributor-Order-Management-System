@@ -325,3 +325,14 @@ The complete 15-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 - **Architectural Guard:**
   - `hydrateOrdersFromNeon(retailerId?)` runs deterministically on read paths and checkout sequence calculations, populating orders and items into memory store without double-charging credit ledgers.
   - Monotonically increasing order ID allocation (`ORD-2026-XXXX`) scans persistent records to eliminate primary key collisions.
+
+### Invariant 6: Multi-Store Real-Time Warehouse Inventory Synchronization & Instant Out-of-Stock Guard ([A52])
+- **Problem:** Multiple kirana stores ordering simultaneously can race on scarce inventory. Without instant synchronization, retailers order depleted items, creating warehouse stockout cuts and frustrated store owners.
+- **Architectural Guard:**
+  - **Quad-Layer Synchronization Protocol:**
+    1. Local 0ms cross-tab propagation via `BroadcastChannel("isolabs_warehouse_stock")`.
+    2. Real-time network stream via Server-Sent Events (`GET /api/catalogue/live-stock`).
+    3. Lightweight adaptive polling fallback (2.5s interval with 304-style `{ changed: false }` 49-byte payload on matching version) for zero-gap serverless resiliency.
+    4. Durable multi-lambda stock sync via `hydrateSkusFromNeon()`.
+  - **Dynamic Seat Enforcement:** When any order depletes warehouse cases, all active user screens immediately update available stock counts. Zero-stock items automatically disable quantity steppers and show `"OUT OF STOCK"`.
+  - **Cart Blocker & Atomic Guard:** If a depleted SKU is already in a merchant's cart, an instant high-visibility alert banner renders and disables the checkout button. The backend checkout transaction enforces strict atomic stock locks (`SELECT ... FOR UPDATE` & tagged Neon SQL `GREATEST(0, stock_cases - ${cases})`), returning HTTP 400 Insufficient Stock to race conditions.

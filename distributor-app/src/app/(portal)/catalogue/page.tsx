@@ -25,6 +25,7 @@ import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
 import { getCartStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { useLiveStock } from "@/lib/catalogue/useLiveStock";
 
 interface RetailerHeader {
   id: string;
@@ -39,6 +40,7 @@ interface RetailerHeader {
 
 export default function CataloguePage() {
   const router = useRouter();
+  const { stockMap, stockVersion, getStock, isOutOfStock: checkOutOfStock, recentChanges } = useLiveStock();
 
   // State
   const [lang, setLang] = useState<"en" | "hi">("en");
@@ -50,6 +52,21 @@ export default function CataloguePage() {
   const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
   const [cartMap, setCartMap] = useState<Record<string, DraftCartItem>>({});
   const [notifiedSkus, setNotifiedSkus] = useState<Record<string, boolean>>({});
+
+  // Synchronize live stock updates from warehouse into local catalogue state
+  useEffect(() => {
+    if (Object.keys(stockMap).length > 0) {
+      setSkus((prevSkus) =>
+        prevSkus.map((s) => {
+          const liveCases = stockMap[s.id];
+          if (liveCases !== undefined && s.stockCases !== liveCases) {
+            return { ...s, stockCases: liveCases };
+          }
+          return s;
+        })
+      );
+    }
+  }, [stockMap]);
 
   // 1. Load Catalogue & Retailer Session
   useEffect(() => {
@@ -81,9 +98,14 @@ export default function CataloguePage() {
 
   // Sync cart changes to scoped localStorage for both wholesale cases and loose packets
   const updateCartQty = (skuId: string, field: "cases" | "packs", delta: number) => {
+    const liveAvailable = getStock(skuId, 9999);
     setCartMap((prev) => {
       const current = prev[skuId] || { cases: 0, packs: 0 };
-      const nextVal = Math.max(0, (current[field] || 0) + delta);
+      let nextVal = Math.max(0, (current[field] || 0) + delta);
+      // Clamp whole cases to available warehouse stock
+      if (field === "cases" && delta > 0 && nextVal > liveAvailable) {
+        nextVal = liveAvailable;
+      }
       const updatedEntry = { ...current, [field]: nextVal };
       const updated = { ...prev };
       if (updatedEntry.cases === 0 && updatedEntry.packs === 0) {
@@ -237,9 +259,15 @@ export default function CataloguePage() {
                 ₹{retailer ? retailer.availableCredit.toLocaleString("en-IN") : "38,000"}
               </strong>
             </div>
-            <span className="text-slate-500 text-[11px] truncate">
-              {retailer?.route || "Napier Town Route #4"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 text-[11px] truncate">
+                {retailer?.route || "Napier Town Route #4"}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live v{stockVersion}</span>
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -323,9 +351,11 @@ export default function CataloguePage() {
         {!loading &&
           filteredSkus.map((sku) => {
             const currentEntry = cartMap[sku.id] || { cases: 0, packs: 0 };
-            const isOutOfStock = sku.stockCases <= 0;
+            const liveStockCases = getStock(sku.id, sku.stockCases);
+            const isOutOfStock = !sku.active || liveStockCases <= 0;
             const lineCalc = calculateLineItem({
               ...sku,
+              stockCases: liveStockCases,
               quantityCases: currentEntry.cases,
               quantityPacks: currentEntry.packs,
             });
@@ -354,20 +384,25 @@ export default function CataloguePage() {
                   </div>
 
                   {/* Stock Status Badge */}
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    {recentChanges.has(sku.id) && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 text-[10px] font-bold animate-pulse">
+                        ⚡ {lang === "hi" ? "अपडेट हुआ" : "Just Updated"}
+                      </span>
+                    )}
                     {isOutOfStock ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-800 text-[11px] font-bold">
                         {lang === "hi" ? "स्टॉक समाप्त" : "Out of Stock"}
                       </span>
-                    ) : sku.stockCases <= 20 ? (
+                    ) : liveStockCases <= 20 ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[11px] font-bold">
                         <AlertTriangle className="w-3 h-3 text-amber-700" />
-                        {sku.stockCases} Cases Left
+                        {liveStockCases} Cases Left
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[11px] font-bold">
                         <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                        In Stock ({sku.stockCases})
+                        In Stock ({liveStockCases})
                       </span>
                     )}
                   </div>
@@ -555,8 +590,9 @@ export default function CataloguePage() {
                           <button
                             type="button"
                             aria-label="Increase cases"
+                            disabled={currentEntry.cases >= liveStockCases}
                             onClick={() => updateCartQty(sku.id, "cases", 1)}
-                            className="w-10 h-10 rounded bg-emerald-700 text-white flex items-center justify-center active:bg-emerald-800 cursor-pointer transition-colors"
+                            className="w-10 h-10 rounded bg-emerald-700 text-white flex items-center justify-center active:bg-emerald-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                           >
                             <Plus className="w-4 h-4" />
                           </button>

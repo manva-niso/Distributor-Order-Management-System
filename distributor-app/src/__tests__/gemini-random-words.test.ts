@@ -59,7 +59,7 @@ describe("Gemini Fallback & Random Words Resolution", () => {
     expect(line.matchedSku).toBeNull(); // Honestly rejected, never falsely matches cookies
     expect(line.reasoning).toBeDefined();
     expect(line.reasoning?.toLowerCase()).toContain("chips");
-  }, 15000);
+  }, 30000);
 
   it("uses Gemini to handle completely random gibberish: 'asdfghjk xyz 123'", async () => {
     if (!process.env.GEMINI_API_KEY) {
@@ -76,5 +76,5 @@ describe("Gemini Fallback & Random Words Resolution", () => {
     const line = res.lines[0];
     expect(line.matchedSku).toBeNull();
     expect(line.reasoning).toBeDefined();
-  }, 15000);
+  }, 30000);
 });

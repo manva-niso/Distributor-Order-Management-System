@@ -130,6 +130,17 @@ This document tracks each Core Build Module step by step, its features, implemen
 - [x] **Catalogue API Handlers (`src/app/api/catalogue/`):**
   - `GET /api/catalogue`: Returns all active SKUs enriched with schemes, available stock, brand filters, and category groupings. Supports query parameters (`?q=...&brand=...&category=...`).
   - `POST /api/catalogue/notify-restock`: Captures retailer phone and SKU ID when out-of-stock items are requested.
+- [x] **Multi-Store Real-Time Warehouse Stock Synchronization Engine (`[A52]`):**
+  - Instant warehouse stock propagation across all active user seats (Retailer A, Retailer B, Order Desk) without page reload.
+  - Multi-tier synchronization protocol:
+    1. **Local Cross-Tab Sync:** `BroadcastChannel("isolabs_warehouse_stock")` enables 0ms latency cross-tab updates on the same device.
+    2. **Network Stream:** Server-Sent Events (SSE) route `GET /api/catalogue/live-stock` streams real-time `STOCK_UPDATE` payloads with 15s keep-alive heartbeats.
+    3. **Adaptive Polling Fallback:** Lightweight versioned polling (`GET /api/catalogue/live-stock?poll=true&v={version}`) checks every 2.5s (49-byte payload on matching version) for zero-latency gap resistance across serverless cold starts.
+    4. **Neon PostgreSQL Hydration:** `hydrateSkusFromNeon()` synchronizes stock levels across multiple serverless lambda containers.
+  - Dynamic `OUT OF STOCK` state enforcement:
+    - If another retailer places an order that depletes stock to 0, all other merchants immediately see the red `OUT OF STOCK` (`स्टॉक समाप्त`) badge, quantity steppers are disabled, and "Notify When Available" replaces cart actions.
+    - If a depleted item is already in another retailer's cart, an instant high-visibility red alert banner prompts the user to remove it, and the "Place Order" button is dynamically disabled.
+    - Atomic server-side lock in `checkout/route.ts` strictly rejects racing checkouts with HTTP 400 Insufficient Stock.
 - [x] **Screen 2 UI (`src/app/(portal)/catalogue/page.tsx`):**
   - Header with Retailer Name (`Sharma Kirana Store`), Route badge (`Van 4 - Napier Town`), and Credit headroom ticker (`₹38,000 credit remaining`).
   - Search input with debounce and 1-tap clear button.
@@ -144,23 +155,34 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### 2. Files Created / Modified
 - `distributor-app/`
   - `src/lib/catalogue/cart-store.ts` - Cart state store & calculation math
-  - `src/app/api/catalogue/route.ts` - Live catalogue API with search & filters
+  - `src/lib/catalogue/inventory-events.ts` - Central inventory event hub, version counter & SSE subscriber manager
+  - `src/lib/catalogue/useLiveStock.ts` - Shared React hook with BroadcastChannel cross-tab sync, SSE streaming & 2.5s adaptive polling fallback
+  - `src/app/api/catalogue/route.ts` - Live catalogue API with search, filters & stock mutations
+  - `src/app/api/catalogue/live-stock/route.ts` - Real-time SSE streaming & adaptive versioned polling endpoint
   - `src/app/api/catalogue/notify-restock/route.ts` - Restock notification trigger
   - `src/components/layout/BottomNav.tsx` - 4-tab mobile bottom navigation bar
-  - `src/app/(portal)/catalogue/page.tsx` - Screen 2 Retailer catalogue UI
+  - `src/app/(portal)/catalogue/page.tsx` - Screen 2 Retailer catalogue UI with live stock badge and pulse telemetry
+  - `src/app/(portal)/cart/page.tsx` - Screen 3 Cart review with live out-of-stock warning banner & atomic checkout blocker
+  - `src/app/(portal)/quick-order/page.tsx` - Screen 4 & 5 Quick-Order with live stock badges
+  - `src/app/desk/page.tsx` - Order Desk with live inventory synchronization
   - `src/__tests__/catalogue.test.ts` - 8 unit tests covering catalogue & cart logic
+  - `src/__tests__/realtime-stock.test.ts` - 5 unit tests covering real-time inventory synchronization, versioning & multi-user out-of-stock guards
 
 ### 3. Verification & Tests
-- **Vitest Suite:** `src/__tests__/catalogue.test.ts`
-  - 8/8 unit tests passing (20ms runtime) covering:
+- **Vitest Suite:** `src/__tests__/catalogue.test.ts` (8 tests) & `src/__tests__/realtime-stock.test.ts` (5 tests)
+  - 13/13 unit tests passing covering:
     - Ex-GST to Incl-GST rounding accuracy.
     - Pack price calculation from case rate.
     - Stock quantity bounds checking & prevention of negative orders.
     - Buy 10 Get 1 free computation.
     - 3% slab tier discount activation on 5+ cases.
     - Cart total aggregation and item addition/removal.
-  - **Combined Suite:** Total 20/20 tests passing across all suites (`auth.test.ts` + `catalogue.test.ts`).
-- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, `/catalogue` route compiled cleanly.
+    - Stock version incrementing and real-time event broadcasting.
+    - Automatic `dbStore.deductSkuStock` change notifications.
+    - Adaptive polling with 304-style `{ changed: false }` matching version response.
+    - Multi-retailer simultaneous ordering and atomic out-of-stock rejection.
+- **Full Suite Status:** 17 test files passed, 135/135 tests passed in `distributor-app` (203/203 across whole monorepo).
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, all 35 routes statically optimized or server-rendered dynamic.
 
 ---
 

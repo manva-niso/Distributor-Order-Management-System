@@ -61,6 +61,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A49]** | Module 1: Auth & Write Integrity | Single-Writer Constraint & Active Session Concurrency Lock | Only 1 user/session can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 "User already logged in" to prevent ledger race conditions and double bookings. |
 | **[A50]** | Module 4: Cart & Session Scoping | Kirana-Scoped Cart & Multi-Tenant Session Isolation | Draft carts partitioned by `retailerId` (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices. |
 | **[A51]** | Module 4: Orders & Persistence | Neon PostgreSQL Order Re-hydration Across Cold Starts | Persistent orders auto-hydrated from Neon into memory on reads and checkout; order sequence number (`ORD-2026-XXXX`) monotonically calculated to prevent primary key collision. |
+| **[A52]** | Module 2 & 4: Inventory & Multi-User | Real-Time Stock Sync & Instant Out-of-Stock Guard | SSE streams, 2.5s adaptive polling, and BroadcastChannel push warehouse stock changes simultaneously across all retailers and desk terminals; zero-stock items immediately disable cart actions and block checkout. |
 
 ---
 
@@ -378,3 +379,20 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   - All order retrieval endpoints (`GET /api/orders` for Kirana stores, `GET /api/desk/orders` for office clerks, and `GET /api/desk/orders/[id]` for order detail terminals) invoke `hydrateOrdersFromNeon(retailerId?)` to pull stored records and line items from Neon PostgreSQL into memory store via non-double-charging `upsertOrder`.
   - When placing orders (`POST /api/orders/checkout`), the system calls `hydrateOrdersFromNeon()` prior to calculating the next sequence number, dynamically scanning all persistent orders to guarantee monotonic, non-colliding order identifiers (`ORD-2026-XXXX`).
   - Previously placed orders remain permanently visible upon re-login, across browser sessions, and after complete server restarts.
+
+#### `[A52]` Multi-Store Real-Time Warehouse Stock Synchronization & Instant Out-of-Stock Guard
+- **Context:** Multiple distinct Kirana retailers (e.g. Sharma Kirana and Verma General Store) and Order Desk clerks accessing the platform simultaneously, placing wholesale orders for limited warehouse inventory.
+- **Core Architectural Assumption:** **Whenever warehouse stock changes (via order placement, desk stock adjustments, or batch imports), the updated stock levels MUST propagate simultaneously and instantly to all active user sessions across all seats without requiring a page refresh.**
+- **The "Movie Ticket / Seat Selection" Real-Time Behavior:**
+  1. **Instant Multi-Seat Reflection:** When Retailer A orders 5 cases of an SKU, Retailer B's screen (in Catalogue, Cart, Quick-Order, and Desk) immediately decrements available stock from $N$ to $N-5$.
+  2. **Zero-Stock Depletion Guard:** If Retailer A buys the last remaining cases of an item, Retailer B's catalogue card immediately transitions to a high-contrast red **`OUT OF STOCK`** badge (`स्टॉक समाप्त`), quantity steppers are instantly disabled, and the "Notify When Available" action appears.
+  3. **Cart Real-Time Alert & Checkout Blocker:** If Retailer B already has the depleted item in their draft cart, an immediate high-visibility red alert banner is displayed:  
+     *`"⚠️ Live Stock Alert: Warehouse Inventory Ran Out! Another retailer just placed an order for the remaining cases of [SKU Name]. Please remove them to proceed with checkout."`*
+     The "Place Order" button is dynamically disabled with label: `"Remove Out of Stock Items to Order"`.
+  4. **Atomic Server-Side Checkout Invariant:** Even if two retailers submit checkout requests within milliseconds of each other, the server enforces an atomic stock deduction lock (`dbStore.deductSkuStock` & tagged Neon PostgreSQL SQL `GREATEST(0, stock_cases - ${totalCases})`). The second checkout is rejected with HTTP 400:  
+     `"Insufficient stock for [SKU Name]. Available: 0 cases, requested: X cases."`
+- **Technical Multi-Layer Synchronization Protocol:**
+  - **Layer 1 (Local Cross-Tab):** `BroadcastChannel("isolabs_warehouse_stock")` pushes 0ms latency events across multiple tabs or windows on the same browser session.
+  - **Layer 2 (Network Stream):** Server-Sent Events (SSE) endpoint `GET /api/catalogue/live-stock` streams real-time `STOCK_UPDATE` payloads over persistent HTTP streams with 15-second heartbeat pings.
+  - **Layer 3 (Adaptive Fallback Polling):** Lightweight polling (`GET /api/catalogue/live-stock?poll=true&v={version}`) checks every 2.5 seconds and returns `{ changed: false }` (49 bytes) when version matches, ensuring resilience across network drops and serverless cold starts.
+  - **Layer 4 (Neon Database Hydration):** `hydrateSkusFromNeon()` synchronizes stock levels across multiple serverless lambda containers.

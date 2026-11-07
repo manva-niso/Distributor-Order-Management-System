@@ -30,12 +30,14 @@ import { SeedSku } from "@/db/seed-data";
 import { ParsedLineItem } from "@/lib/ai/types";
 import BottomNav from "@/components/layout/BottomNav";
 import { getCartStorageKey, getMediaStorageKey } from "@/lib/catalogue/cart-storage";
+import { useLiveStock } from "@/lib/catalogue/useLiveStock";
 
 type Language = "en" | "hi";
 type InputMode = "text" | "photo" | "voice";
 
 export default function QuickOrderPage() {
   const router = useRouter();
+  const { getStock, isOutOfStock } = useLiveStock();
 
   const [lang, setLang] = useState<Language>("en");
   const [inputMode, setInputMode] = useState<InputMode>("text");
@@ -751,9 +753,24 @@ export default function QuickOrderPage() {
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                              {sku.brand}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                {sku.brand}
+                              </span>
+                              {getStock(sku.id, sku.stockCases) <= 0 ? (
+                                <span className="text-[10px] font-bold text-red-800 bg-red-100 px-1.5 py-0.5 rounded">
+                                  Out of Stock
+                                </span>
+                              ) : getStock(sku.id, sku.stockCases) <= 10 ? (
+                                <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded">
+                                  {getStock(sku.id, sku.stockCases)} left
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  In Stock ({getStock(sku.id, sku.stockCases)})
+                                </span>
+                              )}
+                            </div>
                             <h3 className="text-sm font-bold text-slate-900 mt-1 leading-snug">
                               {sku.name}
                             </h3>

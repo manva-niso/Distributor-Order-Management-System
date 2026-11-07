@@ -67,6 +67,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Hydrate latest SKU stock from Neon if configured
+    const { hydrateSkusFromNeon } = await import("@/db/neon-sync");
+    await hydrateSkusFromNeon();
+
     const skus = dbStore.getAllSkus().filter((s) => s.active);
 
     const allRetailersList =
@@ -163,6 +167,19 @@ export async function POST(request: NextRequest) {
       }
 
       dbStore.importSkus([existing], "merge");
+
+      // Sync stock update to Neon PostgreSQL
+      const sql = (await import("@/db/neon")).getNeonSql();
+      if (sql) {
+        try {
+          await sql`UPDATE skus SET stock_cases = ${existing.stockCases} WHERE id = ${existing.id};`;
+        } catch (neonErr) {
+          console.warn("Neon SKU stock update warning:", neonErr);
+        }
+      }
+
+      const { broadcastStockUpdate } = await import("@/lib/catalogue/inventory-events");
+      broadcastStockUpdate();
 
       return NextResponse.json({
         success: true,

@@ -160,6 +160,24 @@ class MemoryStore {
   private orders: Map<string, StoredOrder> = new Map();
   private orderItems: Map<string, StoredOrderItem[]> = new Map();
   private aliases: Map<string, StoredAlias> = new Map();
+  private stockChangeListeners: Set<() => void> = new Set();
+
+  public onStockChange(listener: () => void): () => void {
+    this.stockChangeListeners.add(listener);
+    return () => {
+      this.stockChangeListeners.delete(listener);
+    };
+  }
+
+  private notifyStockChange() {
+    for (const listener of this.stockChangeListeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.warn("Stock change listener error:", err);
+      }
+    }
+  }
 
   constructor() {
     this.reset(false);
@@ -566,6 +584,7 @@ class MemoryStore {
     for (const sku of newSkus) {
       this.skus.set(sku.id, sku);
     }
+    this.notifyStockChange();
     return { count: this.skus.size };
   }
 
@@ -855,6 +874,16 @@ class MemoryStore {
     if (sku.stockCases < casesToDeduct) return false; // Prevent negative inventory (Rule [A9])
     sku.stockCases -= casesToDeduct;
     this.skus.set(skuId, sku);
+    this.notifyStockChange();
+    return true;
+  }
+
+  public updateSkuStock(skuId: string, newStock: number): boolean {
+    const sku = this.skus.get(skuId);
+    if (!sku) return false;
+    sku.stockCases = Math.max(0, newStock);
+    this.skus.set(skuId, sku);
+    this.notifyStockChange();
     return true;
   }
 

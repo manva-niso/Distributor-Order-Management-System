@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import AddProductModal from "@/components/desk/AddProductModal";
 import { SeedSku } from "@/db/seed-data";
+import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
 
 interface DeskOrder {
   id: string;
@@ -78,6 +79,7 @@ type TabType = "QUEUE" | "CREDIT_HOLDS" | "CATALOGUE" | "VAN_MANIFEST" | "DORMAN
 
 export default function OrderDeskPage() {
   const router = useRouter();
+  const { stockMap, stockVersion, getStock } = useLiveStock();
 
   const [activeTab, setActiveTab] = useState<TabType>("QUEUE");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -94,6 +96,21 @@ export default function OrderDeskPage() {
   const [catalogueCategory, setCatalogueCategory] = useState("ALL");
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [stockUpdatingSkuId, setStockUpdatingSkuId] = useState<string | null>(null);
+
+  // Synchronize desk catalogue tab with live stock updates
+  useEffect(() => {
+    if (Object.keys(stockMap).length > 0) {
+      setCatalogueSkus((prev) =>
+        prev.map((s) => {
+          const live = stockMap[s.id];
+          if (live !== undefined && s.stockCases !== live) {
+            return { ...s, stockCases: live };
+          }
+          return s;
+        })
+      );
+    }
+  }, [stockMap]);
 
   const fetchCatalogue = async () => {
     setLoadingCatalogue(true);
@@ -123,6 +140,7 @@ export default function OrderDeskPage() {
         setCatalogueSkus((prev) =>
           prev.map((s) => (s.id === skuId ? { ...s, stockCases: data.sku.stockCases } : s))
         );
+        broadcastLocalStockChange([{ id: skuId, stockCases: data.sku.stockCases }]);
       }
     } catch (err) {
       console.error("Stock update error:", err);

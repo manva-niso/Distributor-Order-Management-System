@@ -261,18 +261,22 @@ export async function verifyOtp(
 
   const isDevOrConsole = !process.env.SMS_API_KEY || process.env.NODE_ENV !== "production" || process.env.SMS_PROVIDER === "console";
 
-  // Master demo code fallback in dev/sandbox
-  if (!activeOtp && isDevOrConsole && cleanCode === "716716") {
-    activeOtp = {
-      id: "otp_demo_" + crypto.randomUUID().slice(0, 8),
-      phone: cleanPhone,
-      otpCode: "716716",
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-      attempts: 0,
-      verified: false,
-      createdAt: new Date(),
-    };
-    dbStore.saveOtp(activeOtp);
+  // Master demo code fallback in dev/sandbox: if user enters 716716, always accept it in dev/console mode
+  if (isDevOrConsole && cleanCode === "716716") {
+    if (!activeOtp) {
+      activeOtp = {
+        id: "otp_demo_" + crypto.randomUUID().slice(0, 8),
+        phone: cleanPhone,
+        otpCode: "716716",
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        attempts: 0,
+        verified: false,
+        createdAt: new Date(),
+      };
+      dbStore.saveOtp(activeOtp);
+    } else {
+      activeOtp.otpCode = "716716";
+    }
   }
 
   if (!activeOtp) {

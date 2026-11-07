@@ -554,6 +554,22 @@ This document records every error, build failure, test failure, runtime issue, a
   6. Added automated unit tests in `src/__tests__/session-lock.test.ts` verifying OTP preservation during 409 conflicts and single-consumption enforcement.
 - **Prevention:** Never mark credentials or single-use verification tokens as consumed until all transactional preconditions (including concurrency locks and tenancy validation) are completely met.
 
+---
+
+### [ERR-046] Dev Master Code "716716" Rejection When Pre-Existing OTP Record Exists in Store
+- **Date & Time:** 2026-11-07 12:46:00
+- **Module:** Module 1 - Authentication & OTP Verification
+- **Phase:** Automated Script Verification & Multi-Retailer Testing
+- **Symptoms / Error Message:**
+  ```text
+  When running multi-retailer test scripts against /api/auth/verify-otp with code "716716", the server returned:
+  HTTP 401 Unauthorized: "Incorrect OTP. 1 attempt(s) remaining."
+  ```
+- **Root Cause Analysis:** Line 265 in `src/lib/auth/otp.ts` previously checked `if (!activeOtp && isDevOrConsole && cleanCode === "716716")`. If `send-otp` had previously been executed (creating an active OTP record with random digits), `activeOtp` was not null. Consequently, the condition was skipped, and `cleanCode` (`"716716"`) was compared against the random digits, causing verification failure.
+- **Resolution / Fix:** Updated `verifyOtp` in `src/lib/auth/otp.ts` so that in dev/sandbox environments (`isDevOrConsole`), if `cleanCode === "716716"`, it unconditionally accepts the code by synchronizing `activeOtp.otpCode = "716716"` (or creating a demo record if none exists).
+- **Prevention:** Sandbox master test bypasses must authoritatively override active state rather than acting only as null-fallback guards.
+
+
 
 
 

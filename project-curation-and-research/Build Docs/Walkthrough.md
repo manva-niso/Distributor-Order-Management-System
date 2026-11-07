@@ -286,6 +286,29 @@ flowchart TD
 
 ---
 
+### Step 16: Multi-Store Real-Time Stock Synchronization & Instant Out-of-Stock Guard (Invariant [A52])
+- **Route:** [`/catalogue`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/catalogue/page.tsx), [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx), [`/desk`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/desk/page.tsx)
+- **The Edge Case:** Multiple distinct kirana retailers (e.g. Sharma Kirana and Verma General Store) and order clerks access the platform simultaneously, racing for limited warehouse inventory.
+- **Action:**
+  1. Open Browser Window 1: Log in as **Sharma Kirana (`9826000001`)** and open `/catalogue`. Note available stock for Marie Gold (95 cases).
+  2. Open Browser Window 2 (or Incognito): Log in as **Verma General Store (`9826000002`)** and open `/catalogue`.
+  3. In Window 1, Sharma Kirana places an order for 5 cases of Marie Gold.
+  4. Without refreshing the page, observe Window 2 (Verma General Store):
+     - The stock count decrements **instantly** from 95 to 90 cases!
+     - A blue telemetry badge appears: **`⚡ Just Updated`** (`⚡ अपडेट हुआ`).
+  5. Now simulate stock running out: Order Desk sets stock to 3 cases. Sharma Kirana orders all 3 cases.
+  6. Observe Verma General Store's screen immediately:
+     - The item card automatically flips to **`OUT OF STOCK`** (`स्टॉक समाप्त`).
+     - Quantity stepper buttons are disabled.
+     - "Notify When Available" replaces cart actions.
+  7. If Verma General Store already had the item in `/cart`:
+     - A high-visibility red banner appears: *"⚠️ Live Stock Alert: Warehouse Inventory Ran Out! Another retailer just placed an order for the remaining cases of Marie Gold. Please remove them to proceed with checkout."*
+     - The "Place Order" button is dynamically disabled.
+  8. If Verma attempts to force a checkout via API, the backend atomically rejects the request with HTTP 400: *"Insufficient stock for Marie Gold... Available: 0 cases."*
+- **Why It Matters:** Matches real-time movie ticketing and e-commerce seat-booking architectures. Prevents double-selling, overselling, and warehouse loading discrepancies.
+
+---
+
 ## 3. Verification Matrix
 
 | Step | Capability Tested | Brief Reference | Status |
@@ -305,6 +328,7 @@ flowchart TD
 | **Step 13** | Master Clean Slate to Zero | First-Time User UX | Verified (0 Rows Confirmed) |
 | **Step 14** | Single-Writer Kirana Concurrency Lock | Invariant [A49] | Verified (HTTP 409 "User already logged in") |
 | **Step 15** | Persistent Order Re-hydration Across Relogin | Invariant [A51] | Verified (Durable Neon PostgreSQL Hydration) |
+| **Step 16** | Multi-Store Real-Time Stock Sync & OOS Guard | Invariant [A52] | Verified (SSE Stream, BroadcastChannel & Atomic Guard) |
 
 ---
 *End of Walkthrough Document.*

@@ -23,6 +23,7 @@ import {
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
 import { getCartStorageKey, getMediaStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
+import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
 import BottomNav from "@/components/layout/BottomNav";
 
 type Language = "en" | "hi";
@@ -38,6 +39,7 @@ interface RetailerLedger {
 
 export default function CartPage() {
   const router = useRouter();
+  const { stockMap, stockVersion, getStock, isOutOfStock } = useLiveStock();
 
   const [lang, setLang] = useState<Language>("en");
   const [skus, setSkus] = useState<SeedSku[]>([]);
@@ -140,6 +142,18 @@ export default function CartPage() {
       });
   }, [skus, cartMap]);
 
+  // Live Warehouse Inventory Validation
+  const outOfStockItems = useMemo(() => {
+    return activeItems.filter((it) => getStock(it.id, it.stockCases) <= 0);
+  }, [activeItems, getStock]);
+
+  const insufficientStockItems = useMemo(() => {
+    return activeItems.filter((it) => {
+      const live = getStock(it.id, it.stockCases);
+      return live > 0 && live < it.quantityCases;
+    });
+  }, [activeItems, getStock]);
+
   // Aggregate financial calculation
   const totals = useMemo(() => {
     return calculateCartTotals(activeItems);
@@ -159,6 +173,16 @@ export default function CartPage() {
     if (activeItems.length === 0) return;
     setErrorMessage(null);
     setLoadingCheckout(true);
+
+    if (outOfStockItems.length > 0) {
+      setErrorMessage(
+        lang === "hi"
+          ? `ऑर्डर नहीं किया जा सकता: ${outOfStockItems.map((o) => o.name).join(", ")} का स्टॉक समाप्त हो गया है। कृपया कार्ट से हटाएं।`
+          : `Cannot place order: ${outOfStockItems.map((o) => o.name).join(", ")} is out of warehouse stock. Please remove it from your cart.`
+      );
+      setLoadingCheckout(false);
+      return;
+    }
 
     try {
       let mediaData: {
@@ -198,6 +222,11 @@ export default function CartPage() {
         setErrorMessage(data.error || "Order placement failed. Please verify stock.");
         setLoadingCheckout(false);
         return;
+      }
+
+      // Broadcast stock update locally for instant cross-tab sync
+      if (data.updatedSkus && Array.isArray(data.updatedSkus)) {
+        broadcastLocalStockChange(data.updatedSkus);
       }
 
       // Clear local storage cart and media draft upon successful placement
@@ -247,9 +276,15 @@ export default function CartPage() {
               <h1 className="text-base font-bold text-slate-900 leading-tight">
                 {lang === "hi" ? "ऑर्डर सारांश / कार्ट" : "Review Wholesale Order"}
               </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                {ledger?.name || "Kirana Account"} • {ledger?.route || "Jabalpur"}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium">
+                  {ledger?.name || "Kirana Account"} • {ledger?.route || "Jabalpur"}
+                </p>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Sync v{stockVersion}</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -286,6 +321,34 @@ export default function CartPage() {
               <div className="font-bold">Checkout Issue</div>
               <div>{errorMessage}</div>
             </div>
+          </div>
+        )}
+
+        {/* Real-time Out-of-Stock Live Alert Banner */}
+        {outOfStockItems.length > 0 && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 text-red-900 shadow-sm flex flex-col gap-2.5">
+            <div className="flex items-center gap-2 font-bold text-sm text-red-700">
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <span>
+                {lang === "hi"
+                  ? "⚠️ स्टॉक चेतावनी: कार्ट का सामान गोदाम में समाप्त हो गया है!"
+                  : "⚠️ Live Stock Alert: Warehouse Inventory Ran Out!"}
+              </span>
+            </div>
+            <p className="text-xs text-red-800 leading-relaxed">
+              {lang === "hi"
+                ? `अन्य दुकानदार ने आपसे पहले ऑर्डर कर दिया: ${outOfStockItems.map((o) => o.name).join(", ")} अब गोदाम में उपलब्ध नहीं है। आर्डर पूरा करने के लिए कृपया नीचे दिए बटन से इसे कार्ट से हटाएं।`
+                : `Another retailer just placed an order for the remaining cases of: ${outOfStockItems.map((o) => o.name).join(", ")}. Please remove them to proceed with checkout.`}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                outOfStockItems.forEach((o) => removeItem(o.id));
+              }}
+              className="self-start text-xs font-bold text-white bg-red-700 hover:bg-red-800 px-3.5 py-2 rounded-lg shadow-xs transition-colors cursor-pointer"
+            >
+              {lang === "hi" ? "आउट-ऑफ-स्टॉक सामान तुरंत हटाएं" : "Remove Out-of-Stock Items"}
+            </button>
           </div>
         )}
 
@@ -407,14 +470,36 @@ export default function CartPage() {
               <div className="divide-y divide-slate-100">
                 {activeItems.map((sku) => {
                   const calc = calculateLineItem(sku);
+                  const liveStock = getStock(sku.id, sku.stockCases);
+                  const isZeroStock = liveStock <= 0;
+                  const isOverStock = liveStock > 0 && liveStock < sku.quantityCases;
 
                   return (
-                    <div key={sku.id} className="py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2.5">
+                    <div
+                      key={sku.id}
+                      className={`py-3.5 first:pt-1 last:pb-1 flex flex-col gap-2.5 rounded-lg p-2.5 transition-colors ${
+                        isZeroStock ? "bg-red-50/70 border border-red-200" : ""
+                      }`}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            {sku.brand} • {sku.code}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              {sku.brand} • {sku.code}
+                            </span>
+                            {isZeroStock && (
+                              <span className="text-[11px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                                <AlertTriangle className="w-3 h-3 text-red-600" />
+                                {lang === "hi" ? "स्टॉक समाप्त (0 पेटी)" : "OUT OF STOCK"}
+                              </span>
+                            )}
+                            {isOverStock && (
+                              <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-amber-700" />
+                                {lang === "hi" ? `केवल ${liveStock} पेटी शेष` : `Only ${liveStock} cases left`}
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-sm font-bold text-slate-900 mt-0.5 leading-snug">
                             {sku.name}
                           </h3>
@@ -621,13 +706,26 @@ export default function CartPage() {
               <button
                 type="button"
                 onClick={handleCheckout}
-                disabled={loadingCheckout}
-                className="w-full h-12 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                disabled={loadingCheckout || outOfStockItems.length > 0}
+                className={`w-full h-12 font-bold text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  outOfStockItems.length > 0
+                    ? "bg-red-700 text-white opacity-85 cursor-not-allowed"
+                    : "bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                }`}
               >
                 {loadingCheckout ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
                     <span>{lang === "hi" ? "ऑर्डर दर्ज किया जा रहा है..." : "Submitting Order to Desk..."}</span>
+                  </>
+                ) : outOfStockItems.length > 0 ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                    <span>
+                      {lang === "hi"
+                        ? "आउट ऑफ स्टॉक सामान हटाएं"
+                        : "Remove Out of Stock Items to Order"}
+                    </span>
                   </>
                 ) : (
                   <>

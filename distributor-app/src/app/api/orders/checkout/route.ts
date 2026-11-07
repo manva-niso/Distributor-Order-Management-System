@@ -5,6 +5,7 @@ import { syncSingleOrderToNeon, hydrateOrdersFromNeon } from "@/db/neon-sync";
 import { getNeonSql } from "@/db/neon";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
+import { broadcastStockUpdate } from "@/lib/catalogue/inventory-events";
 
 const CheckoutItemSchema = z
   .object({
@@ -178,6 +179,7 @@ export async function POST(request: NextRequest) {
       const casesToDeduct = line.totalDeliveredCases + (line.totalDeliveredPacks > 0 ? 1 : 0);
       dbStore.deductSkuStock(line.skuId, casesToDeduct);
     }
+    broadcastStockUpdate();
 
     // 8. Generate Order Record
     await hydrateOrdersFromNeon();
@@ -263,6 +265,14 @@ export async function POST(request: NextRequest) {
       console.warn("Neon order sync warning:", err);
     }
 
+    const updatedSkus = summary.lines.map((l) => {
+      const sku = dbStore.getSkuById(l.skuId);
+      return {
+        id: l.skuId,
+        stockCases: sku ? sku.stockCases : 0,
+      };
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -277,6 +287,7 @@ export async function POST(request: NextRequest) {
         creditHold: creditExceeded,
         projectedBalance,
         creditLimit: retailer.creditLimit,
+        updatedSkus,
         redirectUrl: `/orders?placed=${orderId}`,
       },
       { status: 201 }

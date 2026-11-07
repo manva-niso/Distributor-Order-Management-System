@@ -449,3 +449,39 @@ export async function hydrateOrdersFromNeon(
     return [];
   }
 }
+
+/**
+ * Hydrate SKU stock levels from Neon PostgreSQL into in-memory store
+ * Guarantees cross-instance stock synchronization.
+ */
+export async function hydrateSkusFromNeon(): Promise<number> {
+  if (!isNeonConfigured()) return 0;
+  const sql = getNeonSql();
+  if (!sql) return 0;
+
+  try {
+    const rows = (await sql`SELECT id, stock_cases, active FROM skus;`) as any[];
+    if (!rows || rows.length === 0) return 0;
+
+    const { dbStore } = await import("./store");
+    let updatedCount = 0;
+    for (const row of rows) {
+      const sku = dbStore.getSkuById(row.id);
+      if (sku) {
+        const neonStock = Number(row.stock_cases ?? row.stockCases ?? 0);
+        if (sku.stockCases !== neonStock) {
+          sku.stockCases = neonStock;
+          updatedCount++;
+        }
+        if (row.active !== undefined) {
+          sku.active = Boolean(row.active);
+        }
+      }
+    }
+    return updatedCount;
+  } catch (err) {
+    console.warn("Neon SKU hydration warning:", err);
+    return 0;
+  }
+}
+
