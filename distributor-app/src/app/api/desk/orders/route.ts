@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/db/store";
+import { hydrateOrdersFromNeon } from "@/db/neon-sync";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,6 +8,8 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get("status") || "ALL";
     const searchQuery = (searchParams.get("q") || "").toLowerCase().trim();
 
+    // Hydrate orders from Neon to ensure desk view is synchronized
+    await hydrateOrdersFromNeon();
     const allOrdersWithItems = dbStore.getAllOrders();
 
     // Attach retailer details to each order if not already populated

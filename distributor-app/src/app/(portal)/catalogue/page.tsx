@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
+import { getCartStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
 import { BottomNav } from "@/components/layout/BottomNav";
 
 interface RetailerHeader {
@@ -34,30 +35,6 @@ interface RetailerHeader {
   availableCredit: number;
   creditHold: boolean;
   route: string;
-}
-
-interface DraftCartItem {
-  cases: number;
-  packs: number;
-}
-
-function parseStoredCart(raw: string | null): Record<string, DraftCartItem> {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    const result: Record<string, DraftCartItem> = {};
-    for (const [key, val] of Object.entries(parsed)) {
-      if (typeof val === "number") {
-        result[key] = { cases: val, packs: 0 };
-      } else if (val && typeof val === "object") {
-        const v = val as { cases?: number; packs?: number };
-        result[key] = { cases: v.cases || 0, packs: v.packs || 0 };
-      }
-    }
-    return result;
-  } catch {
-    return {};
-  }
 }
 
 export default function CataloguePage() {
@@ -76,16 +53,6 @@ export default function CataloguePage() {
 
   // 1. Load Catalogue & Retailer Session
   useEffect(() => {
-    // Restore cart from localStorage if present
-    try {
-      const savedCart = localStorage.getItem("isolabs_draft_cart");
-      if (savedCart) {
-        setCartMap(parseStoredCart(savedCart));
-      }
-    } catch {
-      // Fallback if localStorage unavailable
-    }
-
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
@@ -95,13 +62,24 @@ export default function CataloguePage() {
           if (data.userRole) {
             setUserRole(data.userRole);
           }
+
+          // Restore scoped cart from localStorage for this specific Kirana store
+          try {
+            const cartKey = getCartStorageKey(data.retailer?.id);
+            const savedCart = localStorage.getItem(cartKey);
+            if (savedCart) {
+              setCartMap(parseStoredCart(savedCart));
+            } else {
+              setCartMap({});
+            }
+          } catch {}
         }
       })
       .catch((err) => console.error("Failed to load catalogue:", err))
       .finally(() => setLoading(false));
   }, []);
 
-  // Sync cart changes to localStorage for both wholesale cases and loose packets
+  // Sync cart changes to scoped localStorage for both wholesale cases and loose packets
   const updateCartQty = (skuId: string, field: "cases" | "packs", delta: number) => {
     setCartMap((prev) => {
       const current = prev[skuId] || { cases: 0, packs: 0 };
@@ -114,7 +92,8 @@ export default function CataloguePage() {
         updated[skuId] = updatedEntry;
       }
       try {
-        localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
+        const cartKey = getCartStorageKey(retailer?.id);
+        localStorage.setItem(cartKey, JSON.stringify(updated));
       } catch {}
       return updated;
     });

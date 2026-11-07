@@ -41,7 +41,7 @@ describe("Gemini Fallback & Random Words Resolution", () => {
     expect(line.matchedSku?.id).toBe("SKU-BS-GD120");
     expect(line.reasoning).toBeDefined();
     expect(line.source).toBe("gemini");
-  }, 15000);
+  }, 30000);
 
   it("uses Gemini to explain and reject out-of-catalog request: '10 packet chips'", async () => {
     if (!process.env.GEMINI_API_KEY) {

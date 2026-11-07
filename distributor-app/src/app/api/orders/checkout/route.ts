@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbStore, StoredOrder, StoredOrderItem } from "@/db/store";
-import { syncSingleOrderToNeon } from "@/db/neon-sync";
+import { syncSingleOrderToNeon, hydrateOrdersFromNeon } from "@/db/neon-sync";
 import { getNeonSql } from "@/db/neon";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
@@ -180,8 +180,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Generate Order Record
+    await hydrateOrdersFromNeon();
     const allExistingOrders = dbStore.getAllOrders();
-    const orderSeq = String(allExistingOrders.length + 1).padStart(4, "0");
+    let maxSeq = allExistingOrders.length;
+    for (const o of allExistingOrders) {
+      const match = o.order.id.match(/ORD-2026-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxSeq) maxSeq = num;
+      }
+    }
+    const orderSeq = String(maxSeq + 1).padStart(4, "0");
     const orderId = `ORD-2026-${orderSeq}`;
 
     const freeGoodsTally = summary.lines

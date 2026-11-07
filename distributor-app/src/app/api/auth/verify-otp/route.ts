@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyOtp } from "@/lib/auth/otp";
 import { signSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/jwt";
+import { acquireRetailerSession, forceReleaseRetailerSession } from "@/lib/auth/session-lock";
 
 const VerifyOtpSchema = z.object({
   phone: z.string().min(10, "Phone number required"),
   otp: z.string().length(6, "OTP must be exactly 6 digits"),
+  force: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, otp } = parseResult.data;
+    const { phone, otp, force } = parseResult.data;
     const verifyResult = await verifyOtp(phone, otp);
 
     if (!verifyResult.success || !verifyResult.user) {
@@ -34,6 +36,27 @@ export async function POST(request: NextRequest) {
     }
 
     const user = verifyResult.user;
+    let sessionId: string | undefined;
+
+    // Concurrency Lock: If multiple users access as the same Kirana store, block access
+    if (user.role === "retailer" && user.retailerId) {
+      if (force) {
+        await forceReleaseRetailerSession(user.retailerId);
+      }
+      const lock = await acquireRetailerSession(user.retailerId, user.id, user.phone);
+      if (!lock.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "User already logged in",
+            code: "USER_ALREADY_LOGGED_IN",
+            activeSince: lock.activeSince,
+          },
+          { status: 409 }
+        );
+      }
+      sessionId = lock.sessionId;
+    }
 
     // Issue signed JWT token
     const token = await signSessionToken({
@@ -42,6 +65,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
       role: user.role,
       retailerId: user.retailerId,
+      sessionId,
     });
 
     // Determine target redirect path based on user role

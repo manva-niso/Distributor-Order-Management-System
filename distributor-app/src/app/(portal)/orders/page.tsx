@@ -17,6 +17,7 @@ import {
   LogOut,
 } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
+import { getCartStorageKey } from "@/lib/catalogue/cart-storage";
 
 type Language = "en" | "hi";
 
@@ -35,6 +36,7 @@ interface OrderLine {
 
 interface OrderRecord {
   id: string;
+  retailerId?: string;
   retailerName: string;
   retailerRoute: string;
   status: "PLACED" | "VERIFIED" | "CREDIT_HOLD" | "EXPORTED_TALLY" | "CANCELLED";
@@ -84,7 +86,8 @@ function OrdersContent() {
           };
         }
       }
-      localStorage.setItem("isolabs_draft_cart", JSON.stringify(draftCart));
+      const cartKey = getCartStorageKey(order.retailerId);
+      localStorage.setItem(cartKey, JSON.stringify(draftCart));
       window.location.href = "/cart";
     } catch (err) {
       console.error("Repeat order error:", err);

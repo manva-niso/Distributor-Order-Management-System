@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore, StoredOrderItem } from "@/db/store";
-import { syncOrderStatusToNeon } from "@/db/neon-sync";
+import { syncOrderStatusToNeon, hydrateOrdersFromNeon } from "@/db/neon-sync";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
 import { z } from "zod";
 
@@ -42,7 +42,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const orderData = dbStore.getOrderById(id);
+    let orderData = dbStore.getOrderById(id);
+    if (!orderData) {
+      await hydrateOrdersFromNeon();
+      orderData = dbStore.getOrderById(id);
+    }
 
     if (!orderData) {
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
@@ -118,7 +122,11 @@ export async function PATCH(
       );
     }
 
-    const existing = dbStore.getOrderById(id);
+    let existing = dbStore.getOrderById(id);
+    if (!existing) {
+      await hydrateOrdersFromNeon();
+      existing = dbStore.getOrderById(id);
+    }
     if (!existing) {
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
     }

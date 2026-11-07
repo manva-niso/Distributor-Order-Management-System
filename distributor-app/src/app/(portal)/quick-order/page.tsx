@@ -29,6 +29,7 @@ import {
 import { SeedSku } from "@/db/seed-data";
 import { ParsedLineItem } from "@/lib/ai/types";
 import BottomNav from "@/components/layout/BottomNav";
+import { getCartStorageKey, getMediaStorageKey } from "@/lib/catalogue/cart-storage";
 
 type Language = "en" | "hi";
 type InputMode = "text" | "photo" | "voice";
@@ -42,6 +43,7 @@ export default function QuickOrderPage() {
     "bhaiya 5 peti biscuit chhota\n2 peti ghadi powder 1 kg\n1 peti chai wagh bakri 250"
   );
   const [allSkus, setAllSkus] = useState<SeedSku[]>([]);
+  const [retailerId, setRetailerId] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parsedLines, setParsedLines] = useState<ParsedLineItem[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -56,8 +58,9 @@ export default function QuickOrderPage() {
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.skus) {
-          setAllSkus(data.skus);
+        if (data.success) {
+          if (data.skus) setAllSkus(data.skus);
+          if (data.retailer) setRetailerId(data.retailer.id);
         }
       })
       .catch(() => {});
@@ -278,7 +281,9 @@ export default function QuickOrderPage() {
     if (!parsedLines || parsedLines.length === 0) return;
 
     try {
-      const existing = localStorage.getItem("isolabs_draft_cart");
+      const cartKey = getCartStorageKey(retailerId);
+      const mediaKey = getMediaStorageKey(retailerId);
+      const existing = localStorage.getItem(cartKey) || localStorage.getItem("isolabs_draft_cart");
       let cartMap: Record<string, { cases: number; packs: number }> = {};
       if (existing) {
         try {
@@ -306,30 +311,16 @@ export default function QuickOrderPage() {
         }
       }
 
-      localStorage.setItem("isolabs_draft_cart", JSON.stringify(cartMap));
+      localStorage.setItem(cartKey, JSON.stringify(cartMap));
 
       // Save media attachments to order session
-      if (uploadedMediaUrl) {
-        localStorage.setItem(
-          "isolabs_order_media",
-          JSON.stringify({
-            mediaUrl: uploadedMediaUrl,
-            mediaType: uploadedMediaType,
-            orderSource: "WHATSAPP_AI",
-            rawUtterance: inputText,
-          })
-        );
-      } else {
-        localStorage.setItem(
-          "isolabs_order_media",
-          JSON.stringify({
-            mediaUrl: undefined,
-            mediaType: undefined,
-            orderSource: "WHATSAPP_AI",
-            rawUtterance: inputText,
-          })
-        );
-      }
+      const mediaPayload = {
+        mediaUrl: uploadedMediaUrl || undefined,
+        mediaType: uploadedMediaType || undefined,
+        orderSource: "WHATSAPP_AI",
+        rawUtterance: inputText,
+      };
+      localStorage.setItem(mediaKey, JSON.stringify(mediaPayload));
 
       router.push("/cart");
     } catch (err) {

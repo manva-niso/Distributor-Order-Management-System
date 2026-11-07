@@ -355,3 +355,97 @@ export async function syncOrderStatusToNeon(orderId: string, status: any, occVer
     return false;
   }
 }
+
+/**
+ * Hydrate orders and line items from Neon PostgreSQL into the in-memory store
+ * Prevents previously placed orders from disappearing when re-logging in or restarting.
+ */
+export async function hydrateOrdersFromNeon(
+  retailerId?: string
+): Promise<Array<{ order: StoredOrder; items: StoredOrderItem[] }>> {
+  if (!isNeonConfigured()) return [];
+  const sql = getNeonSql();
+  if (!sql) return [];
+
+  try {
+    const orderRows = (retailerId
+      ? await sql`SELECT * FROM orders WHERE retailer_id = ${retailerId} ORDER BY created_at DESC;`
+      : await sql`SELECT * FROM orders ORDER BY created_at DESC;`) as any[];
+
+    if (!orderRows || orderRows.length === 0) {
+      return [];
+    }
+
+    const orderIds = orderRows.map((r: any) => r.id);
+    let itemRows: any[] = [];
+    if (orderIds.length > 0) {
+      try {
+        itemRows = (await sql`SELECT * FROM order_items WHERE order_id = ANY(${orderIds}::varchar[]);`) as any[];
+      } catch {
+        try {
+          itemRows = (await sql`SELECT * FROM order_items;`) as any[];
+        } catch {
+          itemRows = [];
+        }
+      }
+    }
+
+    // Group items by orderId
+    const itemsByOrder = new Map<string, StoredOrderItem[]>();
+    for (const it of itemRows) {
+      const mappedItem: StoredOrderItem = {
+        id: it.id,
+        orderId: it.order_id || it.orderId,
+        skuId: it.sku_id || it.skuId,
+        skuName: it.sku_name || it.skuName || "",
+        skuCode: it.sku_code || it.skuCode || "",
+        quantityCases: Number(it.quantity_cases || it.quantityCases || 0),
+        quantityPacks: Number(it.quantity_packs || it.quantityPacks || 0),
+        freeCases: Number(it.free_cases || it.freeCases || 0),
+        unitDealerPrice: Number(it.unit_dealer_price || it.unitDealerPrice || 0),
+        unitPackPrice: Number(it.unit_pack_price || it.unitPackPrice || 0),
+        discountPct: Number(it.discount_pct || it.discountPct || 0),
+        discountAmount: Number(it.discount_amount || it.discountAmount || 0),
+        netLineAmount: Number(it.net_line_amount || it.netLineAmount || 0),
+        gstRate: Number(it.gst_rate || it.gstRate || 18),
+        gstAmount: Number(it.gst_amount || it.gstAmount || 0),
+      };
+      if (!itemsByOrder.has(mappedItem.orderId)) {
+        itemsByOrder.set(mappedItem.orderId, []);
+      }
+      itemsByOrder.get(mappedItem.orderId)!.push(mappedItem);
+    }
+
+    const { dbStore } = await import("./store");
+    const hydrated: Array<{ order: StoredOrder; items: StoredOrderItem[] }> = [];
+
+    for (const row of orderRows) {
+      const items = itemsByOrder.get(row.id) || [];
+      const orderRecord: StoredOrder = {
+        id: row.id,
+        retailerId: row.retailer_id || row.retailerId,
+        placedBy: row.placed_by || row.placedBy || "Kirana Store",
+        status: row.status || "PLACED",
+        subtotal: Number(row.subtotal || 0),
+        schemeDiscount: Number(row.scheme_discount || row.schemeDiscount || 0),
+        taxableAmount: Number(row.taxable_amount || row.taxableAmount || 0),
+        totalGst: Number(row.total_gst || row.totalGst || 0),
+        grandTotal: Number(row.grand_total || row.grandTotal || 0),
+        freeGoodsTally: row.free_goods_tally || row.freeGoodsTally || [],
+        occVersion: Number(row.occ_version || row.occVersion || 1),
+        tallyExportedAt: row.tally_exported_at ? new Date(row.tally_exported_at) : undefined,
+        createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+      };
+
+      // Upsert into memory store without double-charging credit ledger
+      dbStore.upsertOrder(orderRecord, items);
+      hydrated.push({ order: orderRecord, items });
+    }
+
+    return hydrated;
+  } catch (err) {
+    console.warn("Neon order hydration warning:", err);
+    return [];
+  }
+}

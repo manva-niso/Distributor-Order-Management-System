@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
 import { dbStore } from "@/db/store";
+import { touchRetailerSession } from "@/lib/auth/session-lock";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -24,6 +25,9 @@ export async function GET(request: NextRequest) {
 
   let retailer = undefined;
   if (user.retailerId) {
+    // Touch active session to refresh lastActiveAt timestamp
+    touchRetailerSession(user.retailerId, payload.sessionId).catch(() => {});
+
     const r = dbStore.getRetailerById(user.retailerId);
     if (r) {
       retailer = {

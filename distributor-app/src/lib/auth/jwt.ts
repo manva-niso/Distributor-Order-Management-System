@@ -6,6 +6,7 @@ export interface SessionPayload {
   name: string;
   role: "retailer" | "salesman" | "desk";
   retailerId?: string;
+  sessionId?: string;
 }
 
 export const SESSION_COOKIE_NAME = "auth_token";
@@ -48,6 +49,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       name: (payload.name as string) || "User",
       role: payload.role as "retailer" | "salesman" | "desk",
       retailerId: payload.retailerId as string | undefined,
+      sessionId: payload.sessionId as string | undefined,
     };
   } catch {
     return null;

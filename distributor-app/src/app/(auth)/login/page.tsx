@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Sparkles,
   FileSpreadsheet,
+  LogOut,
 } from "lucide-react";
 
 type Language = "en" | "hi";
@@ -44,6 +45,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isAlreadyLoggedIn, setIsAlreadyLoggedIn] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [loadedRetailers, setLoadedRetailers] = useState<Array<{ id: string; name: string; phone: string; route: string; availableCredit: number }>>([]);
 
@@ -89,6 +91,7 @@ export default function LoginPage() {
     setStep("phone");
     setErrorMsg(null);
     setSuccessMsg(null);
+    setIsAlreadyLoggedIn(false);
     setOtpDigits(["", "", "", "", "", ""]);
   };
 
@@ -97,6 +100,7 @@ export default function LoginPage() {
     if (e) e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+    setIsAlreadyLoggedIn(false);
 
     const clean = phone.replace(/\D/g, "").slice(-10);
     if (clean.length !== 10) {
@@ -178,9 +182,10 @@ export default function LoginPage() {
   };
 
   // Step 2: Verify OTP
-  const handleVerifyOtp = async (e?: React.FormEvent) => {
+  const handleVerifyOtp = async (e?: React.FormEvent, force: boolean = false) => {
     if (e) e.preventDefault();
     setErrorMsg(null);
+    setIsAlreadyLoggedIn(false);
 
     const otpCode = otpDigits.join("");
     if (otpCode.length !== 6) {
@@ -200,12 +205,18 @@ export default function LoginPage() {
         body: JSON.stringify({
           phone: phone.replace(/\D/g, "").slice(-10),
           otp: otpCode,
+          force,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setErrorMsg(data.error || "Verification failed");
+        if (data.code === "USER_ALREADY_LOGGED_IN" || res.status === 409) {
+          setIsAlreadyLoggedIn(true);
+          setErrorMsg("User already logged in");
+        } else {
+          setErrorMsg(data.error || "Verification failed");
+        }
         return;
       }
 
@@ -565,12 +576,41 @@ export default function LoginPage() {
           )}
 
           {/* Feedback Notices */}
-          {errorMsg && (
+          {isAlreadyLoggedIn ? (
+            <div className="bg-amber-50 border-2 border-amber-400 text-amber-900 rounded-xl p-4 text-xs flex flex-col gap-2.5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                <span className="font-bold text-sm text-amber-950">
+                  {lang === "hi" ? "उपयोगकर्ता पहले से लॉगिन है" : "User already logged in"}
+                </span>
+              </div>
+              <p className="text-slate-700 leading-relaxed">
+                {lang === "hi"
+                  ? "इस किराना दुकान का एक सक्रिय सत्र किसी अन्य डिवाइस या ब्राउज़र में खुला हुआ है। एक समय में केवल एक ही उपयोगकर्ता को अनुमति है।"
+                  : "An active session is currently open for this Kirana store on another device or tab. Only one concurrent user is permitted."}
+              </p>
+              <button
+                type="button"
+                onClick={() => handleVerifyOtp(undefined, true)}
+                disabled={loading}
+                className="mt-1 w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                {loading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {lang === "hi" ? "दूसरे सत्र को लॉगआउट कर लॉगिन करें" : "Force Logout Existing Session & Login"}
+                </span>
+              </button>
+            </div>
+          ) : errorMsg ? (
             <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
               <span>{errorMsg}</span>
             </div>
-          )}
+          ) : null}
 
           {successMsg && !errorMsg && (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-3 text-xs flex items-center gap-2">

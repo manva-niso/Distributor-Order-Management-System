@@ -664,6 +664,11 @@ class MemoryStore {
     return { order, items };
   }
 
+  public upsertOrder(order: StoredOrder, items: StoredOrderItem[]): void {
+    this.orders.set(order.id, order);
+    this.orderItems.set(order.id, items);
+  }
+
   public getOrderById(id: string): { order: StoredOrder; items: StoredOrderItem[] } | undefined {
     const order = this.orders.get(id);
     if (!order) return undefined;

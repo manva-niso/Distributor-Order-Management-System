@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/db/store";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/jwt";
+import { hydrateOrdersFromNeon } from "@/db/neon-sync";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,8 +27,11 @@ export async function GET(request: NextRequest) {
       if (!session.retailerId) {
         return NextResponse.json({ success: true, orders: [] });
       }
+      // Hydrate orders from Neon so orders never disappear upon relogin or server restart
+      await hydrateOrdersFromNeon(session.retailerId);
       ordersWithItems = dbStore.getOrdersByRetailerId(session.retailerId);
     } else {
+      await hydrateOrdersFromNeon();
       ordersWithItems = dbStore.getAllOrders();
     }
 

@@ -33,21 +33,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback if no target retailer found
-    if (!retailer) {
-      const allR = dbStore.getAllRetailers();
-      if (allR.length > 0) {
-        const first = allR[0];
-        retailer = {
-          id: first.id,
-          name: first.name,
-          ownerName: first.ownerName,
-          creditLimit: first.creditLimit,
-          currentBalance: first.currentBalance,
-          availableCredit: first.creditLimit - first.currentBalance,
-          creditHold: first.creditHold,
-          route: first.route,
-        };
+    // If target retailer is not found in memory, query Neon directly if configured
+    if (targetRetailerId && !retailer) {
+      const sql = (await import("@/db/neon")).getNeonSql();
+      if (sql) {
+        try {
+          const rows = (await sql`SELECT * FROM retailers WHERE id = ${targetRetailerId} LIMIT 1;`) as any[];
+          if (rows && rows.length > 0) {
+            const row = rows[0];
+            const r = dbStore.createRetailer({
+              id: row.id,
+              name: row.name,
+              ownerName: row.owner_name || row.ownerName || row.name,
+              phone: row.phone,
+              address: row.address,
+              route: row.route,
+              creditLimit: Number(row.credit_limit || row.creditLimit || 50000),
+              currentBalance: Number(row.current_balance || row.currentBalance || 0),
+              creditHold: Boolean(row.credit_hold || row.creditHold),
+            });
+            retailer = {
+              id: r.id,
+              name: r.name,
+              ownerName: r.ownerName,
+              creditLimit: r.creditLimit,
+              currentBalance: r.currentBalance,
+              availableCredit: r.creditLimit - r.currentBalance,
+              creditHold: r.creditHold,
+              route: r.route,
+            };
+          }
+        } catch {}
       }
     }
 
@@ -70,16 +86,7 @@ export async function GET(request: NextRequest) {
       success: true,
       userRole: session?.role || "retailer",
       userName: session?.name,
-      retailer: retailer || {
-        id: "RET-0001",
-        name: "Sharma Kirana Store",
-        ownerName: "Ramesh Sharma",
-        creditLimit: 50000,
-        currentBalance: 12000,
-        availableCredit: 38000,
-        creditHold: false,
-        route: "Napier Town Route #4",
-      },
+      retailer: retailer || null,
       allRetailers: allRetailersList,
       skus,
     });

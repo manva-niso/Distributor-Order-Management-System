@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
+import { getCartStorageKey, getMediaStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
 import BottomNav from "@/components/layout/BottomNav";
 
 type Language = "en" | "hi";
@@ -35,30 +36,6 @@ interface RetailerLedger {
   currentBalance: number;
 }
 
-interface DraftCartItem {
-  cases: number;
-  packs: number;
-}
-
-function parseStoredCart(raw: string | null): Record<string, DraftCartItem> {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    const result: Record<string, DraftCartItem> = {};
-    for (const [key, val] of Object.entries(parsed)) {
-      if (typeof val === "number") {
-        result[key] = { cases: val, packs: 0 };
-      } else if (val && typeof val === "object") {
-        const v = val as { cases?: number; packs?: number };
-        result[key] = { cases: v.cases || 0, packs: v.packs || 0 };
-      }
-    }
-    return result;
-  } catch {
-    return {};
-  }
-}
-
 export default function CartPage() {
   const router = useRouter();
 
@@ -70,15 +47,8 @@ export default function CartPage() {
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 1. Load Catalogue, User Session & Draft Cart from localStorage
+  // 1. Load Catalogue, User Session & Scoped Draft Cart
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("isolabs_draft_cart");
-      if (savedCart) {
-        setCartMap(parseStoredCart(savedCart));
-      }
-    } catch {}
-
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
@@ -93,6 +63,17 @@ export default function CartPage() {
               creditLimit: Number(data.retailer.creditLimit),
               currentBalance: Number(data.retailer.currentBalance),
             });
+
+            // Load isolated Kirana cart
+            try {
+              const cartKey = getCartStorageKey(data.retailer.id);
+              const savedCart = localStorage.getItem(cartKey);
+              if (savedCart) {
+                setCartMap(parseStoredCart(savedCart));
+              } else {
+                setCartMap({});
+              }
+            } catch {}
           }
         }
       })
@@ -113,7 +94,8 @@ export default function CartPage() {
         updated[skuId] = updatedEntry;
       }
       try {
-        localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
+        const cartKey = getCartStorageKey(ledger?.id);
+        localStorage.setItem(cartKey, JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -125,7 +107,8 @@ export default function CartPage() {
       const updated = { ...prev };
       delete updated[skuId];
       try {
-        localStorage.setItem("isolabs_draft_cart", JSON.stringify(updated));
+        const cartKey = getCartStorageKey(ledger?.id);
+        localStorage.setItem(cartKey, JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -135,7 +118,8 @@ export default function CartPage() {
   const clearCart = () => {
     setCartMap({});
     try {
-      localStorage.removeItem("isolabs_draft_cart");
+      const cartKey = getCartStorageKey(ledger?.id);
+      localStorage.removeItem(cartKey);
     } catch {}
   };
 
@@ -184,7 +168,8 @@ export default function CartPage() {
         rawUtterance?: string;
       } = {};
       try {
-        const rawMedia = localStorage.getItem("isolabs_order_media");
+        const mediaKey = getMediaStorageKey(ledger?.id);
+        const rawMedia = localStorage.getItem(mediaKey) || localStorage.getItem("isolabs_order_media");
         if (rawMedia) mediaData = JSON.parse(rawMedia);
       } catch {}
 
@@ -217,6 +202,10 @@ export default function CartPage() {
 
       // Clear local storage cart and media draft upon successful placement
       try {
+        const cartKey = getCartStorageKey(ledger?.id);
+        const mediaKey = getMediaStorageKey(ledger?.id);
+        localStorage.removeItem(cartKey);
+        localStorage.removeItem(mediaKey);
         localStorage.removeItem("isolabs_draft_cart");
         localStorage.removeItem("isolabs_order_media");
       } catch {}
