@@ -29,7 +29,7 @@ import {
 import { SeedSku } from "@/db/seed-data";
 import { ParsedLineItem } from "@/lib/ai/types";
 import BottomNav from "@/components/layout/BottomNav";
-import { getCartStorageKey, getMediaStorageKey } from "@/lib/catalogue/cart-storage";
+import { getCartStorageKey, getMediaStorageKey, loadScopedCart, saveScopedCart } from "@/lib/catalogue/cart-storage";
 import { useLiveStock } from "@/lib/catalogue/useLiveStock";
 
 type Language = "en" | "hi";
@@ -45,7 +45,12 @@ export default function QuickOrderPage() {
     "bhaiya 5 peti biscuit chhota\n2 peti ghadi powder 1 kg\n1 peti chai wagh bakri 250"
   );
   const [allSkus, setAllSkus] = useState<SeedSku[]>([]);
-  const [retailerId, setRetailerId] = useState<string | null>(null);
+  const [retailerId, setRetailerId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("isolabs_current_retailer_id");
+    }
+    return null;
+  });
   const [parsing, setParsing] = useState(false);
   const [parsedLines, setParsedLines] = useState<ParsedLineItem[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -62,7 +67,12 @@ export default function QuickOrderPage() {
       .then((data) => {
         if (data.success) {
           if (data.skus) setAllSkus(data.skus);
-          if (data.retailer) setRetailerId(data.retailer.id);
+          if (data.retailer) {
+            setRetailerId(data.retailer.id);
+            try {
+              localStorage.setItem("isolabs_current_retailer_id", data.retailer.id);
+            } catch {}
+          }
         }
       })
       .catch(() => {});
@@ -283,23 +293,11 @@ export default function QuickOrderPage() {
     if (!parsedLines || parsedLines.length === 0) return;
 
     try {
-      const cartKey = getCartStorageKey(retailerId);
-      const mediaKey = getMediaStorageKey(retailerId);
-      const existing = localStorage.getItem(cartKey) || localStorage.getItem("isolabs_draft_cart");
-      let cartMap: Record<string, { cases: number; packs: number }> = {};
-      if (existing) {
-        try {
-          const parsed = JSON.parse(existing);
-          for (const [k, v] of Object.entries(parsed)) {
-            if (typeof v === "number") {
-              cartMap[k] = { cases: v, packs: 0 };
-            } else if (v && typeof v === "object") {
-              const obj = v as { cases?: number; packs?: number };
-              cartMap[k] = { cases: obj.cases || 0, packs: obj.packs || 0 };
-            }
-          }
-        } catch {}
-      }
+      const activeRetailerId =
+        retailerId ||
+        (typeof window !== "undefined" ? localStorage.getItem("isolabs_current_retailer_id") : null);
+
+      const cartMap = loadScopedCart(activeRetailerId);
 
       for (const line of parsedLines) {
         if (line.matchedSku) {
@@ -313,9 +311,10 @@ export default function QuickOrderPage() {
         }
       }
 
-      localStorage.setItem(cartKey, JSON.stringify(cartMap));
+      saveScopedCart(cartMap, activeRetailerId);
 
       // Save media attachments to order session
+      const mediaKey = getMediaStorageKey(activeRetailerId);
       const mediaPayload = {
         mediaUrl: uploadedMediaUrl || undefined,
         mediaType: uploadedMediaType || undefined,
@@ -323,6 +322,7 @@ export default function QuickOrderPage() {
         rawUtterance: inputText,
       };
       localStorage.setItem(mediaKey, JSON.stringify(mediaPayload));
+      localStorage.setItem("isolabs_order_media", JSON.stringify(mediaPayload));
 
       router.push("/cart");
     } catch (err) {

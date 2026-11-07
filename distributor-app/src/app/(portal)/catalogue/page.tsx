@@ -23,7 +23,13 @@ import {
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
-import { getCartStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
+import {
+  getCartStorageKey,
+  parseStoredCart,
+  DraftCartItem,
+  loadScopedCart,
+  saveScopedCart,
+} from "@/lib/catalogue/cart-storage";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useLiveStock } from "@/lib/catalogue/useLiveStock";
 
@@ -70,26 +76,24 @@ export default function CataloguePage() {
 
   // 1. Load Catalogue & Retailer Session
   useEffect(() => {
+    // Immediate optimistic draft cart load for 0ms initial render
+    setCartMap(loadScopedCart());
+
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setSkus(data.skus || []);
           setRetailer(data.retailer || null);
+          if (data.retailer?.id) {
+            try {
+              localStorage.setItem("isolabs_current_retailer_id", data.retailer.id);
+            } catch {}
+            setCartMap(loadScopedCart(data.retailer.id));
+          }
           if (data.userRole) {
             setUserRole(data.userRole);
           }
-
-          // Restore scoped cart from localStorage for this specific Kirana store
-          try {
-            const cartKey = getCartStorageKey(data.retailer?.id);
-            const savedCart = localStorage.getItem(cartKey);
-            if (savedCart) {
-              setCartMap(parseStoredCart(savedCart));
-            } else {
-              setCartMap({});
-            }
-          } catch {}
         }
       })
       .catch((err) => console.error("Failed to load catalogue:", err))
@@ -113,10 +117,7 @@ export default function CataloguePage() {
       } else {
         updated[skuId] = updatedEntry;
       }
-      try {
-        const cartKey = getCartStorageKey(retailer?.id);
-        localStorage.setItem(cartKey, JSON.stringify(updated));
-      } catch {}
+      saveScopedCart(updated, retailer?.id);
       return updated;
     });
   };

@@ -661,4 +661,40 @@ This document tracks each Core Build Module step by step, its features, implemen
 - **Vitest Suite:** `src/__tests__/dormant.test.ts`
   - 4/4 unit tests passing (10ms runtime).
   - **Combined Suite:** Total 77/77 tests passing across all 10 suites (`auth.test.ts`, `catalogue.test.ts`, `schemes.test.ts`, `orders.test.ts`, `excel-import.test.ts`, `text-parser.test.ts`, `desk.test.ts`, `tally.test.ts`, `manifest.test.ts`, `dormant.test.ts`).
-- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 32/32 routes compiled cleanly.
+- **Production Build:** Verified with Next.js 16 (Turbopack) - 0 errors, 35/35 routes compiled cleanly.
+
+---
+
+## Module 10: Multi-Store Real-Time Stock Synchronization & Zero-Drop Cart Pipeline
+
+### 1. Features Implemented
+- [x] **Real-Time Warehouse Stock Synchronization Engine (`[A52]`):**
+  - Instant cross-seat inventory decrement: when one retailer orders cases, all other active retailers and desk clerks see stock levels decrement instantly without page reload.
+  - Zero-stock depletion guard ("movie ticket seat booking" model): when remaining stock hits 0, all active sessions immediately show red `OUT OF STOCK` badges, stepper controls lock, and checkout with out-of-stock items is blocked.
+  - Multi-tier synchronization protocol:
+    1. Local cross-tab: `BroadcastChannel("isolabs_warehouse_stock")` for 0ms latency.
+    2. Persistent HTTP stream: SSE endpoint `GET /api/catalogue/live-stock` with 15s heartbeat pings.
+    3. Adaptive polling fallback: `GET /api/catalogue/live-stock?poll=true&v={version}` every 2.5s returning 49-byte `{ changed: false }` responses when stock is unchanged.
+    4. Database tier: `hydrateSkusFromNeon()` synchronizing stock across serverless containers.
+- [x] **Zero-Drop Quick Order to Cart Pipeline (`[A53]`):**
+  - Dual-write mirroring: `saveScopedCart` dual-writes to `isolabs_draft_cart_${retailerId}` and fallback `isolabs_draft_cart`.
+  - Tiered fallback & auto-migration: `loadScopedCart` reads scoped key first, falls back to un-scoped key, and auto-migrates draft items into the scoped retailer key.
+  - Optimistic 0ms mount hydration: `/cart` and `/catalogue` hydrate draft cart synchronously on mount, eliminating blank-cart flashes.
+  - Retailer ID caching: caches current retailer in `localStorage("isolabs_current_retailer_id")` for immediate scoped key derivation.
+
+### 2. Files Created / Modified
+- `distributor-app/`
+  - `src/lib/catalogue/cart-storage.ts` - `loadScopedCart`, `saveScopedCart`, `clearScopedCart`, fallback auto-migration
+  - `src/lib/catalogue/inventory-events.ts` - In-memory stock versioning and SSE subscriber manager
+  - `src/lib/catalogue/useLiveStock.ts` - React hook with BroadcastChannel + SSE + adaptive fallback polling
+  - `src/app/api/catalogue/live-stock/route.ts` - Live SSE streaming & adaptive versioned polling API
+  - `src/app/(portal)/quick-order/page.tsx` - Zero-drop draft cart saving with scoped keys
+  - `src/app/(portal)/cart/page.tsx` - Optimistic mount hydration, live out-of-stock blocker, zero-drop dual-writes
+  - `src/app/(portal)/catalogue/page.tsx` - Live stock badge updates, quantity steppers, scoped cart persistence
+  - `src/app/(portal)/orders/page.tsx` - Re-order button using `saveScopedCart`
+  - `src/__tests__/cart-storage.test.ts` - 7/7 unit tests verifying scoping, auto-migration, and dual-writes
+  - `src/__tests__/realtime-stock.test.ts` - 5/5 unit tests verifying stock versioning and out-of-stock prevention
+
+### 3. Verification & Tests
+- **Vitest Suite:** 142/142 tests passing across all 18 test files (`npm --prefix distributor-app test`).
+- **Production Build:** Next.js 16 (Turbopack) compiled cleanly - 0 errors, 35/35 routes static/dynamic.

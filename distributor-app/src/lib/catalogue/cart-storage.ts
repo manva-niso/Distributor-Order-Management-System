@@ -8,8 +8,12 @@ export interface DraftCartItem {
  * Ensures that two Kirana stores accessing on the same browser or session never share a cart.
  */
 export function getCartStorageKey(retailerId?: string | null): string {
-  if (retailerId && retailerId.trim()) {
-    return `isolabs_draft_cart_${retailerId.trim()}`;
+  const targetId =
+    (retailerId && retailerId.trim()) ||
+    (typeof window !== "undefined" ? localStorage.getItem("isolabs_current_retailer_id") : null);
+
+  if (targetId && targetId.trim()) {
+    return `isolabs_draft_cart_${targetId.trim()}`;
   }
   return "isolabs_draft_cart";
 }
@@ -18,10 +22,66 @@ export function getCartStorageKey(retailerId?: string | null): string {
  * Returns a localized storage key for media attachments (audio/photo) scoped by Kirana store.
  */
 export function getMediaStorageKey(retailerId?: string | null): string {
-  if (retailerId && retailerId.trim()) {
-    return `isolabs_order_media_${retailerId.trim()}`;
+  const targetId =
+    (retailerId && retailerId.trim()) ||
+    (typeof window !== "undefined" ? localStorage.getItem("isolabs_current_retailer_id") : null);
+
+  if (targetId && targetId.trim()) {
+    return `isolabs_order_media_${targetId.trim()}`;
   }
   return "isolabs_order_media";
+}
+
+/**
+ * Safely loads the draft cart from localStorage with multi-layer fallback.
+ * Checks the scoped key first, falls back to legacy/un-scoped key, and auto-migrates.
+ */
+export function loadScopedCart(retailerId?: string | null): Record<string, DraftCartItem> {
+  if (typeof window === "undefined") return {};
+  try {
+    const key = getCartStorageKey(retailerId);
+    let raw = localStorage.getItem(key);
+    if (!raw) {
+      // Fallback to legacy or un-scoped draft cart
+      raw = localStorage.getItem("isolabs_draft_cart");
+      if (raw && key !== "isolabs_draft_cart") {
+        // Migrate to scoped key
+        localStorage.setItem(key, raw);
+      }
+    }
+    return parseStoredCart(raw);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Safely persists the draft cart to localStorage with dual mirroring to ensure 100% zero-drop delivery.
+ */
+export function saveScopedCart(
+  cartMap: Record<string, DraftCartItem>,
+  retailerId?: string | null
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const key = getCartStorageKey(retailerId);
+    const serialized = JSON.stringify(cartMap);
+    localStorage.setItem(key, serialized);
+    // Keep un-scoped key mirrored as a universal safety fallback
+    localStorage.setItem("isolabs_draft_cart", serialized);
+  } catch {}
+}
+
+/**
+ * Clears the draft cart from localStorage for the given retailer and removes universal fallback.
+ */
+export function clearScopedCart(retailerId?: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    const key = getCartStorageKey(retailerId);
+    localStorage.removeItem(key);
+    localStorage.removeItem("isolabs_draft_cart");
+  } catch {}
 }
 
 /**

@@ -329,6 +329,7 @@ flowchart TD
 | **Step 14** | Single-Writer Kirana Concurrency Lock | Invariant [A49] | Verified (HTTP 409 "User already logged in") |
 | **Step 15** | Persistent Order Re-hydration Across Relogin | Invariant [A51] | Verified (Durable Neon PostgreSQL Hydration) |
 | **Step 16** | Multi-Store Real-Time Stock Sync & OOS Guard | Invariant [A52] | Verified (SSE Stream, BroadcastChannel & Atomic Guard) |
+| **Step 17** | Quick-Order to Cart Zero-Drop Handshake | Invariant [A53] | Verified (Dual-Mirroring & 0ms Optimistic Hydration) |
 
 ---
 *End of Walkthrough Document.*

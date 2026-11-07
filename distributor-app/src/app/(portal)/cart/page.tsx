@@ -22,7 +22,15 @@ import {
 } from "lucide-react";
 import { SeedSku } from "@/db/seed-data";
 import { CartItem, calculateCartTotals, calculateLineItem } from "@/lib/catalogue/cart-store";
-import { getCartStorageKey, getMediaStorageKey, parseStoredCart, DraftCartItem } from "@/lib/catalogue/cart-storage";
+import {
+  getCartStorageKey,
+  getMediaStorageKey,
+  parseStoredCart,
+  loadScopedCart,
+  saveScopedCart,
+  clearScopedCart,
+  DraftCartItem,
+} from "@/lib/catalogue/cart-storage";
 import { useLiveStock, broadcastLocalStockChange } from "@/lib/catalogue/useLiveStock";
 import BottomNav from "@/components/layout/BottomNav";
 
@@ -51,6 +59,10 @@ export default function CartPage() {
 
   // 1. Load Catalogue, User Session & Scoped Draft Cart
   useEffect(() => {
+    // Immediate optimistic draft cart load for 0ms initial render
+    const initialCart = loadScopedCart();
+    setCartMap(initialCart);
+
     fetch("/api/catalogue")
       .then((res) => res.json())
       .then((data) => {
@@ -66,16 +78,11 @@ export default function CartPage() {
               currentBalance: Number(data.retailer.currentBalance),
             });
 
-            // Load isolated Kirana cart
+            // Cache retailer ID and re-hydrate isolated Kirana cart with fallback migration
             try {
-              const cartKey = getCartStorageKey(data.retailer.id);
-              const savedCart = localStorage.getItem(cartKey);
-              if (savedCart) {
-                setCartMap(parseStoredCart(savedCart));
-              } else {
-                setCartMap({});
-              }
+              localStorage.setItem("isolabs_current_retailer_id", data.retailer.id);
             } catch {}
+            setCartMap(loadScopedCart(data.retailer.id));
           }
         }
       })
@@ -95,10 +102,7 @@ export default function CartPage() {
       } else {
         updated[skuId] = updatedEntry;
       }
-      try {
-        const cartKey = getCartStorageKey(ledger?.id);
-        localStorage.setItem(cartKey, JSON.stringify(updated));
-      } catch {}
+      saveScopedCart(updated, ledger?.id);
       return updated;
     });
   };
@@ -108,10 +112,7 @@ export default function CartPage() {
     setCartMap((prev) => {
       const updated = { ...prev };
       delete updated[skuId];
-      try {
-        const cartKey = getCartStorageKey(ledger?.id);
-        localStorage.setItem(cartKey, JSON.stringify(updated));
-      } catch {}
+      saveScopedCart(updated, ledger?.id);
       return updated;
     });
   };
@@ -119,10 +120,7 @@ export default function CartPage() {
   // Clear entire cart
   const clearCart = () => {
     setCartMap({});
-    try {
-      const cartKey = getCartStorageKey(ledger?.id);
-      localStorage.removeItem(cartKey);
-    } catch {}
+    clearScopedCart(ledger?.id);
   };
 
   // Active Cart Items
@@ -230,12 +228,10 @@ export default function CartPage() {
       }
 
       // Clear local storage cart and media draft upon successful placement
+      clearScopedCart(ledger?.id);
       try {
-        const cartKey = getCartStorageKey(ledger?.id);
         const mediaKey = getMediaStorageKey(ledger?.id);
-        localStorage.removeItem(cartKey);
         localStorage.removeItem(mediaKey);
-        localStorage.removeItem("isolabs_draft_cart");
         localStorage.removeItem("isolabs_order_media");
       } catch {}
       setCartMap({});

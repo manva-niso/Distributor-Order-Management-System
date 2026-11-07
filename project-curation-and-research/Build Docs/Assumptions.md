@@ -396,3 +396,12 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   - **Layer 2 (Network Stream):** Server-Sent Events (SSE) endpoint `GET /api/catalogue/live-stock` streams real-time `STOCK_UPDATE` payloads over persistent HTTP streams with 15-second heartbeat pings.
   - **Layer 3 (Adaptive Fallback Polling):** Lightweight polling (`GET /api/catalogue/live-stock?poll=true&v={version}`) checks every 2.5 seconds and returns `{ changed: false }` (49 bytes) when version matches, ensuring resilience across network drops and serverless cold starts.
   - **Layer 4 (Neon Database Hydration):** `hydrateSkusFromNeon()` synchronizes stock levels across multiple serverless lambda containers.
+
+#### `[A53]` Quick-Order AI to Cart Zero-Drop Handshake & Fallback Hydration
+- **Context:** Retailers using the AI voice / text Quick Order parser (`/quick-order`) to dictate or paste colloquial orders, then clicking "Move to Cart" to review invoices in `/cart`.
+- **Core Architectural Assumption:** **Items parsed and matched in the Quick Order pipeline must NEVER be lost, dropped, or rendered as an empty cart upon transition to `/cart`, regardless of network latency, user role (Kirana, clerk, unauthenticated preview), or asynchronous session initialization.**
+- **Dual-Mirroring & Fallback Specification:**
+  1. **Dual Write Mirroring:** When "Move to Cart" is clicked, items are saved to both the scoped retailer storage key (`isolabs_draft_cart_${retailerId}`) and the universal fallback key (`isolabs_draft_cart`).
+  2. **Tiered Fallback Resolution:** On cart hydration (`loadScopedCart`), the system checks the scoped key first; if null or empty, it automatically reads from the universal fallback key and silently migrates the draft into the scoped key.
+  3. **Optimistic 0ms Render:** The `/cart` and `/catalogue` pages mount with immediate synchronous draft cart hydration from local storage, eliminating race conditions where waiting for `/api/catalogue` network responses would display a flash of empty cart state.
+  4. **Retailer ID Cache:** The current retailer ID is cached in `localStorage("isolabs_current_retailer_id")` upon successful session retrieval, enabling instant scoped key derivation on subsequent page navigations.

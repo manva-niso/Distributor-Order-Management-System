@@ -569,6 +569,40 @@ This document records every error, build failure, test failure, runtime issue, a
 - **Resolution / Fix:** Updated `verifyOtp` in `src/lib/auth/otp.ts` so that in dev/sandbox environments (`isDevOrConsole`), if `cleanCode === "716716"`, it unconditionally accepts the code by synchronizing `activeOtp.otpCode = "716716"` (or creating a demo record if none exists).
 - **Prevention:** Sandbox master test bypasses must authoritatively override active state rather than acting only as null-fallback guards.
 
+---
+
+### [ERR-047] Empty Cart Display After "Move to Cart" from Quick Order AI
+- **Date & Time:** 2026-11-07 13:00:00
+- **Module:** Module 4 - Quick Order AI to Cart Pipeline & LocalStorage Draft Scoping
+- **Phase:** Client State Hydration & Scoped Session Migration
+- **Symptoms / Error Message:**
+  ```text
+  User inputs colloquial order text into Quick Order AI (e.g. "bhaiya 5 peti biscuit chhota"),
+  clicks "Parse Order Text" -> AI resolves 5 cases of Parle-G,
+  User clicks "Move to Cart (1 items)" -> browser redirects to /cart.
+  /cart renders: "Your cart is empty. Browse catalogue to add items."
+  ```
+- **Root Cause Analysis:**
+  1. Under multi-Kirana cart isolation (`[A50]`), cart items are scoped per retailer: `isolabs_draft_cart_${retailerId}`.
+  2. If the user clicked "Move to Cart" before `/api/catalogue` completed fetching `retailerId` (or as a desk clerk/un-scoped session), `quick-order` saved to `isolabs_draft_cart`.
+  3. When navigating to `/cart`, `cart/page.tsx` loaded `data.retailer.id` (e.g. `"RET-0001"`), and strictly checked `localStorage.getItem("isolabs_draft_cart_RET-0001")`. Since only `isolabs_draft_cart` had the data, `savedCart` was null and `setCartMap({})` wiped the cart to empty without inspecting the fallback key.
+  4. In addition, `cart/page.tsx` previously did not hydrate `cartMap` optimistically on component mount; it only hydrated inside `useEffect` after `/api/catalogue` returned over the network. If the network was slow or stalled, the UI initially rendered as completely empty.
+- **Resolution / Fix:**
+  1. **Dual Mirroring & Fallback Auto-Migration (`cart-storage.ts`):**
+     - Implemented `loadScopedCart(retailerId?)`: checks scoped key first, seamlessly falls back to legacy/un-scoped `isolabs_draft_cart`, and automatically migrates the items to the scoped key.
+     - Implemented `saveScopedCart(cartMap, retailerId?)`: dual-writes to both the scoped key (`isolabs_draft_cart_${retailerId}`) and the universal fallback key (`isolabs_draft_cart`), guaranteeing zero-drop delivery.
+     - Implemented `clearScopedCart(retailerId?)`: cleanly removes both scoped and fallback keys upon order checkout or cart clearing.
+     - Updated `getCartStorageKey` to inspect cached `localStorage.getItem("isolabs_current_retailer_id")` if `retailerId` argument is undefined during async initial rendering.
+  2. **Optimistic Cart Mount Hydration (`cart/page.tsx`):**
+     - Added immediate optimistic draft hydration on component mount via `loadScopedCart()`, rendering parsed items with 0ms delay.
+     - Re-hydrates with `loadScopedCart(data.retailer.id)` once `/api/catalogue` completes, preserving all items.
+     - Refactored `updateQuantity`, `removeItem`, `clearCart`, and checkout success cleanup to use `saveScopedCart` and `clearScopedCart`.
+  3. **App-Wide Uniformity (`catalogue/page.tsx` & `orders/page.tsx`):**
+     - Unified cart storage calls using `loadScopedCart` and `saveScopedCart` to guarantee synchronized state across all app routes.
+  4. **Automated Vitest Suite:**
+     - Added `src/__tests__/cart-storage.test.ts` (7/7 passed), verifying dual-writes, auto-migration from un-scoped drafts, and fallback resilience. Total test suite: 142/142 tests passing.
+- **Prevention:** Always provide multi-tier fallback loading and dual-write mirroring whenever namespaced client-side storage keys are introduced into an existing state pipeline.
+
 
 
 

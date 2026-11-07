@@ -17,7 +17,7 @@ import {
   LogOut,
 } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
-import { getCartStorageKey } from "@/lib/catalogue/cart-storage";
+import { getCartStorageKey, saveScopedCart } from "@/lib/catalogue/cart-storage";
 
 type Language = "en" | "hi";
 
@@ -86,8 +86,7 @@ function OrdersContent() {
           };
         }
       }
-      const cartKey = getCartStorageKey(order.retailerId);
-      localStorage.setItem(cartKey, JSON.stringify(draftCart));
+      saveScopedCart(draftCart, order.retailerId);
       window.location.href = "/cart";
     } catch (err) {
       console.error("Repeat order error:", err);
