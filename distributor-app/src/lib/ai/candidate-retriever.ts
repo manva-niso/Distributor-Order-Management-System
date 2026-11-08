@@ -1,6 +1,7 @@
 import { SeedSku, SEED_SKUS } from "@/db/seed-data";
 import { SkuCandidate } from "./types";
 import { fmcgKnowledgeGraph } from "./knowledge-graph";
+import { packSizeExtractor } from "./ml/pack-size-extractor";
 
 export interface RetrievalRankDetail {
   trigramRank: number;
@@ -312,7 +313,18 @@ export class CandidateRetriever {
       const scoreKeyword = rKeyword !== undefined ? 1.0 / (this.k + rKeyword) : 0;
       const scorePhonetic = rPhonetic !== undefined ? 1.0 / (this.k + rPhonetic) : 0;
 
-      const rrfScore = scoreTrigram + scoreKeyword + scorePhonetic;
+      let rrfScore = scoreTrigram + scoreKeyword + scorePhonetic;
+
+      // Pack-size & Colloquial modifier disambiguation
+      if (rrfScore > 0) {
+        const sizeMatch = packSizeExtractor.evaluateMatch(queryText, sku.packSize, sku.id);
+        if (sizeMatch.score > 0) {
+          rrfScore *= (1.0 + sizeMatch.score * 0.45);
+        } else if (sizeMatch.score < 0) {
+          rrfScore *= Math.max(0.15, 1.0 + sizeMatch.score * 0.75);
+        }
+      }
+
       const normalizedScore = Math.min(1.0, Math.round((rrfScore / maxRrf) * 100) / 100);
 
       return {

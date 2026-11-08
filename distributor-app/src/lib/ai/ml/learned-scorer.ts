@@ -3,6 +3,30 @@ import { FeatureVector, featureExtractor, FeatureExtractionInput, FEATURE_NAMES 
 
 export type ScorerDecision = "AUTO_CONFIRM" | "SUGGEST_TOP2" | "ASK_UNIT" | "DESK_CONFIRM";
 
+export const LOOK_ALIKE_FAMILY_SKUS = new Set([
+  "SKU-BS-PG075",
+  "SKU-BS-PG250",
+  "SKU-BS-GD120",
+  "SKU-BS-MG250",
+  "SKU-DT-GH500",
+  "SKU-DT-GH1KG",
+  "SKU-DT-CK250",
+  "SKU-DT-SE1KG",
+  "SKU-DT-WH1KG",
+  "SKU-DT-RN250",
+  "SKU-FD-MG070",
+  "SKU-FD-MG140",
+  "SKU-FD-YP065",
+  "SKU-OL-FT1L",
+  "SKU-OL-FT15T",
+  "SKU-OL-KG1L",
+  "SKU-OL-MK1L",
+  "SKU-PC-DT075",
+  "SKU-PC-DT125",
+  "SKU-PC-LB100",
+  "SKU-PC-LX100",
+]);
+
 export interface LearnedScorerPrediction {
   rawLogit: number;
   rawProb: number;
@@ -83,18 +107,25 @@ export class LearnedScorer {
       };
     }
 
+    // Segmented Adaptive Threshold:
+    // Look-alike size families require strict tau_family (0.945); single-SKU brands are safe at 0.75
+    const isFamilySku = LOOK_ALIKE_FAMILY_SKUS.has(input.candidateSku.id);
+    const effectiveThreshold = isFamilySku ? this.threshold : 0.75;
+
     // High confidence above calibrated threshold -> Safe for 99% precision auto-confirm into cart
-    if (calibratedProb >= this.threshold) {
+    if (calibratedProb >= effectiveThreshold) {
       return {
         rawLogit,
         rawProb,
         calibratedProb,
         autoConfirm: true,
         decision: "AUTO_CONFIRM",
-        decisionReason: `High calibrated confidence (${(calibratedProb * 100).toFixed(1)}% >= ${(this.threshold * 100).toFixed(1)}% threshold with 95% LCB).`,
+        decisionReason: isFamilySku
+          ? `High calibrated confidence for family SKU (${(calibratedProb * 100).toFixed(1)}% >= ${(effectiveThreshold * 100).toFixed(1)}% with 95% LCB).`
+          : `High calibrated confidence for single-SKU brand (${(calibratedProb * 100).toFixed(1)}% >= ${(effectiveThreshold * 100).toFixed(1)}%).`,
         isAmbiguousUnit: false,
         isQuantityAnomaly,
-        threshold: this.threshold,
+        threshold: effectiveThreshold,
         latencyMs,
       };
     }
