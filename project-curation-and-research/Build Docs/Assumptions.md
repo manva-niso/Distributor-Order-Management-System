@@ -62,6 +62,20 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A50]** | Module 4: Cart & Session Scoping | Kirana-Scoped Cart & Multi-Tenant Session Isolation | Draft carts partitioned by `retailerId` (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices. |
 | **[A51]** | Module 4: Orders & Persistence | Neon PostgreSQL Order Re-hydration Across Cold Starts | Persistent orders auto-hydrated from Neon into memory on reads and checkout; order sequence number (`ORD-2026-XXXX`) monotonically calculated to prevent primary key collision. |
 | **[A52]** | Module 2 & 4: Inventory & Multi-User | Real-Time Stock Sync & Instant Out-of-Stock Guard | SSE streams, 2.5s adaptive polling, and BroadcastChannel push warehouse stock changes simultaneously across all retailers and desk terminals; zero-stock items immediately disable cart actions and block checkout. |
+| **[A53]** | Module 4 & 5: Quick-Order to Cart | Zero-Drop Scoped Cart Handshake & Fallback Hydration | Dual-mirroring (`isolabs_draft_cart_${retailerId}` + safety fallback) with 0ms optimistic cart hydration on page transition. |
+| **[A54]** | Regional Localization | Jabalpur Trade Vernacular Terminology | Authentic Mandi accounting terms (*पूरी पेटी*, *खुले पैकेट*, *थोक स्लैब छूट*, *मुफ्त माल*) replace generic SaaS labels. |
+| **[A55]** | Regional Localization | 3-Tier Zero-AI Dynamic Transliteration Engine | Exact Mandi lexicon + phonetic syllable converter + rule-based compound matcher for arbitrary Excel catalog products at 0ms cost. |
+| **[A56]** | Regional Localization | Cross-Session & Cross-Tab Persistent Language Context | Permanent bilingual state via `localStorage` + 365-day cookie + storage event bus; language never resets during navigation. |
+| **[A57]** | Responsive Ergonomics | Fluid Responsive Desktop Grids & Overflow Protection | Smartphone-native layouts that gracefully expand to multi-column desktop tables (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with $\ge 48$px touch targets and zero matra clipping. |
+| **[A58]** | Module 5: Audio ASR | ARTPARK-IISc Vaani Hindi Dialect ASR Hierarchy | 3-tier cascade: IISc Vaani Whisper-v3/FastConformer first, Gemini 2.5 audio fallback second, deterministic simulation third. |
+| **[A59]** | Module 5: AI Capture | Deterministic Packaging & 15% Fallback Threshold | Local regex/heuristics resolve exact matches and packaging cards locally; Gemini escalated only for remote candidates ($\ge 0.15$) with 100 token cap. |
+| **[A60]** | Module 5: Multimodal OCR | Low-Bandwidth (<3G) Client-Side Canvas Media Compression | HTML5 offscreen canvas client compression reduces 8MB Kirana slips to ~120KB JPEG (<100ms) for reliable 3G upload. |
+| **[A61]** | Module 5: Knowledge Graph | 12-Domain Trade Ontology & Category Intent Disambiguation | 400+ Indic tokens sorted longest-phrase-first; strictly prevents cross-domain hallucinations (e.g. suggesting biscuits for detergent or tyres). |
+| **[A62]** | Module 4 & Setup: Purge | Universal Client-Side Kirana Cart Purge on Master Reset | Synchronous `localStorage` wipe + SSE `DATABASE_RESET` + BroadcastChannel coordinate instantaneous multi-tab client purges. |
+| **[A63]** | Module 2 & Desk: Sync | Cross-Tab Catalog Parity & Stale Cart Scrubbing | Desk changes broadcast to Kirana storefront in real time; deleted catalog items automatically scrubbed from active cart maps. |
+| **[A64]** | Auth & Dev Sandbox | Dev Sandbox Master OTP Reliability & 1-Tap Login | Master demo OTPs (`123456`, `716716`) auto-provision in sandbox mode; 1-tap instant demo login for latency-free evaluation. |
+| **[A65]** | System Verification | 18-Step Walkthrough UI Bulk Control & Programmatic Vitest Suite | 1-tap checkbox bulk controls with celebratory feedback, verified by 19 automated programmatic tests in `walkthrough.test.ts`. |
+| **[A66]** | Module 5: Scorer & Eval | Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior | 12-feature logistic regression in pure TypeScript with scikit-learn parity ($<10^{-14}$ diff), Platt calibration, deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds ($\tau_{\text{single}}=0.75, \tau_{\text{family}}=0.920$), and scheme-aware slip detection ($>3\times$ median, $>$ historical max, suppressed on scheme tiers). |
 
 ---
 
@@ -533,4 +547,16 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
      - **Edge Cases 12–14:** Multi-clerk OCC conflict blocking, Master Clean Slate absolute-zero reset, and single-writer Kirana session lock with force-logout release.
      - **Edge Cases 15–17:** Persistent order re-hydration, multi-store real-time stock decrements with negative stock guards, and zero-drop scoped cart persistence.
      - **Edge Case 18:** Bilingual vernacular toggle and deterministic trade transliteration for FMCG brands (Good Day, Fortune, Ghadi, Parle-G).
+
+#### `[A66]` Option A Calibrated Learned Scorer, Pack-Size Extraction & Segmented Adaptive Thresholds
+- **Context:** In quick-order vernacular text parsing, relying on arbitrary heuristic confidence floors leads to false positive auto-confirms on look-alike size family variants (e.g. confirming Parle-G 75g when 250g was intended) or fails to catch order slips (e.g. typing 100 cases instead of 10).
+- **Core Architectural Assumption:** **High-confidence lines may only auto-confirm when an empirical machine learning model predicts $\ge 97\%$ precision on held-out trade queries, executed with zero external microservice dependencies in pure TypeScript at sub-millisecond latency.**
+- **Learned Scorer & Guardrail Specifications (`learned-scorer.ts`, `pack-size-extractor.ts`, `candidate-retriever.ts`):**
+  1. **Option A Pure TypeScript Invariant:** 12 features computed in TypeScript and passed to a vectorized logit dot product with Platt calibration. Mathematical parity with scikit-learn offline training is verified to $<10^{-14}$ max difference (`ml-parity.test.ts`), with runtime inference executing in **0.00048 ms** (~2.1M inferences/sec).
+  2. **Deterministic Pack-Size & Weight Extractor:** Dedicated extractor isolates gram/liter and colloquial size tokens (`75g`, `250g`, `500g`, `1kg`, `1L`, `15L`, `chhota`, `bada`, `double`, `aadha kilo`, `tin`). Injected into Cormack RRF candidate retrieval with a **+45% score boost** on size matches and **-75% score penalty** on size mismatches.
+  3. **Segmented Adaptive Decision Thresholds:** Dynamically routes queries based on brand catalog topology:
+     - **Single-SKU Brands** (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar): $\tau_{\text{single}} = 0.75$, allowing safe auto-confirmation where size confusion is impossible.
+     - **Multi-SKU Size Families** (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict $\tau_{\text{family}} = 0.920$, preventing accidental auto-confirms of wrong pack sizes.
+  4. **Scheme-Aware Soft Slip Outlier Guard:** Requires $\ge 3$ prior orders for that SKU. Flags a soft warning only when requested quantity is $> 3\times$ median AND strictly above the retailer's historical maximum for that SKU. Automatically suppressed if quantity aligns with an active trade scheme threshold (e.g. Buy 10 Get 1).
+  5. **Ambiguous Unit Invariant:** Lines with ambiguous units (`DABBA`, `UNKNOWN`) strictly never auto-confirm into cart, regardless of model score.
 

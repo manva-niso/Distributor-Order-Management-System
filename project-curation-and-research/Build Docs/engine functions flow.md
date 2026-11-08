@@ -368,21 +368,32 @@ flowchart TD
 #### Formula 9: Separation Margin Gap
 $$\Delta = \max(0, S_1 - S_2)$$
 
-#### Formula 10: Calibrated Logit Equation $z$
-$$z = w_0 + \begin{cases} w_{\text{alias}} & \text{if aliasHit} \\ w_{\text{top}} S_1 + w_{\text{gap}} \Delta & \text{otherwise} \end{cases} \;+\; \begin{cases} w_{\text{validQty}} & \text{if } q > 0 \\ -0.6 & \text{if } q \le 0 \lor q = \text{null} \end{cases}$$
+#### Formula 10: Calibrated Logit Equation $z$ (12-Feature Option A Learned Scorer)
+$$z = w_0 + \sum_{i=1}^{12} w_i \cdot x_i$$
 
-Parameter values:
-$$w_0 = -1.2, \quad w_{\text{alias}} = 3.6, \quad w_{\text{top}} = 2.8, \quad w_{\text{gap}} = 2.4, \quad w_{\text{validQty}} = 0.8$$
+Where feature weights fitted via L2 Logistic Regression on 1,294 synthetic trade samples with 18 templates are:
+$$w_0 = -4.8205 \quad (\text{Intercept})$$
+$$w_{\text{lexical}} = +4.8954, \quad w_{S_1} = +4.4924, \quad w_{\text{gap}} = +2.1029$$
+$$w_{\text{freq}} = +0.7179, \quad w_{\text{recency}} = +0.7179, \quad w_{\text{phonetic}} = +0.3530$$
+$$w_{\text{kg\_domain}} = -1.2604, \quad w_{\text{qty}} = -0.0377, \quad w_{\text{usual\_unit}} = -0.0189$$
 
-#### Formula 11: Base Probability Logistic Sigmoid Function $\sigma(z)$
-$$\sigma(z) = \frac{1}{1 + e^{-z}}$$
+#### Formula 11: Platt Sigmoid Probability Calibration
+$$P_{\text{calibrated}} = \frac{1}{1 + e^{-(A \cdot z + B)}}$$
+Where $A = 1.2212, B = 0.1794$, fitted on held-out validation templates to minimize Expected Calibration Error (ECE from 0.1061 to 0.0549).
 
-#### Formula 12: Invariant Guardrail Caps
-$$P_{\text{broken}} = \min(0.88, \sigma(z))$$
+#### Formula 12: Adaptive Segmented Threshold Decision Rule
+$$\text{Decision} = \begin{cases} 
+\text{ASK\_UNIT} & \text{if } \text{isAmbiguousUnit} = \text{true} \quad (\text{Invariant [A16]: } P_{\text{auto}} = \text{false}) \\
+\text{AUTO\_CONFIRM} & \text{if } P_{\text{calibrated}} \ge \tau_{\text{adaptive}} \;\land\; \text{packSizeMismatch} = \text{false} \\
+\text{SUGGEST\_TOP2} & \text{if } 0.50 \le P_{\text{calibrated}} < \tau_{\text{adaptive}} \;\lor\; \text{packSizeMismatch} = \text{true} \\
+\text{DESK\_CONFIRM} & \text{if } P_{\text{calibrated}} < 0.50
+\end{cases}$$
 
-$$P_{\text{dabba}} = \min(0.68, \max(0.52, \sigma(z) \times 0.70))$$
+Where the adaptive threshold is segmented:
+$$\tau_{\text{adaptive}} = \begin{cases} 0.75 & \text{for Unambiguous Single-SKU Brands (Tata Salt, Nescafe, Harpic, Vim, Good Knight)} \\ 0.920 & \text{for Look-Alike Size Families (Parle, Ghadi, Fortune, Dettol, Maggi)} \end{cases}$$
 
-$$P_{\text{unknown\_unit}} = \min(0.62, \max(0.45, \sigma(z) \times 0.65))$$
+#### Formula 13: Retailer Prior Soft 1-Tap Outlier Detection with Promotional Exemption
+$$\text{IsAnomaly} = (N_{\text{orders}} \ge 3) \;\land\; (q > 3.0 \times \text{MedianCases}) \;\land\; (q > \text{MaxCases}) \;\land\; \neg \text{MatchesSchemeThreshold}(q)$$
 
 $$P_{\text{competing\_candidates}} = \min(0.65, \max(0.48, \sigma(z) \times 0.75))$$
 

@@ -119,49 +119,57 @@ The engine is verified by **68 automated tests** in `engine/src/__tests__`:
 
 ---
 
-## 7. Multi-Tier AI Capture & Evaluation Benchmark
+## 7. Multi-Tier AI Capture & Option A Learned Scorer Benchmark
 
-The vernacular order parsing engine combines deterministic speed with constrained LLM semantic reasoning:
+The vernacular order parsing engine combines deterministic speed with a calibrated machine-learned scorer and constrained LLM semantic reasoning:
 
-```
-[Raw Retailer Utterance] 
-         │
-         ▼
-[Tier 0: Pre-Processor] ──► Strip explanatory clauses ("where a case has 24"), normalize Hindi numerals
-         │
-         ▼
-[Tier 1: Deterministic]  ──► Regex quantity/unit extract + Trigram (n=3) fuzzy matching against Catalog & Aliases
-         │
-         ▼
-[Tier 2: Consensus RRF]  ──► Reciprocal Rank Fusion: RRF = Σ 1 / (60 + rank). Requires ≥2 agreeing rankers
-         │
-         ▼
-[Tier 3: Platt Scaling]  ──► Logistic sigmoid transforms margin gap to true probability: P(match) = σ(w·gap + b)
-         │
-    ┌────┴───────────────────────────┐
-    │ Confidence ≥ 0.70 & Non-Ambig? │
-    └────┬───────────────────────┬───┘
-        YES                      NO
-         │                       │
-         ▼                       ▼
-  [Direct Return]      [Tier 4: Constrained Gemini Chooser]
-                       - Closed set: [Top Candidates] or "NONE"
-                       - Multi-Model Fallback: gemini-3.1-flash-lite ➔ gemini-3.6-flash ➔ gemini-flash-lite-latest
-                       - Plain-code invariant: LLM CANNOT pick outside closed set or change units
+```mermaid
+flowchart TD
+    A["Raw Retailer Utterance<br/>(e.g., 'bhaiya 2 peti chhota dettol')"] --> B["Tier 0: Pre-Processor & Exact Aliases<br/>Strip clauses ('where a case has 24'), normalize Hindi numerals, check dbStore.retailer_aliases"]
+    B -->|Hit| C["Direct Match (Score = 1.0)"]
+    B -->|Miss| D["Tier 1: Deterministic Structural Parser<br/>Regex quantity/unit extract + Trigram (n=3) fuzzy matching"]
+    D --> E["Tier 2: Pack-Size Grounded RRF Retrieval (k=60)<br/>Lexical + Phonetic + Category Ontology + Pack-Size Extractor (+45% boost / -75% mismatch penalty)"]
+    E --> F["Candidate SKU & Runner-Up"]
+    
+    F --> G["12-Dimensional Feature Extractor (Pure TypeScript)<br/>(s1, gap, lexical, phonetic, kg_domain, alias_hit, valid_qty, freq, recency, usual_unit, anomaly, ambig_unit)"]
+    G --> H["Platt Calibrated Logistic Sigmoid<br/>z = w·x + b; P = σ(1.2212·z + 0.1794)"]
+    
+    H --> I{"Is Packaging Unit Ambiguous?<br/>('DABBA' or 'UNKNOWN')"}
+    I -->|YES - Invariant [A16]| J["Decision: ASK_UNIT<br/>Auto-Confirm: FALSE<br/>Display 1-Tap Packaging Card"]
+    
+    I -->|NO| K{"Calibrated Probability P ≥ Adaptive Threshold?<br/>(τ_single = 0.75 vs τ_family = 0.920 with 95% Wilson LCB)"}
+    K -->|YES| L["Decision: AUTO_CONFIRM<br/>Auto-Confirm: TRUE<br/>Safe Direct Cart Resolution"]
+    K -->|0.50 ≤ P < τ| M["Decision: SUGGEST_TOP2<br/>Auto-Confirm: FALSE<br/>Display Top 2 Alternative Chips"]
+    K -->|P < 0.50| N["Tier 4: Constrained Gemini Closed Set<br/>Or Escalate to Office Desk"]
+
+    L --> O{"Retailer Prior Anomaly Check<br/>Qty > 3x Median AND > Max?"}
+    O -->|YES & Not hitting promo scheme| P["Trigger Soft Warning Card<br/>'You usually order X cases. Confirm Y?'"]
+    O -->|NO or Hits Promo Scheme| Q["Clean Cart Entry"]
 ```
 
-### 40-Prompt FMCG Evaluation Benchmark (100% Pass Rate)
+### 3-Way Comparative Benchmark Across 444 Recorded Queries
 
-An extensive evaluation benchmark was executed across 40 real-world Jabalpur Kirana test scenarios, cataloged in [`overall_app_testing_results.xlsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/project-curation-and-research/overall_app_testing/overall_app_testing_results.xlsx):
+Full evaluation executed across 74 curated edge-case prompts and 370 held-out synthetic validation and test samples (Templates 19–28):
 
-| Category | Sample Utterances Tested | Accuracy | Guardrail Enforced | Verdict |
-| :--- | :--- | :---: | :--- | :---: |
-| **Out-of-Catalog Items** | `"10 packet chips"`, `"kurkure"`, `"cycle tyre"`, `"spark plug"` | **100%** | Hard floor (12% confidence), `UNKNOWN_SKU`, matchedSku = `null` | **PASS** |
-| **Regional Slang / Aliases**| `"pila wala"`, `"kapde ki tikiya"`, `"bada surf excel"`, `"shakti chai"` | **100%** | Parle-G, Ghadi Detergent Cake, Surf Excel 1kg matched accurately | **PASS** |
-| **Polysemic Packaging** | `"2 dabba parle g"`, `"3 dabba fortune tel"`, `"5 dabba dettol"` | **100%** | Capped at 68% confidence, triggers interactive `AMBIGUOUS_UNIT` card | **PASS** |
-| **Broken Master Cases** | `"10 packet maggi"`, `"case of 20 mai se 15 dedo"` | **100%** | Triggers `BROKEN_CASE` prompt: loose pack rate vs sealed case round-up | **PASS** |
-| **Vernacular Fractions** | `"aadha peti"`, `"derh peti"`, `"dhai peti"` | **100%** | Accurately parsed to 0.5, 1.5, and 2.5 wholesale master cases | **PASS** |
-| **Random Gibberish** | `"asdfghjk xyz 123"` | **100%** | Honestly rejected by Gemini with plain-language explanation | **PASS** |
+| Metric | Engine 1: Baseline (Actual App) | Engine 2: V2 Learned Scorer | Engine 3: V3 Enhanced Scorer | Operational Impact |
+| :--- | :---: | :---: | :---: | :--- |
+| **Auto-Confirm Precision** | **87.1%** | **93.6%** | **97.4%** | **Eliminated 87.0% of false auto-confirmations** |
+| **Silent Cart Errors (False Positives)** | **23 wrong items** | **3 errors** | **3 errors** | Prevented wrong oil and soap swaps in cart |
+| **Auto-Confirmed Volume (Lines Accepted)** | 178 lines | 47 lines | **116 lines** | **2.5× higher volume than V2** |
+| **Auto-Confirm Coverage Rate** | 40.1% | 10.6% | **26.1%** | High safe throughput without guesswork |
+| **Expected Calibration Error (ECE)** | 0.0853 | **0.0635** | **0.0635** | 25.6% reduction in probability distortion |
+| **Top-1 Match Accuracy** | 68.2% | 68.2% | **68.2%** | Preserved candidate retriever base |
+| **Top-3 Retrieval Recall** | 82.0% | 82.0% | **82.0%** | 2 alternatives always present in UI |
+| **Packaging Ambiguity Rate (`DABBA`)** | 17.1% asked | 17.1% asked | **17.1% asked** | Guaranteed 0% auto-confirm on ambiguous units |
+| **Quantity Slips Caught ($10\times$ Typos)** | 0% (No prior) | 60.0% caught | **100.0% caught** | Proactive warning card on order typos |
+| **Promo Scheme False Alarms** | N/A | 0.0% | **0.0%** | Suppressed when ordering promo quantities (Buy 10) |
+| **TypeScript Inference Latency** | 7.20 ms | **0.00045 ms** | **0.00048 ms** | Sub-microsecond pure vector execution |
+
+### Evaluation Suite Repositories & Traceability
+- **Curated Prompt Bank:** [`distributor-app/src/lib/ai/ml/queries/eval_prompts.json`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/ai/ml/queries/eval_prompts.json) (74 real-world Mandi scenarios)
+- **Granular CSV Results:** [`distributor-app/src/lib/ai/ml/data/three_way_benchmark_results.csv`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/ai/ml/data/three_way_benchmark_results.csv)
+- **Mathematical Parity Suite:** [`distributor-app/src/__tests__/ml-parity.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/ml-parity.test.ts) ($|P_{\text{TS}} - P_{\text{sklearn}}| < 10^{-5}$)
+- **3-Way Benchmark Runner:** [`distributor-app/src/lib/ai/ml/three_way_benchmark.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/ai/ml/three_way_benchmark.ts)
 
 ---
 
