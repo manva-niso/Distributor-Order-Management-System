@@ -38,6 +38,11 @@ export interface ParsedLineItem {
   brokenCaseInfo?: BrokenCaseInfo | null;
   reasoning?: string;
   source?: "rules" | "gemini" | "fallback" | "skipped";
+  autoConfirm?: boolean;
+  calibratedProb?: number;
+  quantityWarning?: string;
+  retailerPriorApplied?: boolean;
+  scorerDecision?: "AUTO_CONFIRM" | "SUGGEST_TOP2" | "ASK_UNIT" | "DESK_CONFIRM";
 }
 
 export interface ParseResult {

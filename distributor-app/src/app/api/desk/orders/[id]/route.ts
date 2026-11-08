@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbStore, StoredOrderItem } from "@/db/store";
 import { syncOrderStatusToNeon, hydrateOrdersFromNeon } from "@/db/neon-sync";
 import { calculateOrderSummary, InputLineItem } from "@/lib/schemes/engine";
+import { recordDeskCorrectionFeedback } from "@/lib/ai/ml/desk-feedback";
 import { z } from "zod";
 
 const PatchOrderSchema = z.object({
@@ -249,18 +250,20 @@ export async function PATCH(
       console.warn("Neon status sync warning:", err)
     );
 
-    // 4. Retailer Alias Auto-Learning (Rule [A20])
-    // Whenever an office clerk corrects or associates a phrase with an SKU, persist it permanently
+    // 4. Retailer Alias Auto-Learning & Training Data Feedback (Rule [A20])
+    // Whenever an office clerk corrects or associates a phrase with an SKU, persist it as alias and training row
     const learnedAliases = [];
     if (newAliases && newAliases.length > 0) {
       for (const alias of newAliases) {
         if (alias.rawPhrase.trim()) {
-          const saved = dbStore.saveRetailerAlias(
-            currentOrder.retailerId,
-            alias.rawPhrase,
-            alias.skuId
-          );
-          learnedAliases.push(saved);
+          const feedback = recordDeskCorrectionFeedback({
+            retailerId: currentOrder.retailerId,
+            rawPhrase: alias.rawPhrase,
+            correctedSkuId: alias.skuId,
+            orderId: id,
+          });
+          const saved = dbStore.getRetailerAliases(currentOrder.retailerId);
+          learnedAliases.push({ phrase: alias.rawPhrase, skuId: alias.skuId, feedback });
         }
       }
     }

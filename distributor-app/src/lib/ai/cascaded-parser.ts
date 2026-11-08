@@ -9,6 +9,8 @@ import {
 import { parseSingleUtterance, splitOrderTextIntoLines } from "./text-parser";
 import { GeminiClosedSetChooser, defaultGeminiChooser } from "./gemini-chooser";
 import { fmcgKnowledgeGraph } from "./knowledge-graph";
+import { learnedScorer } from "./ml/learned-scorer";
+import { retailerPriorEngine } from "./ml/retailer-prior";
 
 export interface CascadedParserOptions {
   geminiChooser?: GeminiClosedSetChooser;
@@ -171,13 +173,62 @@ export class CascadedOrderParserPipeline implements OrderParserPipeline {
       })
     );
 
-    const ambiguousCount = resolvedLines.filter((l) => l.isAmbiguous).length;
+    // Tier 3 Enrichment: Apply Learned Scorer, Platt Calibration & Retailer Prior Anomaly Detection
+    const enrichedLines: ParsedLineItem[] = resolvedLines.map((line) => {
+      if (!line.matchedSku) {
+        return {
+          ...line,
+          autoConfirm: false,
+          calibratedProb: line.confidence,
+          scorerDecision: "DESK_CONFIRM" as const,
+        };
+      }
+
+      const topScore = line.candidates[0]?.score || line.confidence;
+      const runnerUpScore = line.candidates[1]?.score || 0.0;
+      const aliasHit = line.confidence >= 0.95 && line.source === "rules";
+
+      const prediction = learnedScorer.predict({
+        utterance: line.rawUtterance,
+        candidateSku: line.matchedSku,
+        s1_top_score: topScore,
+        s2_runner_up_score: runnerUpScore,
+        aliasHit,
+        unit: line.extractedUnit,
+        quantity: line.resolvedQtyCases || line.extractedQty,
+        retailerId: context?.retailerId,
+      });
+
+      let quantityWarning: string | undefined = undefined;
+      if (context?.retailerId && line.resolvedQtyCases > 0) {
+        const anomaly = retailerPriorEngine.detectQuantityAnomaly(
+          context.retailerId,
+          line.matchedSku,
+          line.resolvedQtyCases,
+          line.resolvedQtyPacks || 0
+        );
+        if (anomaly.isAnomaly && anomaly.warningMessage) {
+          quantityWarning = anomaly.warningMessage;
+        }
+      }
+
+      return {
+        ...line,
+        autoConfirm: prediction.autoConfirm,
+        calibratedProb: prediction.calibratedProb,
+        scorerDecision: prediction.decision,
+        quantityWarning,
+        retailerPriorApplied: Boolean(context?.retailerId),
+      };
+    });
+
+    const ambiguousCount = enrichedLines.filter((l) => l.isAmbiguous).length;
 
     return {
-      success: resolvedLines.length > 0,
+      success: enrichedLines.length > 0,
       rawText,
-      lines: resolvedLines,
-      totalLines: resolvedLines.length,
+      lines: enrichedLines,
+      totalLines: enrichedLines.length,
       ambiguousCount,
       pipelineName: this.name,
     };

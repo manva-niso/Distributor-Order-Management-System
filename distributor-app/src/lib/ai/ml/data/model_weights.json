@@ -1,0 +1,298 @@
+{
+  "version": "2.0.0-learned",
+  "createdAt": "2026-11-08T10:47:47.848529Z",
+  "description": "IsoLabs Learned Scorer with Platt Calibration & Wilson 95% LCB Threshold",
+  "featureNames": [
+    "s1_top_score",
+    "margin_gap",
+    "lexical_sim",
+    "phonetic_sim",
+    "kg_domain_match",
+    "alias_hit",
+    "has_valid_qty",
+    "retailer_sku_freq",
+    "retailer_sku_recency",
+    "unit_matches_usual",
+    "quantity_anomaly",
+    "is_ambiguous_unit"
+  ],
+  "baseWeights": {
+    "coefficients": [
+      4.492402490883519,
+      2.1029108878450113,
+      4.895388886822369,
+      0.35296530476062077,
+      -1.2603812638139402,
+      0.0,
+      -0.03774113551583448,
+      0.7179098916805866,
+      0.7179098916805866,
+      -0.01887056775791724,
+      0.0,
+      0.0058597307555855425
+    ],
+    "intercept": -4.820540210762497
+  },
+  "plattCalibration": {
+    "A": 1.221245508814481,
+    "B": 0.17937691717814425
+  },
+  "decision": {
+    "threshold": 0.945,
+    "targetPrecision": 0.99,
+    "wilsonLcb95": 0.8513,
+    "invariants": {
+      "neverAutoConfirmAmbiguousUnit": true,
+      "ambiguousUnitKeywords": [
+        "DABBA",
+        "UNKNOWN"
+      ]
+    }
+  },
+  "metrics": {
+    "train": {
+      "split": "train",
+      "samples": 1294,
+      "linePrecision": 0.9362,
+      "wilsonLcb95": 0.8918,
+      "lineAutoConfirmRate": 0.1453,
+      "orderPrecision": 0.0,
+      "orderAutoConfirmRate": 0.002,
+      "unitAskRate": 0.1963,
+      "top1Recall": 0.2928,
+      "ece": 0.0674,
+      "brier": 0.1295,
+      "auc": 0.8775
+    },
+    "val": {
+      "split": "val",
+      "samples": 259,
+      "linePrecision": 1.0,
+      "wilsonLcb95": 0.8513,
+      "lineAutoConfirmRate": 0.0849,
+      "orderPrecision": 1.0,
+      "orderAutoConfirmRate": 0.0,
+      "unitAskRate": 0.1313,
+      "top1Recall": 0.1824,
+      "ece": 0.0636,
+      "brier": 0.1289,
+      "auc": 0.8644
+    },
+    "test": {
+      "split": "test",
+      "samples": 111,
+      "linePrecision": 1.0,
+      "wilsonLcb95": 0.7412,
+      "lineAutoConfirmRate": 0.0991,
+      "orderPrecision": 1.0,
+      "orderAutoConfirmRate": 0.0,
+      "unitAskRate": 0.2973,
+      "top1Recall": 0.2754,
+      "ece": 0.0577,
+      "brier": 0.1263,
+      "auc": 0.892
+    }
+  },
+  "thresholdTuningGrid": [
+    {
+      "threshold": 0.5,
+      "n_auto": 153,
+      "k_correct": 130,
+      "precision": 0.8497,
+      "lcb95": 0.7845,
+      "coverage": 0.5907
+    },
+    {
+      "threshold": 0.52,
+      "n_auto": 152,
+      "k_correct": 130,
+      "precision": 0.8553,
+      "lcb95": 0.7906,
+      "coverage": 0.5869
+    },
+    {
+      "threshold": 0.54,
+      "n_auto": 148,
+      "k_correct": 128,
+      "precision": 0.8649,
+      "lcb95": 0.8005,
+      "coverage": 0.5714
+    },
+    {
+      "threshold": 0.56,
+      "n_auto": 143,
+      "k_correct": 124,
+      "precision": 0.8671,
+      "lcb95": 0.8018,
+      "coverage": 0.5521
+    },
+    {
+      "threshold": 0.58,
+      "n_auto": 142,
+      "k_correct": 123,
+      "precision": 0.8662,
+      "lcb95": 0.8005,
+      "coverage": 0.5483
+    },
+    {
+      "threshold": 0.6,
+      "n_auto": 140,
+      "k_correct": 122,
+      "precision": 0.8714,
+      "lcb95": 0.8059,
+      "coverage": 0.5405
+    },
+    {
+      "threshold": 0.62,
+      "n_auto": 135,
+      "k_correct": 117,
+      "precision": 0.8667,
+      "lcb95": 0.7991,
+      "coverage": 0.5212
+    },
+    {
+      "threshold": 0.64,
+      "n_auto": 133,
+      "k_correct": 115,
+      "precision": 0.8647,
+      "lcb95": 0.7962,
+      "coverage": 0.5135
+    },
+    {
+      "threshold": 0.66,
+      "n_auto": 129,
+      "k_correct": 112,
+      "precision": 0.8682,
+      "lcb95": 0.7991,
+      "coverage": 0.4981
+    },
+    {
+      "threshold": 0.68,
+      "n_auto": 127,
+      "k_correct": 110,
+      "precision": 0.8661,
+      "lcb95": 0.7961,
+      "coverage": 0.4903
+    },
+    {
+      "threshold": 0.7,
+      "n_auto": 124,
+      "k_correct": 108,
+      "precision": 0.871,
+      "lcb95": 0.8006,
+      "coverage": 0.4788
+    },
+    {
+      "threshold": 0.72,
+      "n_auto": 122,
+      "k_correct": 106,
+      "precision": 0.8689,
+      "lcb95": 0.7975,
+      "coverage": 0.471
+    },
+    {
+      "threshold": 0.74,
+      "n_auto": 119,
+      "k_correct": 103,
+      "precision": 0.8655,
+      "lcb95": 0.7927,
+      "coverage": 0.4595
+    },
+    {
+      "threshold": 0.76,
+      "n_auto": 117,
+      "k_correct": 101,
+      "precision": 0.8632,
+      "lcb95": 0.7894,
+      "coverage": 0.4517
+    },
+    {
+      "threshold": 0.78,
+      "n_auto": 112,
+      "k_correct": 97,
+      "precision": 0.8661,
+      "lcb95": 0.7907,
+      "coverage": 0.4324
+    },
+    {
+      "threshold": 0.8,
+      "n_auto": 106,
+      "k_correct": 93,
+      "precision": 0.8774,
+      "lcb95": 0.8014,
+      "coverage": 0.4093
+    },
+    {
+      "threshold": 0.82,
+      "n_auto": 102,
+      "k_correct": 89,
+      "precision": 0.8725,
+      "lcb95": 0.7941,
+      "coverage": 0.3938
+    },
+    {
+      "threshold": 0.84,
+      "n_auto": 94,
+      "k_correct": 81,
+      "precision": 0.8617,
+      "lcb95": 0.7776,
+      "coverage": 0.3629
+    },
+    {
+      "threshold": 0.86,
+      "n_auto": 86,
+      "k_correct": 75,
+      "precision": 0.8721,
+      "lcb95": 0.7853,
+      "coverage": 0.332
+    },
+    {
+      "threshold": 0.88,
+      "n_auto": 76,
+      "k_correct": 68,
+      "precision": 0.8947,
+      "lcb95": 0.8058,
+      "coverage": 0.2934
+    },
+    {
+      "threshold": 0.9,
+      "n_auto": 61,
+      "k_correct": 57,
+      "precision": 0.9344,
+      "lcb95": 0.8432,
+      "coverage": 0.2355
+    },
+    {
+      "threshold": 0.92,
+      "n_auto": 44,
+      "k_correct": 42,
+      "precision": 0.9545,
+      "lcb95": 0.8487,
+      "coverage": 0.1699
+    },
+    {
+      "threshold": 0.94,
+      "n_auto": 28,
+      "k_correct": 27,
+      "precision": 0.9643,
+      "lcb95": 0.8229,
+      "coverage": 0.1081
+    },
+    {
+      "threshold": 0.96,
+      "n_auto": 15,
+      "k_correct": 15,
+      "precision": 1.0,
+      "lcb95": 0.7961,
+      "coverage": 0.0579
+    },
+    {
+      "threshold": 0.98,
+      "n_auto": 4,
+      "k_correct": 4,
+      "precision": 1.0,
+      "lcb95": 0.5101,
+      "coverage": 0.0154
+    }
+  ]
+}
