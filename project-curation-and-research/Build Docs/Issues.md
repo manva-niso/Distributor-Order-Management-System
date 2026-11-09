@@ -68,9 +68,9 @@ Every single issue recorded below was addressed, architecturally hardened, and v
   
   The user had to navigate back and re-add items manually, feeling that the AI order capture was unreliable.
 - **Why It Happened (User Perspective):**
-  When multi-Kirana isolation was added, cart keys became isolated per store (`isolabs_draft_cart_${retailerId}`). If the user clicked "Move to Cart" before `/api/catalogue` finished loading `retailerId` in the background, Quick Order saved the items under the generic key `isolabs_draft_cart`. Upon arriving at `/cart`, the cart page fetched `retailerId: "RET-0001"`, looked strictly for `isolabs_draft_cart_RET-0001`, and found nothing, wiping the displayed cart without checking fallback storage.
+  When multi-Kirana isolation was added, cart keys became isolated per store (`draft_cart_{shopId}`). If the user clicked "Move to Cart" before `/api/catalogue` finished loading `retailerId` in the background, Quick Order saved the items under the generic key `isolabs_draft_cart`. Upon arriving at `/cart`, the cart page fetched `retailerId: "RET-0001"`, looked strictly for `isolabs_draft_cart_RET-0001`, and found nothing, wiping the displayed cart without checking fallback storage.
 - **UX & Functional Resolution:**
-  1. **Dual-Write Mirroring (`saveScopedCart`):** Quick Order and Catalogue now simultaneously write draft items to both `isolabs_draft_cart_${retailerId}` and the universal safety key `isolabs_draft_cart`.
+  1. **Dual-Write Mirroring (`saveScopedCart`):** Quick Order and Catalogue now simultaneously write draft items to both `draft_cart_{shopId}` and the universal safety key `isolabs_draft_cart`.
   2. **Multi-Tier Fallback & Auto-Migration (`loadScopedCart`):** On `/cart` load, if the scoped key is empty, the system automatically checks the universal fallback key, restores the parsed items, and migrates them to the scoped store key.
   3. **0ms Optimistic Hydration:** `/cart` renders the draft cart synchronously from local storage on initial mount, eliminating the blank-cart flash while network calls are in flight.
 - **Verification & Outcome:** Verified. Parsed items appear instantly in `/cart` with 0ms lag and zero dropped lines.
@@ -321,12 +321,12 @@ Every single issue recorded below was addressed, architecturally hardened, and v
   Bilingual English / Devanagari Hindi Toggle (`lang === "hi"`):
   - Added a 1-tap language switch (`EN | हि`) across all portal screens.
   - In Hindi mode, all key commercial terms are translated into natural local market terminology:
-    - *Wholesale Case* $\to$ **पूरी पेटी**
-    - *Loose Packs* $\to$ **खुले पैकेट**
-    - *Out of Stock* $\to$ **स्टॉक समाप्त**
-    - *Credit Limit* $\to$ **उधार सीमा**
-    - *Current Balance* $\to$ **बकाया राशि**
-    - *Place Order* $\to$ **ऑर्डर दर्ज करें**
+    - *Wholesale Case* -> **पूरी पेटी**
+    - *Loose Packs* -> **खुले पैकेट**
+    - *Out of Stock* -> **स्टॉक समाप्त**
+    - *Credit Limit* -> **उधार सीमा**
+    - *Current Balance* -> **बकाया राशि**
+    - *Place Order* -> **ऑर्डर दर्ज करें**
 - **Verification & Outcome:** Verified. Merchants can navigate and order in their preferred language with zero ambiguity.
 
 ---
@@ -433,7 +433,7 @@ Every single issue recorded below was addressed, architecturally hardened, and v
   1. **Universal Transliteration Engine ([`transliterate.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/i18n/transliterate.ts)):** Implemented a 3-tier cascade:
      - Tier 1: Ground-truth Devanagari fields (`nameHi`, `shopNameHi`).
      - Tier 2: Static Mandi trade lexicon (`mandiTradeDict`).
-     - Tier 3: Universal phonetic syllable transliteration converting any arbitrary English word into Devanagari characters (e.g. *"Kisan Chana Dal 1kg"* $\to$ *"किसान चना दाल 1 किलो"*).
+     - Tier 3: Universal phonetic syllable transliteration converting any arbitrary English word into Devanagari characters (e.g. *"Kisan Chana Dal 1kg"* -> *"किसान चना दाल 1 किलो"*).
   2. **Ingestion-Time Pre-Computation:** Integrated auto-transliteration into the Excel importer (`importer.ts`), Add Product Modal (`AddProductModal.tsx`), and Kirana registration (`register/route.ts`).
   3. **Zero AI Latency & Cost:** All arbitrary catalogues and shop names are automatically enriched at ingestion time with 0 runtime AI latency and 0 API cost.
 - **Verification & Outcome:** Verified with `dynamic-transliteration.test.ts`. Any arbitrary English product or shop name translates accurately to Devanagari Hindi.
@@ -522,7 +522,7 @@ Every single issue recorded below was addressed, architecturally hardened, and v
 - **User Experience & Pain Point:**
   When testing the application, an evaluator or distributor clerk clicked "Master Reset" or "Clean Slate" on the Setup page (`/setup`) to start fresh. The backend reported all tables and orders were cleared. However, when the user navigated to the Kirana Store (`/catalogue`) or Cart (`/cart`), the previous cart items (e.g. 5 cases of Parle-G, 2 cases of Good Day) and uploaded voice note media were still sitting in the cart! The user wondered: *"Why is the master reset not resetting the Kirana store's data?"*
 - **Why It Happened (User Perspective):**
-  The reset endpoint (`/api/setup/reset-db`) wiped in-memory arrays and PostgreSQL tables on the server. However, Kirana shopping carts were preserved client-side in the browser's `localStorage` under `isolabs_draft_cart_${retailerId}` and `isolabs_draft_cart` (to support offline resilience and prevent shopping basket loss). Because the browser client never received an explicit signal to invalidate its local storage, navigating to `/catalogue` or `/cart` immediately reloaded the stale draft cart from the browser cache.
+  The reset endpoint (`/api/setup/reset-db`) wiped in-memory arrays and PostgreSQL tables on the server. However, Kirana shopping carts were preserved client-side in the browser's `localStorage` under `draft_cart_{shopId}` and `isolabs_draft_cart` (to support offline resilience and prevent shopping basket loss). Because the browser client never received an explicit signal to invalidate its local storage, navigating to `/catalogue` or `/cart` immediately reloaded the stale draft cart from the browser cache.
 - **UX & Functional Resolution:**
   1. **Synchronous Client Purge (`clearAllKiranaClientData` in [`cart-storage.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/catalogue/cart-storage.ts)):** Built a dedicated storage purge utility that scans `localStorage` keys and purges all draft carts (`isolabs_draft_cart*`), media attachments (`isolabs_order_media*`), retailer IDs (`isolabs_current_retailer_id`), and quick order drafts (`isolabs_quick_order_draft`), while strictly preserving non-transient preferences (like `isolabs_lang`).
   2. **Multi-Channel Cross-Tab Broadcast:**

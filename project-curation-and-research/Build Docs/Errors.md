@@ -94,7 +94,7 @@ This document records every error, build failure, test failure, runtime issue, a
   2. `CheckoutItemSchema` in `src/app/api/orders/checkout/route.ts` enforced `quantityCases: z.number().min(1)`, which rejected loose retail packets if `quantityCases === 0`.
 - **Resolution / Fix:**
   1. Built regex pre-processor `extractAndStripExplanatoryClause` to detect and strip clauses like `"where a case contains 24 pkts"` while extracting `caseCapacityMentioned`.
-  2. Boosted category matching weight to `+0.55` so colloquial single-word queries (`1 pkt of tea`, `2 sabun`, `5 biscuit`) match cleanly with high confidence ($\ge 0.75$).
+  2. Boosted category matching weight to `+0.55` so colloquial single-word queries (`1 pkt of tea`, `2 sabun`, `5 biscuit`) match cleanly with high confidence (>= 0.75$).
   3. Added `quantityPacks` support to `CartItem`, `LineCalculation`, `CheckoutItemSchema`, and `StoredOrderItem`, allowing seamless single-packet ordering and dual-stepper UI.
 - **Prevention:** Always separate descriptive conversational context clauses from core item quantity-unit pairs prior to catalogue dictionary matching.
 
@@ -292,7 +292,7 @@ This document records every error, build failure, test failure, runtime issue, a
   AssertionError: expected { id: 'SKU-TE-TT500', name: 'Tata Tea Gold 500 g' } to be null
   ```
 - **Root Cause Analysis:** Accidental single 3-gram match (`"ata"` in query token `"catalog"` matching `"Tata"`) assigned raw trigram score 0.074. Because `maxRrf = 3.0 / (k + 1)` was statically assuming all 3 rankers were active, ranker gating was absent and items with zero match were getting ranked arbitrarily. Single 3-gram collisions were generating false positive catalog matches for nonsense words.
-- **Resolution / Fix:** Implemented dynamic `numActiveRankers` normalization (`maxRrf = Math.max(1, numActiveRankers) / (k + 1)`) and relevance threshold filters on Trigram ($\ge 0.20$), Keyword ($\ge 0.30$), and Phonetic ($\ge 0.50$). Items below threshold receive 0 reciprocal contribution.
+- **Resolution / Fix:** Implemented dynamic `numActiveRankers` normalization (`maxRrf = Math.max(1, numActiveRankers) / (k + 1)`) and relevance threshold filters on Trigram (>= 0.20$), Keyword (>= 0.30$), and Phonetic (>= 0.50$). Items below threshold receive 0 reciprocal contribution.
 - **Prevention:** Always enforce minimum relevance floors on individual IR rankers prior to reciprocal rank fusion.
 
 - **Date & Time:** 2026-11-04 22:51:00
@@ -329,7 +329,7 @@ This document records every error, build failure, test failure, runtime issue, a
 
 ---
 
-### [ERR-032] Out-of-Catalog AI Rejection Failure ("Chips" $\to$ Good Day Cookies @ 98% Confidence)
+### [ERR-032] Out-of-Catalog AI Rejection Failure ("Chips" -> Good Day Cookies @ 98% Confidence)
 - **Date & Time:** 2026-11-05 01:25:00
 - **Module:** Module 5 - Vernacular Order AI Engine / Candidate Retrieval & Platt Calibration
 - **Phase:** Live Verification & End-to-End Testing

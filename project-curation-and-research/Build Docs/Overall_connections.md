@@ -46,9 +46,9 @@ Screen 11: 14-Day Dormant Kiranas  /desk?tab=dormant Order Desk/Sales  Churn Ris
 - **Database Entities:** `users`, `otps`, `retailers` in [`src/db/store.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/db/store.ts).
 - **Automated Tests:** [`src/__tests__/auth.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/auth.test.ts) (13 tests passing).
 - **Data Flow:**
-  1. Merchant types 10-digit mobile number $\rightarrow$ `lookup-phone` endpoint provides live feedback showing shop trade name and available credit.
-  2. Merchant taps **"Send OTP"** $\rightarrow$ `POST /api/auth/send-otp` calls `createAndSendOtp()`, stores SHA-256 hash in `otps` table, logs code in development console (or sends via SMS gateway).
-  3. Merchant enters 6 digits $\rightarrow$ `POST /api/auth/verify-otp` validates code in constant-time, consumes token, mints a signed HS256 JWT containing `{ userId, phone, role, retailerId, name }`, and attaches an HTTP-Only cookie.
+  1. Merchant types 10-digit mobile number -> `lookup-phone` endpoint provides live feedback showing shop trade name and available credit.
+  2. Merchant taps **"Send OTP"** -> `POST /api/auth/send-otp` calls `createAndSendOtp()`, stores SHA-256 hash in `otps` table, logs code in development console (or sends via SMS gateway).
+  3. Merchant enters 6 digits -> `POST /api/auth/verify-otp` validates code in constant-time, consumes token, mints a signed HS256 JWT containing `{ userId, phone, role, retailerId, name }`, and attaches an HTTP-Only cookie.
   4. Response returns redirect URL (`/desk` for clerk, `/catalogue` for retailer).
 
 ---
@@ -113,11 +113,11 @@ Screen 11: 14-Day Dormant Kiranas  /desk?tab=dormant Order Desk/Sales  Churn Ris
 - **Automated Tests:** [`src/__tests__/schemes.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/schemes.test.ts) (13 tests), [`src/__tests__/orders.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/orders.test.ts) (4 tests).
 - **Data Flow:**
   1. Cart retrieves lines from `cartStore`. Runs `calculateOrderSummary()` to produce itemized taxable value, CGST (9.0% or 2.5%), SGST (9.0% or 2.5%), and grand total.
-  2. B2B Credit Headroom Meter compares $\text{Current Balance} + \text{Order Total}$ against $\text{Credit Limit}$.
+  2. B2B Credit Headroom Meter compares Current Balance + Order Total against Credit Limit.
   3. Retailer taps **"Place Order"**.
-  4. `POST /api/orders/checkout` validates session, re-calculates invoice authoritatively on server, checks physical warehouse stock for $\text{orderedCases} + \text{freeCases}$ (`[A30]`), decrements inventory, and checks credit headroom:
-     - If exposure $\le$ limit $\rightarrow$ status is set to `PLACED`.
-     - If exposure $>$ limit $\rightarrow$ status is set to `CREDIT_HOLD` (`[A14]`, `[A29]`).
+  4. `POST /api/orders/checkout` validates session, re-calculates invoice authoritatively on server, checks physical warehouse stock for orderedCases + freeCases (`[A30]`), decrements inventory, and checks credit headroom:
+     - If exposure <= limit -> status is set to `PLACED`.
+     - If exposure > limit -> status is set to `CREDIT_HOLD` (`[A14]`, `[A29]`).
   5. Clears active cart state and navigates to `/orders`.
 
 ---
@@ -199,10 +199,10 @@ Screen 11: 14-Day Dormant Kiranas  /desk?tab=dormant Order Desk/Sales  Churn Ris
 - **Automated Tests:** [`src/__tests__/desk.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/desk.test.ts) (8 tests), [`src/__tests__/tally.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/tally.test.ts) (8 tests), [`src/__tests__/manifest.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/manifest.test.ts) (4 tests), [`src/__tests__/dormant.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/dormant.test.ts) (4 tests).
 - **Data Flow:**
   - **Tab 1: Orders Queue:** Renders high-density table of all Jabalpur orders with live status filtering (`Needs Review`, `Credit Hold`, `Confirmed`, `Exported`).
-  - **Tab 2: Credit Holds:** Lists orders flagged under `CREDIT_HOLD`. Clerk reviews customer history, taps "Release Hold", submits required operational justification note $\rightarrow$ transitions order to `VERIFIED` with atomic OCC increment (`[A37]`).
-  - **Tab 3: Van Loading Manifest (Screen 10):** Selects delivery beat route $\rightarrow$ calculates aggregated warehouse pick list (`totalCases = paidCases + freeCases`), approximate payload weight, and drop stop sequence (`[A22]`, `[A41]`, `[A42]`).
-  - **Tab 4: 14-Day Dormant Dashboard (Screen 11):** Lists kirana stores inactive for $\ge 14$ days. Stratifies churn risk into High Risk (14–20 days) and Critical Churn ($\ge 21$ days). Provides 1-tap WhatsApp deep link pre-filling personalized Devanagari Hindi re-order text (`[A23]`, `[A43]`, `[A44]`).
-  - **Batch Export to Tally:** Clerk selects verified orders $\rightarrow$ clicks "Export to Tally XML" $\rightarrow$ streams `tally-export-YYYYMMDD.xml` with native `<ACTUALQTY>` vs `<BILLEDQTY>` and zero-sum double-entry balance, updating order status to `EXPORTED_TALLY` (`[A39]`, `[A40]`).
+  - **Tab 2: Credit Holds:** Lists orders flagged under `CREDIT_HOLD`. Clerk reviews customer history, taps "Release Hold", submits required operational justification note -> transitions order to `VERIFIED` with atomic OCC increment (`[A37]`).
+  - **Tab 3: Van Loading Manifest (Screen 10):** Selects delivery beat route -> calculates aggregated warehouse pick list (`totalCases = paidCases + freeCases`), approximate payload weight, and drop stop sequence (`[A22]`, `[A41]`, `[A42]`).
+  - **Tab 4: 14-Day Dormant Dashboard (Screen 11):** Lists kirana stores inactive for >= 14 days. Stratifies churn risk into High Risk (14–20 days) and Critical Churn (>= 21 days). Provides 1-tap WhatsApp deep link pre-filling personalized Devanagari Hindi re-order text (`[A23]`, `[A43]`, `[A44]`).
+  - **Batch Export to Tally:** Clerk selects verified orders -> clicks "Export to Tally XML" -> streams `tally-export-YYYYMMDD.xml` with native `<ACTUALQTY>` vs `<BILLEDQTY>` and zero-sum double-entry balance, updating order status to `EXPORTED_TALLY` (`[A39]`, `[A40]`).
 
 ---
 
@@ -308,42 +308,42 @@ flowchart TD
 
 ### Detailed Inter-Module Calculation Specifications
 
-#### Step 1: User Utterance $\rightarrow$ Structured Demand Translation
+#### Step 1: User Utterance -> Structured Demand Translation
 - **Files Involved:** [`src/lib/ai/text-parser.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/ai/text-parser.ts), [`src/lib/catalogue/cart-store.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/catalogue/cart-store.ts)
 - **Calculation & Logic:**
   1. **Context Clause Stripping:** Regex pattern `extractAndStripExplanatoryClause` identifies explanatory clauses like `"where a case contains 24 pkts"`, isolating packaging numbers so they do not contaminate the item order quantity.
-  2. **Numeral Normalization (`[A34]`):** Converts Devanagari numerals (`०-९`) $\rightarrow$ Arabic (`0-9`) and transliterates word numerals (*ek*, *do*, *paanch*, *दो*) $\rightarrow$ numeric integers.
+  2. **Numeral Normalization (`[A34]`):** Converts Devanagari numerals (`०-९`) -> Arabic (`0-9`) and transliterates word numerals (*ek*, *do*, *paanch*, *दो*) -> numeric integers.
   3. **Unit Mapping (`[A16]`):** Wholesale tokens (`peti`, `case`, `carton`, `box`) map to `quantityCases`. Loose tokens (`packet`, `pkt`, `piece`, `pcs`) map to `quantityPacks`.
   4. **Ambiguity Guardrail:** If an item name is specified without a unit (e.g. *"5 biscuit"*), `isAmbiguous` is set to `true`, halting direct ordering until the merchant selects **Cases** or **Loose Packs** on Screen 5.
   5. **Broken Master Case (`[A36]`):** When a user asks for loose quantities under a case capacity (*"case of 20 mai se 15"*), the parser computes `BROKEN_CASE`, offering 1 full case roundup (20 packs) or 15 loose packs.
 
-#### Step 2: Demand $\rightarrow$ Universal Scheme Engine Live Calculations
+#### Step 2: Demand -> Universal Scheme Engine Live Calculations
 - **File Involved:** [`src/lib/schemes/engine.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/lib/schemes/engine.ts)
 - **Calculation & Logic:**
   1. **Gross Line Amount:**
-     $$\text{grossAmount} = (\text{orderedCases} \times \text{dealerPrice}) + (\text{orderedPacks} \times \text{packPrice})$$
-     Where $\text{packPrice} = \text{dealerPrice} / \text{unitsPerCase}$ pro-rata.
+     $grossAmount = (orderedCases * dealerPrice) + (orderedPacks * packPrice)
+     Where packPrice = dealerPrice / unitsPerCase pro-rata.
   2. **Free Goods Scheme Formula (`[A11]`):**
-     $$\text{freeCases} = \left\lfloor \frac{\text{orderedCases}}{\text{buyQty}} \right\rfloor \times \text{getFreeQty}$$
+     freeCases = <=ft\lfloor \frac{orderedCases}{buyQty} \right\rfloor * getFreeQty
      Free goods are delivered at ₹0.00 taxable value (Circular 92/11/2019-GST). If `freeSkuId` is configured, promotional cases are credited under the secondary SKU (`[A46]`).
   3. **Multi-Tier Progressive Slab Ladders (`[A45]`):**
      Configured tiers (e.g., `[{ minCases: 5, discountPct: 3 }, { minCases: 10, discountPct: 5 }, { minCases: 20, discountPct: 8 }]`) are scanned descending. The engine selects the single highest qualifying tier:
-     $$\text{discountAmount} = \text{round}\left( \text{grossAmount} \times \frac{\text{selectedTierPct}}{100} \right)$$
+     discountAmount = round<=ft( grossAmount * \frac{selectedTierPct}{100} \right)
   4. **Flat Trade Cash Rebates (`[A47]`):**
-     If $\text{orderedCases} \ge \text{minCasesForRebate}$, $\text{discountAmount} = \text{orderedCases} \times \text{flatPerCase}$.
+     If orderedCases >= minCasesForRebate, discountAmount = orderedCases * flatPerCase.
   5. **Taxable Amount:**
-     $$\text{taxableAmount} = \max(0, \text{grossAmount} - \text{discountAmount})$$
+     taxableAmount = \max(0, grossAmount - discountAmount)
   6. **Intra-State MP GST Split (`[A2]`):**
-     $$\text{CGST} = \text{round}\left( \text{taxableAmount} \times \frac{\text{gstRate} / 2}{100} \right), \quad \text{SGST} = \text{round}\left( \text{taxableAmount} \times \frac{\text{gstRate} / 2}{100} \right)$$
+     CGST = round<=ft( taxableAmount * \frac{gstRate / 2}{100} \right), \quad SGST = round<=ft( taxableAmount * \frac{gstRate / 2}{100} \right)
   7. **Double-Entry Round-Off Balancing (`[A40]`):**
-     $$\text{unroundedGrandTotal} = \text{taxableAmount} + \text{CGST} + \text{SGST}$$
-     $$\text{grandTotal} = \text{round}(\text{unroundedGrandTotal}), \quad \text{roundOff} = \text{grandTotal} - \text{unroundedGrandTotal}$$
+     unroundedGrandTotal = taxableAmount + CGST + SGST
+     grandTotal = round(unroundedGrandTotal), \quad roundOff = grandTotal - unroundedGrandTotal
 
-#### Step 3: Pricing $\rightarrow$ Checkout Transaction & Inventory Deduction
+#### Step 3: Pricing -> Checkout Transaction & Inventory Deduction
 - **Files Involved:** [`src/app/api/orders/checkout/route.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/orders/checkout/route.ts), [`src/db/store.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/db/store.ts)
 - **Calculation & Logic:**
   1. **Physical Warehouse Stock Lock Assertion (`[A30]`):**
-     $$\text{stockNeeded} = \text{orderedCases} + \text{freeCases}$$
+     stockNeeded = orderedCases + freeCases
      The checkout route asserts `sku.stockCases >= stockNeeded`. If physical stock is insufficient, the transaction aborts with `HTTP 400 Insufficient Inventory`.
   2. **Atomic Inventory Decrement:**
      Inside `dbStore.createOrder()`, stock is deducted atomically:
@@ -351,18 +351,18 @@ flowchart TD
      sku.stockCases -= (line.orderedCases + (line.freeCases || 0));
      ```
   3. **Credit Headroom Calculation (`[A14]`):**
-     $$\text{Total Exposure} = \text{retailer.currentBalance} + \text{invoice.grandTotal}$$
-     - If $\text{Total Exposure} \le \text{retailer.creditLimit} \rightarrow \text{status} = \text{'PLACED'}$.
-     - If $\text{Total Exposure} > \text{retailer.creditLimit} \rightarrow \text{status} = \text{'CREDIT_HOLD'}$ (`[A29]`).
-  4. **Ledger Update:** The retailer's outstanding receivables balance increases by $\text{invoice.grandTotal}$.
+     Total Exposure = retailer.currentBalance + invoice.grandTotal
+     - If Total Exposure <= retailer.creditLimit -> status = 'PLACED'.
+     - If Total Exposure > retailer.creditLimit -> status = 'CREDIT_HOLD' (`[A29]`).
+  4. **Ledger Update:** The retailer's outstanding receivables balance increases by invoice.grandTotal.
 
 #### Step 4: Desk Line Editing & Warehouse Inventory Delta Balancing
 - **Files Involved:** [`src/app/api/desk/orders/[id]/route.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/api/desk/orders/[id]/route.ts), [`src/db/store.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/db/store.ts)
 - **Calculation & Logic:**
   1. When a clerk modifies lines on Screen 8, `dbStore.updateOrderLinesWithOcc()` calculates the **Inventory Delta**:
-     $$\Delta\text{Cases} = \text{newLineCases} - \text{oldLineCases}$$
-     - If $\Delta\text{Cases} > 0$: Warehouse stock is decremented by $\Delta\text{Cases}$.
-     - If $\Delta\text{Cases} < 0$: Warehouse stock is replenished by $|\Delta\text{Cases}|$.
+     \DeltaCases = newLineCases - oldLineCases
+     - If \DeltaCases > 0: Warehouse stock is decremented by \DeltaCases.
+     - If \DeltaCases < 0: Warehouse stock is replenished by |\DeltaCases|.
   2. **Authoritative Scheme Recalculation (`[A38]`):** Re-runs `calculateOrderSummary()` to update promotional free goods, slab discounts, and 50/50 tax lines.
   3. **Optimistic Concurrency Control (`[A19]`):** Asserts `expectedOccVersion === order.occVersion`. If another clerk edited concurrently, rejects with `HTTP 409 Conflict`. On save, `order.occVersion` increments by 1.
   4. **Retailer Alias Auto-Learning (`[A20]`):** If the clerk changed the SKU, the system inserts the customer's raw phrase and the new SKU ID into `retailer_aliases` (`times_used += 1`), permanently training future NLP intake.
@@ -377,8 +377,8 @@ flowchart TD
      - Sum of all ledger amounts strictly balances to zero (`0.00`).
   2. **Van Route Manifest (`[A41]`, `[A42]`):**
      - Groups orders by van delivery beat (e.g. *Route 4 - Napier Town*).
-     - Sums total master cases: $\sum (\text{paidCases} + \text{freeCases})$ so loaders never miss promotional cartons.
-     - Computes approximate cargo payload: $\text{Weight (kg)} = \sum (\text{totalCases} \times \text{kgPerCase})$ to prevent vehicle axle overload.
+     - Sums total master cases: \sum (paidCases + freeCases) so loaders never miss promotional cartons.
+     - Computes approximate cargo payload: Weight (kg) = \sum (totalCases * kgPerCase) to prevent vehicle axle overload.
 
 ---
 
@@ -531,7 +531,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
   - Tier 2: Static Mandi trade lexicon (`mandiTradeDict`) covering commodity food items, personal care, package formats, brands, and shop prefixes.
   - Tier 3: Algorithmic phonetic syllable converter handling aspirated consonants (`bh`, `dh`, `kh`, `gh`), consonant clusters, and Devanagari numerals (`०-९`).
 - **`src/lib/catalogue/cart-storage.ts`**:
-  - `saveScopedCart`, `loadScopedCart`, `clearScopedCart`: Scopes draft cart storage per Kirana store (`isolabs_draft_cart_${retailerId}`) with zero-drop dual-writing and auto-migration fallback (`[A50]`, `[A53]`).
+  - `saveScopedCart`, `loadScopedCart`, `clearScopedCart`: Scopes draft cart storage per Kirana store (`isolabs_draft_cart_{retailerId}`) with zero-drop dual-writing and auto-migration fallback (`[A50]`, `[A53]`).
 - **`src/lib/catalogue/inventory-events.ts` & `src/lib/catalogue/useLiveStock.ts`**:
   - Quad-layer real-time stock synchronization engine (`[A52]`): BroadcastChannel (0ms local), Server-Sent Events (SSE network stream), adaptive versioned polling (2.5s fallback), and Neon database hydration.
 - **`src/lib/schemes/engine.ts`**:
@@ -549,14 +549,14 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/lib/ai/vaani-asr.ts`**:
   - ARTPARK-IISc Vaani Hindi Speech Recognition client (`[A58]`). Queries Hugging Face serverless endpoints trained on the 14,000-hour multi-district Indian dialect corpus with circuit-breaker timeout protection.
 - **`src/lib/ai/multimodal.ts`**:
-  - Unified multimodal perception layer orchestrating 3-tier audio ASR (Vaani Whisper $\to$ Gemini Audio $\to$ Jabalpur Mandi simulation) and 2-tier handwritten slip vision (Gemini 2.5 Flash Vision $\to$ Authentic Kirana slip simulation).
+  - Unified multimodal perception layer orchestrating 3-tier audio ASR (Vaani Whisper -> Gemini Audio -> Jabalpur Mandi simulation) and 2-tier handwritten slip vision (Gemini 2.5 Flash Vision -> Authentic Kirana slip simulation).
 - **`src/lib/tally/xml-builder.ts`**:
   - Tally ERP 9 / TallyPrime compliant XML batch export engine (`[A21]`).
   - Generates native `<ACTUALQTY>` vs `<BILLEDQTY>` scheme tags (`[A39]`) and zero-sum double-entry accounting lines (`[A40]`).
 - **`src/lib/logistics/van-manifest.ts`**:
   - Aggregates confirmed orders by delivery route into consolidated warehouse pick sheets (`totalCases = paidCases + freeCases`) and computes payload weights (`[A22]`, `[A41]`, `[A42]`).
 - **`src/lib/retention/dormancy.ts`**:
-  - Inactivity calculator filtering accounts dormant for $\ge 14$ days, stratifying churn risk into High Risk vs Critical Churn, and formatting pre-filled Hindi WhatsApp re-order nudges (`[A23]`, `[A43]`, `[A44]`).
+  - Inactivity calculator filtering accounts dormant for >= 14 days, stratifying churn risk into High Risk vs Critical Churn, and formatting pre-filled Hindi WhatsApp re-order nudges (`[A23]`, `[A43]`, `[A44]`).
 
 ---
 
@@ -635,7 +635,7 @@ Every file in `distributor-app` has a single, well-defined responsibility:
 - **`src/app/api/desk/van-manifest/route.ts`**:
   - `GET`: Generates route-level warehouse picking lists aggregating master cases by SKU, vehicle cargo payload weights, and sequential delivery stop challans (`[A22]`, `[A41]`, `[A42]`).
 - **`src/app/api/desk/dormant/route.ts`**:
-  - `GET`: Analyzes kirana account activity, filters accounts with zero orders in $\ge 14$ days, computes churn risk tiers, and builds pre-filled Hindi WhatsApp re-order nudges (`[A23]`, `[A43]`, `[A44]`).
+  - `GET`: Analyzes kirana account activity, filters accounts with zero orders in >= 14 days, computes churn risk tiers, and builds pre-filled Hindi WhatsApp re-order nudges (`[A23]`, `[A43]`, `[A44]`).
 
 ---
 

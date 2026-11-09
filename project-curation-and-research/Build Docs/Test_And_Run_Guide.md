@@ -2,6 +2,13 @@
 
 This document is your hands-on operational runbook to run, verify, and debug every component of the Distributor Order Management System—both **individually** (unit tests, API endpoints, single screens, isolated services) and **collectively** (full test suites, end-to-end user journeys, production builds, route protection).
 
+> **Live Production Deployment:** https://distributor-order-management-system.vercel.app/login  
+> **GitHub Repository:** https://github.com/manva-niso/Distributor-Order-Management-System.git  
+> **Reviewer Sandbox Logins (Master OTP: `123456` or `716716`):**  
+> • Retailer: `9826000001`  
+> • Desk Clerk: `9826000099`  
+> • Salesman: `9826000050`
+
 ---
 
 ## 1. Quick-Start Cheat Sheet
@@ -10,7 +17,7 @@ From the `distributor-app/` directory:
 
 | What You Want To Do | Command | What It Verifies |
 | :--- | :--- | :--- |
-| **Run all tests collectively** | `npm run test` | Executes all 24 Vitest test suites (190 tests) across all modules in <4 seconds. |
+| **Run all tests collectively** | `npm run test` | Executes all 25 test suites (191 tests) in app + 7 suites (68 tests) in engine = **259 tests total** in <5 seconds. |
 | **Run tests in watch mode** | `npm run test:watch` | Reruns tests on every file save during development. |
 | **Test Module 1 (Auth) only** | `npx vitest run src/__tests__/auth.test.ts` | Runs the 13 isolated auth, cryptographic OTP, and JWT tests. |
 | **Test Concurrency Lock only** | `npx vitest run src/__tests__/session-lock.test.ts` | Runs 6 single-writer concurrency lock & force-logout tests (`[A49]`). |
@@ -22,8 +29,8 @@ From the `distributor-app/` directory:
 | **Test Module 4 (Orders) only** | `npx vitest run src/__tests__/orders.test.ts` | Runs the 4 order creation, credit hold, and OCC tests. |
 | **Test Excel Importer only** | `npx vitest run src/__tests__/excel-import.test.ts` | Runs the 4 Excel template generation and workbook parsing tests. |
 | **Test Module 5 (Text Parser) only** | `npx vitest run src/__tests__/text-parser.test.ts` | Runs the 26 multilingual text parser, broken case, and ambiguity guardrail tests. |
-| **Test ML Parity (Python/TS) only** | `npx vitest run src/__tests__/ml-parity.test.ts` | Runs 4 zero-divergence mathematical parity tests ($<10^{-14}$ max diff) and sub-millisecond latency benchmarks. |
-| **Run 3-Way Engine Benchmark** | `npx tsx src/lib/ai/ml/three_way_benchmark.ts` | Benchmarks Baseline vs V2 Learned Scorer vs V3 Enhanced Learned Scorer across 444 test queries. |
+| **Test ML Parity (Python/TS) only** | `npx vitest run src/__tests__/ml-parity.test.ts` | Runs 4 zero-divergence mathematical parity tests (diff < 1e-14) and sub-millisecond latency benchmarks. |
+| **Run 3-Way Engine Benchmark** | `npx tsx src/lib/ai/ml/three_way_benchmark.ts` | Benchmarks Original V1 Baseline vs Intermediate V2 Scorer vs V3 Enhanced (Production App on Main) across 444 test queries. |
 | **Test Module 6 (Order Desk) only** | `npx vitest run src/__tests__/desk.test.ts` | Runs the 9 Order Desk triage, OCC concurrency collision, line editing, and alias learning tests. |
 | **Test Module 7 (Tally XML) only** | `npx vitest run src/__tests__/tally.test.ts` | Runs the 8 Tally XML voucher, Actual vs Billed scheme quantities, and double-entry balancing tests. |
 | **Test Module 8 (Van Manifest) only** | `npx vitest run src/__tests__/manifest.test.ts` | Runs the 4 route aggregation, case picking totals, stop sequencing, and payload weight tests. |
@@ -68,18 +75,18 @@ Tests instant merchant store identification before sending OTP:
 *PowerShell:*
 ```powershell
 # Known Retailer (Sharma Kirana)
-Invoke-RestMethod -Uri "http://localhost:3000/api/auth/lookup-phone?phone=9826000001" -Method GET | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/lookup-phone?phone=9826000001" -Method GET | ConvertTo-Json
 
 # Known Desk Clerk
-Invoke-RestMethod -Uri "http://localhost:3000/api/auth/lookup-phone?phone=9826000099" -Method GET | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/lookup-phone?phone=9826000099" -Method GET | ConvertTo-Json
 
 # Unregistered Phone
-Invoke-RestMethod -Uri "http://localhost:3000/api/auth/lookup-phone?phone=9999999999" -Method GET | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/lookup-phone?phone=9999999999" -Method GET | ConvertTo-Json
 ```
 
 *cURL / Bash:*
 ```bash
-curl -X GET "http://localhost:3000/api/auth/lookup-phone?phone=9826000001"
+curl -X GET "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/lookup-phone?phone=9826000001"
 ```
 
 *Expected Output (Retailer):*
@@ -100,13 +107,13 @@ curl -X GET "http://localhost:3000/api/auth/lookup-phone?phone=9826000001"
 *PowerShell:*
 ```powershell
 $body = @{ phone = "9826000001" } | ConvertTo-Json
-$res = Invoke-RestMethod -Uri "http://localhost:3000/api/auth/send-otp" -Method POST -Body $body -ContentType "application/json"
+$res = Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/send-otp" -Method POST -Body $body -ContentType "application/json"
 $res | ConvertTo-Json
 ```
 
 *cURL / Bash:*
 ```bash
-curl -X POST "http://localhost:3000/api/auth/send-otp" \
+curl -X POST "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/send-otp" \
   -H "Content-Type: application/json" \
   -d '{"phone": "9826000001"}'
 ```
@@ -134,7 +141,7 @@ $body = @{ phone = "9826000001"; otp = $otpCode } | ConvertTo-Json
 
 # Include session container to capture the HTTP-Only cookie
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-$verifyRes = Invoke-RestMethod -Uri "http://localhost:3000/api/auth/verify-otp" -Method POST -Body $body -ContentType "application/json" -WebSession $session
+$verifyRes = Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/verify-otp" -Method POST -Body $body -ContentType "application/json" -WebSession $session
 $verifyRes | ConvertTo-Json
 ```
 
@@ -161,7 +168,7 @@ $verifyRes | ConvertTo-Json
 *PowerShell:*
 ```powershell
 # Passes the session cookie captured in step 3
-Invoke-RestMethod -Uri "http://localhost:3000/api/auth/me" -Method GET -WebSession $session | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/me" -Method GET -WebSession $session | ConvertTo-Json
 ```
 
 *Expected Output:*
@@ -193,14 +200,14 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/auth/me" -Method GET -WebSessi
 
 *PowerShell:*
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:3000/api/auth/logout" -Method POST -WebSession $session | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/auth/logout" -Method POST -WebSession $session | ConvertTo-Json
 ```
 
 ---
 
 ### C. Testing UI Screens Individually in the Browser
 
-Open your browser to: [**http://localhost:3000/login**](http://localhost:3000/login)
+Open your browser to: [**https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/login**](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/login)
 
 | Test Case | How To Test | Expected Behavior |
 | :--- | :--- | :--- |
@@ -257,7 +264,7 @@ npx vitest run src/__tests__/text-parser.test.ts
 *PowerShell:*
 ```powershell
 $body = @{ text = "bhaiya 5 peti biscuit chhota`n2 peti ghadi powder 1 kg" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://localhost:3000/api/capture/parse-text" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/capture/parse-text" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
 ```
 
 ---
@@ -280,11 +287,11 @@ npx vitest run src/__tests__/desk.test.ts
 #### Testing Desk Endpoints via CLI / PowerShell:
 ```powershell
 # 1. Fetch Orders Queue with Status Filter
-Invoke-RestMethod -Uri "http://localhost:3000/api/desk/orders?status=CREDIT_HOLD" -Method GET | ConvertTo-Json -Depth 3
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/desk/orders?status=CREDIT_HOLD" -Method GET | ConvertTo-Json -Depth 3
 
 # 2. Release Credit Hold on Order ORD-10483
 $body = @{ expectedOccVersion = 1; authorizedBy = "Amit Jain"; approvalNote = "Cash on delivery approved" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://localhost:3000/api/desk/orders/ORD-10483/release-hold" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json
+Invoke-RestMethod -Uri "https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/api/desk/orders/ORD-10483/release-hold" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json
 ```
 
 ---
@@ -293,11 +300,11 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/desk/orders/ORD-10483/release-
 
 | Starting State | Attempted URL | Expected Result | Reason |
 | :--- | :--- | :--- | :--- |
-| **Logged Out** | `http://localhost:3000/catalogue` | Redirects to `/login?redirect=/catalogue` | Unauthenticated access blocked by middleware. |
-| **Logged Out** | `http://localhost:3000/desk` | Redirects to `/login?redirect=/desk` | Desk route requires authentication. |
-| **Logged In as Retailer** | `http://localhost:3000/desk` | Redirects to `/catalogue` | **Role Enforcement:** Retailers cannot access Order Desk screens. |
-| **Logged In as Desk Clerk** | `http://localhost:3000/desk` | Allows access (`200 OK`) | Permitted for `role: "desk"`. |
-| **Logged In as Any Role** | `http://localhost:3000/login` | Redirects to `/catalogue` or `/desk` | Already authenticated users do not see the login screen. |
+| **Logged Out** | `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/catalogue` | Redirects to `/login?redirect=/catalogue` | Unauthenticated access blocked by middleware. |
+| **Logged Out** | `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/desk` | Redirects to `/login?redirect=/desk` | Desk route requires authentication. |
+| **Logged In as Retailer** | `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/desk` | Redirects to `/catalogue` | **Role Enforcement:** Retailers cannot access Order Desk screens. |
+| **Logged In as Desk Clerk** | `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/desk` | Allows access (`200 OK`) | Permitted for `role: "desk"`. |
+| **Logged In as Any Role** | `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/login` | Redirects to `/catalogue` or `/desk` | Already authenticated users do not see the login screen. |
 
 ---
 
@@ -368,7 +375,7 @@ All test suites are fully automated and pass in <4 seconds with zero network dep
 
 In addition to automated CLI unit tests, you can visually test multimodal ingestion and knowledge graph disambiguation in the browser:
 
-1. **Launch Browser:** Open `http://localhost:3000/quick-order` (log in as Retailer: `9826000001` with OTP `123456`).
+1. **Launch Browser:** Open `https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/quick-order` (log in as Retailer: `9826000001` with OTP `123456`).
 2. **Authentic 17-Line Kirana Slip Test:**
    - Under the photo upload area, tap the purple button: **`"Try Authentic Kirana Slip (17 Items)"`**.
    - The app loads `/samples/kirana_slip_sample.png`, downscales it via offscreen canvas `[A60]`, sends it through multimodal OCR, and parses all 17 handwritten items (*कनकी, सर्फ, बेसन, चने की दाल, बर्तन की साबुन, नहाने की साबुन...*).

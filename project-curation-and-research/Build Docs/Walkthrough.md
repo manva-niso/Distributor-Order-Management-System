@@ -2,7 +2,11 @@
 
 > **Document Status:** Authoritative Master Walkthrough & Deliverables Verification Guide  
 > **Target Audience:** First-Time Evaluators, FMCG Distributors, Software Architects, and Field Clerks  
-> **Live App URL:** [http://localhost:3000](http://localhost:3000)  
+> **Live Production URL:** https://distributor-order-management-system.vercel.app/login (or `http://localhost:3000` locally)  
+> **Reviewer Sandbox Logins (Master OTP: `123456` or `716716`):**  
+> • Retailer: `9826000001`  
+> • Desk Clerk: `9826000099`  
+> • Salesman: `9826000050`  
 > **Component:** [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx)
 
 ---
@@ -35,7 +39,7 @@ flowchart LR
 - **Route:** [`/setup`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/setup/page.tsx)
 - **Customer Demand:** The distributor needs to upload their wholesale FMCG catalog or load the master catalog without being locked into fake pre-seeded orders.
 - **Action:**
-  1. Open [`/setup`](http://localhost:3000/setup). Verify that the database starts clean.
+  1. Open [`/setup`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/setup). Verify that the database starts clean.
   2. Click **"🌟 Master Wholesale FMCG (36 SKUs)"** (or upload your distributor Excel sheet).
 - **Observed Behavior:**
   - 36 SKUs (Parle, Britannia, Tata Tea, Fortune Oil, Ghadi, Surf Excel, Vim, Dettol) and 8 Kiranas on Jabalpur routes are written directly to **Neon PostgreSQL**.
@@ -64,16 +68,16 @@ flowchart LR
 - **Route:** [`/quick-order`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/quick-order/page.tsx)
 - **Customer Demand:** Kirana merchants order through informal WhatsApp text messages in Hinglish/Hindi rather than navigating nested menus.
 - **Action:**
-  1. Go to **Quick Order** ([`/quick-order`](http://localhost:3000/quick-order)).
+  1. Go to **Quick Order** ([`/quick-order`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/quick-order)).
   2. In the text area, paste this authentic Jabalpur order message:
      ```text
      bhaiya 5 peti biscuit chhota, 2 peti ghadi powder 1 kg
      ```
   3. Tap **"Process Order Text"**.
 - **Observed Behavior:**
-  - Line 1: `"5 peti biscuit chhota"` $\to$ Qty: 5, Unit: `CASE` (`peti`), SKU: `Parle-G 75g (SKU-BS-PG075)`. Confidence: **96%**.
+  - Line 1: `"5 peti biscuit chhota"` -> Qty: 5, Unit: `CASE` (`peti`), SKU: `Parle-G 75g (SKU-BS-PG075)`. Confidence: **96%**.
     - Scheme Nudge: *"Add 5 more cases to get 1 Free Case!"*
-  - Line 2: `"2 peti ghadi powder 1 kg"` $\to$ Qty: 2, Unit: `CASE`, SKU: `Ghadi Detergent Powder 1kg (SKU-DT-GH1KG)`. Confidence: **96%**.
+  - Line 2: `"2 peti ghadi powder 1 kg"` -> Qty: 2, Unit: `CASE`, SKU: `Ghadi Detergent Powder 1kg (SKU-DT-GH1KG)`. Confidence: **96%**.
     - Scheme Nudge: *"Add 3 more cases for 3% Slab Discount!"*
   4. Tap **"Confirm & Move to Cart"** and click **"Place Order"**.
 - **Observed Behavior:**
@@ -87,19 +91,19 @@ flowchart LR
 - **Route:** [`/catalogue`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/catalogue/page.tsx) & [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx)
 - **Customer Demand:** Live, transparent calculation of promotional trade schemes (Buy X Get Y Free, percentage slab discounts) and GST before committing capital.
 - **Action:**
-  1. Open [`/catalogue`](http://localhost:3000/catalogue).
+  1. Open [`/catalogue`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/catalogue).
   2. On **Parle-G 75g**, use the 48px stepper to increase quantity to **10 cases**.
      - Observe live badge: **`+1 Free Promotional Case Unlocked!`** (Delivered: 11 Cases, Valued at ₹0.00 per Circular 92/11/2019).
   3. On **Ghadi Detergent Powder 1kg** (or **Good Day Butter Cookies**), increase quantity to meet the bulk threshold (5 cases for Ghadi, or 4 cases for Good Day).
      - Observe live badge: **`Wholesale Slab Discount Applied!`** (3% on Ghadi Powder, 5% on Good Day).
-  4. Click **"View Cart"** ([`/cart`](http://localhost:3000/cart)).
+  4. Click **"View Cart"** ([`/cart`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/cart)).
 - **Observed Behavior:**
   - Line 1 (10 cs Parle-G Biscuit): Gross ₹7,776.00 | Free: 1 Case (`SKU-BS-PG075`) billed at ₹0.00 | Taxable: ₹7,776.00.
   - Line 2 (5 cs Ghadi Detergent): Gross ₹10,150.00 | 3% Slab Discount: -₹304.50 | Taxable: ₹9,845.50.
   - Subtotal Taxable: ₹17,621.50.
   - Madhya Pradesh Intra-State GST: CGST 9% (₹1,585.94) + SGST 9% (₹1,585.94) = Total GST ₹3,171.87.
   - Grand Total: ₹20,793.00 (with -₹0.37 half-up round-off).
-  5. Tap **"Place Order"** $\to$ Transmitted to Neon DB.
+  5. Tap **"Place Order"** -> Transmitted to Neon DB.
 
 ---
 
@@ -110,7 +114,7 @@ flowchart LR
 - **Action:**
   1. Click **Log Out** in the top header.
   2. On `/login`, click **"Sunil Clerk (Order Desk: 9826000099)"** and log in.
-  3. On [`/desk`](http://localhost:3000/desk), see the incoming orders from Sharma Kirana sitting in the live queue with badge `AI Text`.
+  3. On [`/desk`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/desk), see the incoming orders from Sharma Kirana sitting in the live queue with badge `AI Text`.
   4. Click **"Verify"** next to the WhatsApp order.
 - **Observed Behavior:**
   - Split-screen interface opens:
@@ -166,7 +170,7 @@ flowchart TD
 
 ### Step 8: Polysemic Packaging Unit (The "Dabba" Test — Invariant [A16])
 - **Route:** [`/quick-order`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/quick-order/page.tsx)
-- **The Edge Case:** In MP wholesale trade, `"dabba"` is polysemic—it can mean an inner carton (12 packs), an oil tin (15L), or a master case. Assuming a unit leads to $10\times$ billing errors.
+- **The Edge Case:** In MP wholesale trade, `"dabba"` is polysemic—it can mean an inner carton (12 packs), an oil tin (15L), or a master case. Assuming a unit leads to 10x billing errors.
 - **Action:**
   1. On `/quick-order`, tap test chip: **`⚖️ Ghee (1L vs 500ml)`** (or paste: `"5 dabba amul ghee"`).
   2. Tap **"Process Order Text"**.
@@ -192,7 +196,7 @@ flowchart TD
 ---
 
 ### Step 10: Credit Limit Breach & Credit Hold Clearance
-- **Route:** [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx) $\to$ [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx) $\to$ [`/desk`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/desk/page.tsx)
+- **Route:** [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx) -> [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx) -> [`/desk`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/desk/page.tsx)
 - **The Edge Case:** A shopkeeper with ₹0 available credit attempts to place an order. Many apps crash with dead buttons or reject the customer outright.
 - **Action:**
   1. Log out. Log in as **Gupta Daily Needs (`9826000003`)** (Credit Limit: ₹60,000, Current Outstanding: ₹58,000, Available: ₹2,000).
@@ -203,7 +207,7 @@ flowchart TD
   6. Switch to **"Credit Holds"** tab. View Gupta Daily Needs' ledger, outstanding balance, and credit limit.
   7. Tap **"Release Hold"**, type authorization note: `"Special Diwali credit extension granted by Owner"`, and click **"Approve & Release"**.
 - **Observed Behavior:**
-  - Order status transitions from `CREDIT_HOLD` $\to$ `CONFIRMED`.
+  - Order status transitions from `CREDIT_HOLD` -> `CONFIRMED`.
   - Written directly to Neon DB with audit notes.
 
 ---
@@ -270,7 +274,7 @@ flowchart TD
 ---
 
 ### Step 15: Persistent Order Re-hydration Across Relogin & Serverless Cold Starts (Invariant [A51])
-- **Route:** [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx) $\to$ [`/orders`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/orders/page.tsx) $\to$ [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
+- **Route:** [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx) -> [`/orders`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/orders/page.tsx) -> [`/login`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(auth)/login/page.tsx)
 - **The Edge Case:** In serverless cloud hosting (e.g. Vercel) or following dev server restarts, in-memory caches lose their state, causing shopkeepers to think their placed orders vanished upon relogin.
 - **Action:**
   1. Log in as Sharma Kirana (`9826000001`) and place an order for 2 cases of Parle-G (`ORD-2026-0001`).
@@ -310,13 +314,13 @@ flowchart TD
 ---
 
 ### Step 17: Quick-Order to Cart Zero-Drop Handshake & Fallback Hydration (Invariant [A53])
-- **Route:** [`/quick-order`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/quick-order/page.tsx) $\to$ [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx)
+- **Route:** [`/quick-order`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/quick-order/page.tsx) -> [`/cart`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/app/(portal)/cart/page.tsx)
 - **The Edge Case:** Users parsing vernacular orders before `retailerId` finishes loading asynchronously or under unauthenticated previews; clicking "Move to Cart" must never lose items or display an empty cart.
 - **Action:**
-  1. Open [`/quick-order`](http://localhost:3000/quick-order).
+  1. Open [`/quick-order`](https://distributor-order-management-system.vercel.app (or http://localhost:3000 locally)/quick-order).
   2. Enter or paste: `"bhaiya 5 peti biscuit chhota"`.
-  3. Click **"Parse Order Text"** $\to$ AI accurately resolves 5 cases of Parle-G Gluco Biscuit.
-  4. Click **"Move to Cart (1 items)"** $\to$ browser immediately navigates to `/cart`.
+  3. Click **"Parse Order Text"** -> AI accurately resolves 5 cases of Parle-G Gluco Biscuit.
+  4. Click **"Move to Cart (1 items)"** -> browser immediately navigates to `/cart`.
 - **Observed Behavior:**
   - `/cart` mounts with **0ms optimistic hydration** from local storage via `loadScopedCart()`.
   - The 5 cases of Parle-G are immediately rendered without blank-cart flashes.
@@ -336,21 +340,21 @@ flowchart TD
 - **Action:**
   1. In the header of `/catalogue` (or in the floating Walkthrough Guide header), tap **`हिन्दी`**.
   2. Observe immediate translation into authentic Jabalpur trade vernacular across the entire interface:
-     - *Wholesale Master Case* $\to$ **पूरी पेटी**
-     - *Loose Packs* $\to$ **खुले पैकेट**
-     - *Out of Stock* $\to$ **स्टॉक समाप्त**
-     - *Credit Limit* $\to$ **उधार सीमा**
-     - *Current Balance* $\to$ **बकाया राशि**
-     - *Place Order* $\to$ **ऑर्डर दर्ज करें**
-     - *Trade Slab Discount* $\to$ **थोक स्लैब छूट**
-     - *Scheme Free Goods* $\to$ **मुफ्त माल (स्कीम)**
-  3. Navigate across different screens: `/catalogue` $\to$ `/cart` $\to$ `/quick-order` $\to$ `/orders` $\to$ `/setup`.
+     - *Wholesale Master Case* -> **पूरी पेटी**
+     - *Loose Packs* -> **खुले पैकेट**
+     - *Out of Stock* -> **स्टॉक समाप्त**
+     - *Credit Limit* -> **उधार सीमा**
+     - *Current Balance* -> **बकाया राशि**
+     - *Place Order* -> **ऑर्डर दर्ज करें**
+     - *Trade Slab Discount* -> **थोक स्लैब छूट**
+     - *Scheme Free Goods* -> **मुफ्त माल (स्कीम)**
+  3. Navigate across different screens: `/catalogue` -> `/cart` -> `/quick-order` -> `/orders` -> `/setup`.
      - **Observed Behavior:** Language **never resets** to English! The selection is permanently persisted via `LanguageContext` (`localStorage` + 365-day cookie + cross-tab event bus).
   4. Observe the Walkthrough Guide itself:
      - All 18 steps, titles, summaries, point-by-point action instructions, and "Why It Matters" sections render in fluent Devanagari Hindi.
   5. Test Arbitrary Custom Catalogue Transliteration:
      - Go to `/setup` and upload a custom Excel sheet containing new English products (e.g. *"Kisan Chana Dal 1kg"* or *"Rajesh Masala"*).
-     - Switch to Hindi mode $\to$ The 3-tier cascade engine dynamically transliterates them into Devanagari (*"किसान चना दाल 1 किलो"*) at 0 runtime cost and 0 latency without AI dependencies!
+     - Switch to Hindi mode -> The 3-tier cascade engine dynamically transliterates them into Devanagari (*"किसान चना दाल 1 किलो"*) at 0 runtime cost and 0 latency without AI dependencies!
   6. Test Ergonomics & Sizing on Mobile / Laptop:
      - On mobile or desktop, drag the top handle to reposition the tour widget anywhere on screen.
      - Use the 1-tap `ZoomIn` / `ZoomOut` buttons in the guide header to expand or shrink the modal dimensions dynamically, or minimize it into a floating pill badge.

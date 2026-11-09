@@ -78,13 +78,13 @@ Here is how the Engine understands them:
 
 ### A. Number Words and Local Fractions
 Shopkeepers write numbers as digits, English words, Hindi words, or local fractions:
-- `"5"` or `"५"` $\to 5$
-- `"do peti"` or `"two cases"` $\to 2$ cases
-- `"aadha peti"` $\to 0.5$ cases (half case)
-- `"derh peti"` $\to 1.5$ cases
-- `"dhai peti"` $\to 2.5$ cases
-- `"sawa peti"` $\to 1.25$ cases
-- `"ek darjan packet"` $\to 12$ loose packets (the Engine knows *darjan* means a multiplier of 12!)
+- `"5"` or `"५"` $-> 5$
+- `"do peti"` or `"two cases"` $-> 2$ cases
+- `"aadha peti"` $-> 0.5$ cases (half case)
+- `"derh peti"` $-> 1.5$ cases
+- `"dhai peti"` $-> 2.5$ cases
+- `"sawa peti"` $-> 1.25$ cases
+- `"ek darjan packet"` $-> 12$ loose packets (the Engine knows *darjan* means a multiplier of 12!)
 
 ### B. Regional Jabalpur Product Nicknames
 The Engine contains a built-in regional alias dictionary (`SEED_ALIASES`) mapped to Jabalpur FMCG trade:
@@ -281,7 +281,7 @@ What happens if two rival Kirana stores open the app at 9:00 AM and there are on
 Why didn't we just use a simple score threshold (like 80% or 85%) for auto-confirming WhatsApp orders?
 - **The Pack-Size Trap:** If a merchant writes *"2 peti parle g"*, a naive algorithm might auto-confirm Parle-G 75g even if the store always orders 250g or 500g family packs.
 - **The Learned Scorer Fix:** We trained an empirical mathematical model that evaluates 12 trade signals simultaneously (pack-size match, retailer order history, brand family topology, and query similarity):
-  1. **Segmented Thresholds:** For single-SKU products (Tata Salt, Nescafe, Harpic) where size confusion is impossible, the Engine auto-confirms smoothly ($\ge 75\%$). For look-alike size families (Parle-G 75g/250g/500g, Ghadi 500g/1kg), it demands a strict $94.5\%$ threshold.
+  1. **Segmented Thresholds:** For single-SKU products (Tata Salt, Nescafe, Harpic) where size confusion is impossible, the Engine auto-confirms smoothly (>= 75\%$). For look-alike size families (Parle-G 75g/250g/500g, Ghadi 500g/1kg), it demands a strict $94.5\%$ threshold.
   2. **10× Slip Protection:** If a merchant who usually orders 3 cases accidentally types 30 cases, the system catches the typo and gently prompts for confirmation. But if they ordered 10 cases specifically to unlock the "Buy 10 Get 1 Free" scheme, the Engine knows it's intentional and doesn't annoy the merchant with a false alarm!
   3. **Empirical Benchmark:** In comprehensive 3-way testing across 444 trade queries, this engine eliminated 100% of silent false-positive cart errors (0 errors across 119 auto-confirmed lines), achieving **100% precision** (96.9% 95% Wilson Lower Confidence Bound) and +9.5% higher top-1 accuracy (76.8% vs 67.3%).
 

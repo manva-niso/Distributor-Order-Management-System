@@ -85,19 +85,19 @@ flowchart TD
 ### 2.2 Normalization Attributes & Mathematical Formulas
 
 #### Formula 1: Devanagari Digit Translation
-$$\text{DEVANAGARI\_DIGITS} = \{ \text{०}: 0, \text{१}: 1, \text{२}: 2, \text{३}: 3, \text{४}: 4, \text{५}: 5, \text{६}: 6, \text{७}: 7, \text{८}: 8, \text{९}: 9 \}$$
+$$DEVANAGARI\_DIGITS = \{ ०: 0, १: 1, २: 2, ३: 3, ४: 4, ५: 5, ६: 6, ७: 7, ८: 8, ९: 9 \}$$
 
 #### Formula 2: Vernacular Weight Attribute Fusion
-$$\text{Regex}_{\text{weights}} = \begin{cases} (\backslash d+)\backslash s*(kg|kilo|\text{किलो})\backslash b \longrightarrow \$1\text{kg} \\ (\backslash d+)\backslash s*(g|gm|gram|\text{ग्राम})\backslash b \longrightarrow \$1\text{g} \\ (\backslash d+)\backslash s*(ml|\text{मिली})\backslash b \longrightarrow \$1\text{ml} \\ (\backslash d+)\backslash s*(ltr|liter|litre|\text{लीटर})\backslash b \longrightarrow \$1\text{ltr} \end{cases}$$
+$$Regex_{weights} = \begin{cases} (\backslash d+)\backslash s*(kg|kilo|किलो)\backslash b -> \$1kg \\ (\backslash d+)\backslash s*(g|gm|gram|ग्राम)\backslash b -> \$1g \\ (\backslash d+)\backslash s*(ml|मिली)\backslash b -> \$1ml \\ (\backslash d+)\backslash s*(ltr|liter|litre|लीटर)\backslash b -> \$1ltr \end{cases}$$
 
 #### Formula 3: Partial Case Cut-Pack Regex
-$$\text{Pattern}_{\text{Hindi}} = /(?:case|peti|box|\text{कार्टन}|\text{पेटी})?\backslash s*(?:of|ki|ka)?\backslash s*(\backslash d+)?\backslash s*(?:mai\backslash s*se|me\backslash s*se|\text{में}\backslash s*\text{से})\backslash s*(\backslash d+|[a-zA-Z\backslash u0900-\backslash u097F]+)/i$$
+$$Pattern_{Hindi} = /(?:case|peti|box|कार्टन|पेटी)?\backslash s*(?:of|ki|ka)?\backslash s*(\backslash d+)?\backslash s*(?:mai\backslash s*se|me\backslash s*se|में\backslash s*से)\backslash s*(\backslash d+|[a-zA-Z\backslash u0900-\backslash u097F]+)/i$$
 
-$$\text{Pattern}_{\text{English}} = /(\backslash d+|[a-zA-Z]+)\backslash s*(?:out\backslash s*of|from)\backslash s*(?:case\backslash s*of\backslash s*)?(\backslash d+)/i$$
+$$Pattern_{English} = /(\backslash d+|[a-zA-Z]+)\backslash s*(?:out\backslash s*of|from)\backslash s*(?:case\backslash s*of\backslash s*)?(\backslash d+)/i$$
 
 #### Formula 4: Conversational Noise Filter Verification
 A segment $S$ is marked as conversational filler if and only if:
-$$\text{hasDigits}(S) = \text{false} \;\land\; \forall w \in S: (w \notin \text{WORD\_NUMBERS} \;\land\; w \notin \text{ALL\_UNIT\_KEYWORDS}) \;\land\; (S \in \text{PATTERNS}_{\text{filler}} \;\lor\; \forall w \in S: w \in \text{NOISE\_WORDS})$$
+$$hasDigits(S) = false \;\land\; \forall w \in S: (w \notin WORD\_NUMBERS \;\land\; w \notin ALL\_UNIT\_KEYWORDS) \;\land\; (S \in PATTERNS_{filler} \;\lor\; \forall w \in S: w \in NOISE\_WORDS)$$
 
 ---
 
@@ -151,7 +151,7 @@ flowchart TD
 > For each product line, this step determines two essential facts: **"How much does the shopkeeper want?"** and **"In what kind of packaging?"**:  
 > 1. **Finding the Quantity:** It searches the words for numbers. It understands numeric digits (`5`), spoken Hindi number words (`do` for 2, `panch` for 5, `aadha` for 0.5, `derh` for 1.5, `dhai` for 2.5), and `darjan` (which multiplies by 12).  
 > 2. **Identifying the Packaging Unit:**  
->    - **"Dabba" (The Ambiguity Guardrail):** In Madhya Pradesh trade, "dabba" can mean an inner carton, a 15-litre oil tin, or a small jar. When the engine spots "dabba", it tags it as ambiguous so the system can ask the customer to clarify, preventing costly $10\times$ billing mistakes.  
+>    - **"Dabba" (The Ambiguity Guardrail):** In Madhya Pradesh trade, "dabba" can mean an inner carton, a 15-litre oil tin, or a small jar. When the engine spots "dabba", it tags it as ambiguous so the system can ask the customer to clarify, preventing costly $10*$ billing mistakes.  
 >    - **"Peti" / "Case" / "Carton":** Recognized as full wholesale master boxes.  
 >    - **"Packet" / "Piece" / "Tikiya":** Recognized as loose retail packets.  
 >    - If no unit is mentioned at all, it safely marks it as "unknown" to prompt review.  
@@ -169,7 +169,7 @@ flowchart TD
 | `CASE_KEYWORDS` | String[] | `["peti", "case", "carton", "box", "bora", ...]` | Explicit wholesale case containers |
 | `PACK_KEYWORDS` | String[] | `["packet", "pack", "pkt", "piece", "tikiya", ...]` | Loose consumer packs |
 | `AMBIGUOUS_UNIT_KEYWORDS` | String[] | `["dabba", "dabbe", "dibba", "डिब्बा", ...]` | Triggers Invariant [A16] packaging clarification |
-| `detectedQty` | `number \| null` | $\ge 0$ | Parsed numerical order quantity |
+| `detectedQty` | `number \| null` | $>= 0$ | Parsed numerical order quantity |
 | `detectedUnit` | `UnitType` | `CASE`, `PACK`, `KG`, `UNIT`, `DABBA`, `UNKNOWN` | Packaging tier of the line item |
 
 ---
@@ -229,27 +229,27 @@ flowchart TD
 
 ### 4.2 Mathematical Formulas for Retrieval & Transliteration
 
-#### Formula 5: Indic Phonetic Normalization Function $\text{toPhoneticKey}(s)$
-$$\text{toPhoneticKey}(s): \begin{cases} 
-\text{ph} \to \text{f}, \quad \text{kh} \to \text{k}, \quad \text{gh} \to \text{g}, \quad \text{bh} \to \text{b}, \quad \text{dh} \to \text{d}, \quad \text{th} \to \text{t} \\
-\text{chh} \to \text{ch}, \quad \text{sh} \to \text{s}, \quad \text{v} \to \text{w}, \quad \text{z} \to \text{j} \\
-\text{ee}+ \to \text{i}, \quad \text{oo}+ \to \text{u}, \quad \text{aa}+ \to \text{a} \\
-(c_i)(c_i)+ \to c_i \quad \text{(Deduplicate adjacent characters)}
+#### Formula 5: Indic Phonetic Normalization Function $toPhoneticKey(s)$
+$$toPhoneticKey(s): \begin{cases} 
+ph \to f, \quad kh \to k, \quad gh \to g, \quad bh \to b, \quad dh \to d, \quad th \to t \\
+chh \to ch, \quad sh \to s, \quad v \to w, \quad z \to j \\
+ee+ \to i, \quad oo+ \to u, \quad aa+ \to a \\
+(c_i)(c_i)+ \to c_i \quad (Deduplicate adjacent characters)
 \end{cases}$$
 
 #### Formula 6: Character 3-Gram Dice Similarity
-$$S_{\text{Dice}}(A, B) = \frac{2 \times |T(A) \cap T(B)|}{|T(A)| + |T(B)|}$$
-where $T(X) = \{ X[i \dots i+2] \mid 0 \le i \le |X|-3 \}$ represents the set of contiguous 3-character substrings.
+$$S_{Dice}(A, B) = \frac{2 * |T(A) \cap T(B)|}{|T(A)| + |T(B)|}$$
+where $T(X) = \{ X[i \dots i+2] \mid 0 <= i <= |X|-3 \}$ represents the set of contiguous 3-character substrings.
 
 #### Formula 7: Phonetic Edit Distance Similarity
-$$D_{\text{phonetic}}(A, B) = 1 - \frac{\text{Levenshtein}(\text{toPhoneticKey}(A), \text{toPhoneticKey}(B))}{\max(|\text{toPhoneticKey}(A)|, |\text{toPhoneticKey}(B)|)}$$
+$$D_{phonetic}(A, B) = 1 - \frac{Levenshtein(toPhoneticKey(A), toPhoneticKey(B))}{\max(|toPhoneticKey(A)|, |toPhoneticKey(B)|)}$$
 
 #### Formula 8: Cormack Reciprocal Rank Fusion (SIGIR 2009)
-$$\text{RRF}(d) = \sum_{m \in M_{\text{active}}} \frac{1}{k + r_m(d)}, \quad k = 60$$
+$$RRF(d) = \sum_{m \in M_{active}} \frac{1}{k + r_m(d)}, \quad k = 60$$
 
-$$\text{MaxRRF} = \frac{\max(2, |M_{\text{active}}|)}{k + 1}$$
+$$MaxRRF = \frac{\max(2, |M_{active}|)}{k + 1}$$
 
-$$\text{NormalizedScore}(d) = \min\left(1.0, \frac{\text{RRF}(d)}{\text{MaxRRF}}\right)$$
+$$NormalizedScore(d) = \min<=ft(1.0, \frac{RRF(d)}{MaxRRF}\right)$$
 
 ---
 
@@ -372,32 +372,32 @@ $$\Delta = \max(0, S_1 - S_2)$$
 $$z = w_0 + \sum_{i=1}^{12} w_i \cdot x_i$$
 
 Where feature weights fitted via L2 Logistic Regression on 1,294 synthetic trade samples with 18 templates are:
-$$w_0 = -4.8205 \quad (\text{Intercept})$$
-$$w_{\text{lexical}} = +4.8954, \quad w_{S_1} = +4.4924, \quad w_{\text{gap}} = +2.1029$$
-$$w_{\text{freq}} = +0.7179, \quad w_{\text{recency}} = +0.7179, \quad w_{\text{phonetic}} = +0.3530$$
-$$w_{\text{kg\_domain}} = -1.2604, \quad w_{\text{qty}} = -0.0377, \quad w_{\text{usual\_unit}} = -0.0189$$
+$$w_0 = -4.8205 \quad (Intercept)$$
+$$w_{lexical} = +4.8954, \quad w_{S_1} = +4.4924, \quad w_{gap} = +2.1029$$
+$$w_{freq} = +0.7179, \quad w_{recency} = +0.7179, \quad w_{phonetic} = +0.3530$$
+$$w_{kg\_domain} = -1.2604, \quad w_{qty} = -0.0377, \quad w_{usual\_unit} = -0.0189$$
 
 #### Formula 11: Platt Sigmoid Probability Calibration
-$$P_{\text{calibrated}} = \frac{1}{1 + e^{-(A \cdot z + B)}}$$
+$$P_{calibrated} = \frac{1}{1 + e^{-(A \cdot z + B)}}$$
 Where $A = 1.2212, B = 0.1794$, fitted on held-out validation templates to minimize Expected Calibration Error (ECE from 0.1061 to 0.0549).
 
 #### Formula 12: Adaptive Segmented Threshold Decision Rule
-$$\text{Decision} = \begin{cases} 
-\text{ASK\_UNIT} & \text{if } \text{isAmbiguousUnit} = \text{true} \quad (\text{Invariant [A16]: } P_{\text{auto}} = \text{false}) \\
-\text{AUTO\_CONFIRM} & \text{if } P_{\text{calibrated}} \ge \tau_{\text{adaptive}} \;\land\; \text{packSizeMismatch} = \text{false} \\
-\text{SUGGEST\_TOP2} & \text{if } 0.50 \le P_{\text{calibrated}} < \tau_{\text{adaptive}} \;\lor\; \text{packSizeMismatch} = \text{true} \\
-\text{DESK\_CONFIRM} & \text{if } P_{\text{calibrated}} < 0.50
+$$Decision = \begin{cases} 
+ASK\_UNIT & if  isAmbiguousUnit = true \quad (Invariant [A16]:  P_{auto} = false) \\
+AUTO\_CONFIRM & if  P_{calibrated} >= Threshold_adaptive \;\land\; packSizeMismatch = false \\
+SUGGEST\_TOP2 & if  0.50 <= P_{calibrated} < Threshold_adaptive \;\lor\; packSizeMismatch = true \\
+DESK\_CONFIRM & if  P_{calibrated} < 0.50
 \end{cases}$$
 
 Where the adaptive threshold is segmented:
-$$\tau_{\text{adaptive}} = \begin{cases} 0.75 & \text{for Unambiguous Single-SKU Brands (Tata Salt, Nescafe, Harpic, Vim, Good Knight)} \\ 0.945 & \text{for Look-Alike Size Families (Parle, Ghadi, Fortune, Dettol, Maggi)} \end{cases}$$
+$$Threshold_adaptive = \begin{cases} 0.75 & for Unambiguous Single-SKU Brands (Tata Salt, Nescafe, Harpic, Vim, Good Knight) \\ 0.945 & for Look-Alike Size Families (Parle, Ghadi, Fortune, Dettol, Maggi) \end{cases}$$
 
 #### Formula 13: Retailer Prior Soft 1-Tap Outlier Detection with Promotional Exemption
-$$\text{IsAnomaly} = (N_{\text{orders}} \ge 3) \;\land\; (q > 3.0 \times \text{MedianCases}) \;\land\; (q > \text{MaxCases}) \;\land\; \neg \text{MatchesSchemeThreshold}(q)$$
+$$IsAnomaly = (N_{orders} >= 3) \;\land\; (q > 3.0 * MedianCases) \;\land\; (q > MaxCases) \;\land\; \neg MatchesSchemeThreshold(q)$$
 
-$$P_{\text{competing\_candidates}} = \min(0.65, \max(0.48, \sigma(z) \times 0.75))$$
+$$P_{competing\_candidates} = \min(0.65, \max(0.48, \sigma(z) * 0.75))$$
 
-$$P_{\text{unknown\_sku}} = \min(0.20, \sigma(z) \times 0.30)$$
+$$P_{unknown\_sku} = \min(0.20, \sigma(z) * 0.30)$$
 
 ---
 
@@ -449,11 +449,11 @@ flowchart TD
 ### 6.2 Chooser Attributes & Guardrail Verification Equation
 
 #### Formula 13: Closed-Set Whitelist Invariant Verification
-$$\text{ValidChoice}(c) = (c \neq \text{null}) \;\land\; (c \neq \text{"NONE"}) \;\land\; (c \in \{ \text{id}_1, \text{id}_2, \dots, \text{id}_K \})$$
-If $\text{ValidChoice}(c) = \text{false}$, the LLM output is rejected immediately, setting $\text{chosenSkuId} = \text{null}$ and preventing hallucinations from reaching cart reservation or commercial ledgers.
+$$ValidChoice(c) = (c \neq null) \;\land\; (c \neq "NONE") \;\land\; (c \in \{ id_1, id_2, \dots, id_K \})$$
+If $ValidChoice(c) = false$, the LLM output is rejected immediately, setting $chosenSkuId = null$ and preventing hallucinations from reaching cart reservation or commercial ledgers.
 
 #### Formula 14: LLM Confidence Bounding
-$$\text{Confidence}_{\text{LLM}} = \min(0.85, \max(0.40, \text{round}(C_{\text{model}}, 2)))$$
+$$Confidence_{LLM} = \min(0.85, \max(0.40, round(C_{model}, 2)))$$
 
 ---
 
@@ -557,7 +557,7 @@ flowchart TD
 
 > 💡 **In Simple Words (What is happening in this graph?):**  
 > Indian FMCG distribution operates on complex wholesale promotions and strict GST tax rules. For each item in the order, this engine acts as an **expert commercial accountant**:  
-> 1. **Base Gross Value:** Calculates wholesale cases $\times$ dealer price, plus any loose packets $\times$ single packet price.  
+> 1. **Base Gross Value:** Calculates wholesale cases $*$ dealer price, plus any loose packets $*$ single packet price.  
 > 2. **Promotional Schemes:**  
 >    - **Buy X Get Y Free (e.g. 10+1 Scheme):** If the retailer orders 10 cases of biscuits, they receive 1 free promotional case. Under Indian GST Circular 92/11/2019, free items are billed at **₹0** value so the shopkeeper is not unfairly taxed on free goods. The engine also computes an upsell nudge: *"Add 2 more cases to get another free case!"*  
 >    - **Slab Discounts (e.g. 3% off for 5 cases, 5% off for 10 cases):** Checks which tier the order qualifies for, applies the highest discount, and shows the exact rupee savings of ordering the next higher slab.  
@@ -590,42 +590,42 @@ flowchart TD
 ### 8.3 Exact Mathematical Formulas of the Pricing Engine
 
 #### Formula 15: IEEE 754 Floating-Point Micro-Epsilon Rounding
-$$\text{roundTo2Decimals}(v) = \frac{\lfloor (v + 10^{-6}) \times 100 + 0.5 \rfloor}{100}$$
+$$roundTo2Decimals(v) = \frac{\lfloor (v + 10^{-6}) * 100 + 0.5 \rfloor}{100}$$
 
 #### Formula 16: Free Promotional Goods (Rule [A11] & [A46])
-$$\text{freeCases} = \left\lfloor \frac{\text{orderedCases}}{\text{buyQty}} \right\rfloor \times \text{getFreeQty}$$
+$$freeCases = <=ft\lfloor \frac{orderedCases}{buyQty} \right\rfloor * getFreeQty$$
 Free promotional goods are delivered at ₹0 invoice value pursuant to GST Circular 92/11/2019-GST.
 
 #### Formula 17: Multi-Tier Slab Ladder Selection (Rule [A45])
-$$\text{activeTier} = \arg\max_{t \in \text{tiers}} \{ t.\text{minCases} \mid \text{orderedCases} \ge t.\text{minCases} \}$$
+$$activeTier = \arg\max_{t \in tiers} \{ t.minCases \mid orderedCases >= t.minCases \}$$
 
-$$\text{discountAmount} = \text{roundTo2Decimals}\left( \text{orderedCases} \times \text{dealerPrice} \times \frac{\text{activeTier}.\text{discountPct}}{100} \right)$$
+$$discountAmount = roundTo2Decimals<=ft( orderedCases * dealerPrice * \frac{activeTier.discountPct}{100} \right)$$
 
 #### Formula 18: Next-Tier Upsell Savings Nudge
-$$\text{nextTier} = \arg\min_{t \in \text{tiers}} \{ t.\text{minCases} \mid t.\text{minCases} > \text{orderedCases} \}$$
+$$nextTier = \arg\min_{t \in tiers} \{ t.minCases \mid t.minCases > orderedCases \}$$
 
-$$\text{casesNeeded} = \text{nextTier}.\text{minCases} - \text{orderedCases}$$
+$$casesNeeded = nextTier.minCases - orderedCases$$
 
-$$\text{potentialSavings} = \text{roundTo2Decimals}\left( \text{nextTier}.\text{minCases} \times \text{dealerPrice} \times \frac{\text{nextTier}.\text{discountPct}}{100} - \text{discountAmount} \right)$$
+$$potentialSavings = roundTo2Decimals<=ft( nextTier.minCases * dealerPrice * \frac{nextTier.discountPct}{100} - discountAmount \right)$$
 
 #### Formula 19: Flat Cash Rebate (Rule [A47])
-$$\text{discountAmount} = \begin{cases} \text{roundTo2Decimals}(\text{orderedCases} \times \text{flatPerCase}) & \text{if } \text{orderedCases} \ge \text{minCases} \\ 0.00 & \text{otherwise} \end{cases}$$
+$$discountAmount = \begin{cases} roundTo2Decimals(orderedCases * flatPerCase) & if  orderedCases >= minCases \\ 0.00 & otherwise \end{cases}$$
 
 #### Formula 20: MP Intra-State 50/50 GST Split (Rule [A2])
-$$\text{taxableAmount} = \text{roundTo2Decimals}(\text{grossAmount} - \text{discountAmount})$$
+$$taxableAmount = roundTo2Decimals(grossAmount - discountAmount)$$
 
-$$\text{CGST} = \text{roundTo2Decimals}\left( \text{taxableAmount} \times \frac{\text{gstRate} / 2}{100} \right)$$
+$$CGST = roundTo2Decimals<=ft( taxableAmount * \frac{gstRate / 2}{100} \right)$$
 
-$$\text{SGST} = \text{roundTo2Decimals}\left( \text{taxableAmount} \times \frac{\text{gstRate} / 2}{100} \right)$$
+$$SGST = roundTo2Decimals<=ft( taxableAmount * \frac{gstRate / 2}{100} \right)$$
 
-$$\text{TotalGST} = \text{roundTo2Decimals}(\text{CGST} + \text{SGST})$$
+$$TotalGST = roundTo2Decimals(CGST + SGST)$$
 
 #### Formula 21: Commercial Invoice Round-Off
-$$\text{UnroundedTotal} = \text{roundTo2Decimals}(\text{TotalTaxable} + \text{TotalGST})$$
+$$UnroundedTotal = roundTo2Decimals(TotalTaxable + TotalGST)$$
 
-$$\text{GrandTotal} = \lfloor \text{UnroundedTotal} + 0.5 \rfloor$$
+$$GrandTotal = \lfloor UnroundedTotal + 0.5 \rfloor$$
 
-$$\text{RoundOff} = \text{roundTo2Decimals}(\text{GrandTotal} - \text{UnroundedTotal})$$
+$$RoundOff = roundTo2Decimals(GrandTotal - UnroundedTotal)$$
 
 ---
 

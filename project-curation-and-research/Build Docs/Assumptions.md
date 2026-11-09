@@ -26,13 +26,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A14]** | Module 4: Cart/Orders | Credit Exposure Ceiling | Exposure = `currentBalance + orderTotal`; exceeding limit sets `CREDIT_HOLD`. |
 | **[A15]** | Module 4: Cart/Orders | Atomic Inventory Lock | Order placement uses database row locks (`SELECT ... FOR UPDATE`) to prevent overselling. |
 | **[A16]** | Module 5: AI Capture | Strict Unit Disambiguation | Jabalpur term *"peti"* = Case. If unit omitted, system MUST ask user, never guess. |
-| **[A17]** | Module 5: AI Capture | Pipeline Fallback Order | Deterministic Regex & Aliases first; Gemini LLM second; client canvas compression $\le 1000$px. |
+| **[A17]** | Module 5: AI Capture | Pipeline Fallback Order | Deterministic Regex & Aliases first; Gemini LLM second; client canvas compression <= 1000px. |
 | **[A18]** | Module 5: AI Capture | Human-in-the-Loop | Multi-modal outputs are draft captures; no order is booked without human confirmation. |
 | **[A19]** | Module 6: Order Desk | Optimistic Concurrency | Every order record carries `occ_version` to prevent concurrent clerk overwrites. |
 | **[A20]** | Module 6: Order Desk | Alias Auto-Learning | Clerk corrections automatically persist phrase-to-SKU mappings for that retailer. |
 | **[A21]** | Module 7: Tally Export | Standard XML Envelope | Exports match standard Tally ERP 9 / Tally Prime Sales Voucher XML specifications. |
 | **[A22]** | Module 8: Van Manifest | Route Level Aggregation | Warehouse picking slips group orders by route and sum total master cases per SKU. |
-| **[A23]** | Module 9: Dormant Desk | Inactivity Window (14 Days) | Retailers with $\ge 14$ days since last order trigger sales beat alerts and WhatsApp nudges. |
+| **[A23]** | Module 9: Dormant Desk | Inactivity Window (14 Days) | Retailers with >= 14 days since last order trigger sales beat alerts and WhatsApp nudges. |
 | **[A24]** | Module 2: Catalogue | Search & Filter Logic | Case-insensitive instant multi-field match (name, brand, category, code); client state caches results. |
 | **[A25]** | Module 2: Catalogue | Client Cart Resiliency | Active draft cart item quantities persist in `localStorage` to survive network drops & page refreshes. |
 | **[A26]** | Module 2: Catalogue | Stockout Notification Telemetry | "Notify when available" registers an intent event in `audit_logs` without allowing checkout of zero-stock SKUs. |
@@ -59,23 +59,23 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A47]** | Universal Scheme Engine | Flat Per-Case Trade Cash Rebates | Direct rupee deductions per case applied pre-tax with compliant 50/50 intra-state MP GST assessment. |
 | **[A48]** | Universal Scheme Engine | Real-Time Scheme Upsell Nudge Telemetry | Dynamically computes remaining cases to unlock next discount tier (`nextTierNudge`). |
 | **[A49]** | Module 1: Auth & Write Integrity | Single-Writer Constraint & Active Session Concurrency Lock | Only 1 user/session can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 "User already logged in" to prevent ledger race conditions and double bookings. |
-| **[A50]** | Module 4: Cart & Session Scoping | Kirana-Scoped Cart & Multi-Tenant Session Isolation | Draft carts partitioned by `retailerId` (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices. |
+| **[A50]** | Module 4: Cart & Session Scoping | Kirana-Scoped Cart & Multi-Tenant Session Isolation | Draft carts partitioned by `retailerId` (`shop-scoped draft cart`); stores never share common cart state on shared devices. |
 | **[A51]** | Module 4: Orders & Persistence | Neon PostgreSQL Order Re-hydration Across Cold Starts | Persistent orders auto-hydrated from Neon into memory on reads and checkout; order sequence number (`ORD-2026-XXXX`) monotonically calculated to prevent primary key collision. |
 | **[A52]** | Module 2 & 4: Inventory & Multi-User | Real-Time Stock Sync & Instant Out-of-Stock Guard | SSE streams, 2.5s adaptive polling, and BroadcastChannel push warehouse stock changes simultaneously across all retailers and desk terminals; zero-stock items immediately disable cart actions and block checkout. |
-| **[A53]** | Module 4 & 5: Quick-Order to Cart | Zero-Drop Scoped Cart Handshake & Fallback Hydration | Dual-mirroring (`isolabs_draft_cart_${retailerId}` + safety fallback) with 0ms optimistic cart hydration on page transition. |
+| **[A53]** | Module 4 & 5: Quick-Order to Cart | Zero-Drop Scoped Cart Handshake & Fallback Hydration | Dual-mirroring (`shop-scoped draft cart` + safety fallback) with 0ms optimistic cart hydration on page transition. |
 | **[A54]** | Regional Localization | Jabalpur Trade Vernacular Terminology | Authentic Mandi accounting terms (*पूरी पेटी*, *खुले पैकेट*, *थोक स्लैब छूट*, *मुफ्त माल*) replace generic SaaS labels. |
 | **[A55]** | Regional Localization | 3-Tier Zero-AI Dynamic Transliteration Engine | Exact Mandi lexicon + phonetic syllable converter + rule-based compound matcher for arbitrary Excel catalog products at 0ms cost. |
 | **[A56]** | Regional Localization | Cross-Session & Cross-Tab Persistent Language Context | Permanent bilingual state via `localStorage` + 365-day cookie + storage event bus; language never resets during navigation. |
-| **[A57]** | Responsive Ergonomics | Fluid Responsive Desktop Grids & Overflow Protection | Smartphone-native layouts that gracefully expand to multi-column desktop tables (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with $\ge 48$px touch targets and zero matra clipping. |
+| **[A57]** | Responsive Ergonomics | Fluid Responsive Desktop Grids & Overflow Protection | Smartphone-native layouts that gracefully expand to multi-column desktop tables (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with >= 48px touch targets and zero matra clipping. |
 | **[A58]** | Module 5: Audio ASR | ARTPARK-IISc Vaani Hindi Dialect ASR Hierarchy | 3-tier cascade: IISc Vaani Whisper-v3/FastConformer first, Gemini 2.5 audio fallback second, deterministic simulation third. |
-| **[A59]** | Module 5: AI Capture | Deterministic Packaging & 15% Fallback Threshold | Local regex/heuristics resolve exact matches and packaging cards locally; Gemini escalated only for remote candidates ($\ge 0.15$) with 100 token cap. |
+| **[A59]** | Module 5: AI Capture | Deterministic Packaging & 15% Fallback Threshold | Local regex/heuristics resolve exact matches and packaging cards locally; Gemini escalated only for remote candidates (>= 0.15) with 400 token cap. |
 | **[A60]** | Module 5: Multimodal OCR | Low-Bandwidth (<3G) Client-Side Canvas Media Compression | HTML5 offscreen canvas client compression reduces 8MB Kirana slips to ~120KB JPEG (<100ms) for reliable 3G upload. |
 | **[A61]** | Module 5: Knowledge Graph | 12-Domain Trade Ontology & Category Intent Disambiguation | 400+ Indic tokens sorted longest-phrase-first; strictly prevents cross-domain hallucinations (e.g. suggesting biscuits for detergent or tyres). |
 | **[A62]** | Module 4 & Setup: Purge | Universal Client-Side Kirana Cart Purge on Master Reset | Synchronous `localStorage` wipe + SSE `DATABASE_RESET` + BroadcastChannel coordinate instantaneous multi-tab client purges. |
 | **[A63]** | Module 2 & Desk: Sync | Cross-Tab Catalog Parity & Stale Cart Scrubbing | Desk changes broadcast to Kirana storefront in real time; deleted catalog items automatically scrubbed from active cart maps. |
 | **[A64]** | Auth & Dev Sandbox | Dev Sandbox Master OTP Reliability & 1-Tap Login | Master demo OTPs (`123456`, `716716`) auto-provision in sandbox mode; 1-tap instant demo login for latency-free evaluation. |
 | **[A65]** | System Verification | 18-Step Walkthrough UI Bulk Control & Programmatic Vitest Suite | 1-tap checkbox bulk controls with celebratory feedback, verified by 19 automated programmatic tests in `walkthrough.test.ts`. |
-| **[A66]** | Module 5: Scorer & Eval | Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior | 12-feature logistic regression in pure TypeScript with scikit-learn parity ($<10^{-14}$ diff), Platt calibration, deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds ($\tau_{\text{single}}=0.75, \tau_{\text{family}}=0.945$), and scheme-aware slip detection ($>3\times$ median, $>$ historical max, suppressed on scheme tiers). |
+| **[A66]** | Module 5: Scorer & Eval | Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior | 12-feature logistic regression in pure TypeScript with scikit-learn parity (<10^{-14} diff), Platt calibration, deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds (single-SKU = 0.75, multi-pack = 0.945), and scheme-aware slip detection (> 3x median, > historical max, suppressed on scheme tiers). |
 
 ---
 
@@ -158,13 +158,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A11]` Free Goods Scheme Formula (Buy X Get Y Free)
 - **Context:** *Buy 10 cases get 1 case free* trade schemes.
 - **Assumption:** Free goods are calculated deterministically via integer floor division:  
-  $$\text{Free Cases} = \left\lfloor \frac{\text{Ordered Cases}}{\text{Buy Quantity}} \right\rfloor \times \text{Free Quantity}$$  
+  `Free Cases = floor(Ordered Cases / Buy Quantity) * Free Quantity`  
   Free cases are delivered as bonus stock at ₹0.00 taxable value. They do not reduce the ordered paid cases (e.g. ordering 10 cases results in 10 paid cases + 1 free case = 11 cases delivered).
 
 #### `[A12]` Slab Discount Formula
 - **Context:** *3% off at 5 or more cases* volume incentives.
 - **Assumption:** If `orderedCases >= minCases`, the discount percentage applies uniformly to the entire gross taxable line amount:  
-  $$\text{Discount Amount} = \text{Ordered Cases} \times \text{Dealer Price} \times \left( \frac{\text{Discount Pct}}{100} \right)$$  
+  `Discount Amount = Ordered Cases * Dealer Price * (Discount Pct / 100)`  
   Slab discounts apply strictly before GST calculation.
 
 #### `[A13]` Non-Compounding Scheme Hierarchy
@@ -178,8 +178,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 #### `[A14]` Credit Headroom & Credit Hold Protocol
 - **Context:** Risk management on B2B trade receivables.
 - **Assumption:** Total Credit Exposure is calculated as:  
-  $$\text{Total Exposure} = \text{Current Ledger Balance} + \text{New Order Grand Total}$$  
-  If $\text{Total Exposure} \le \text{Credit Limit}$, the order is accepted in status `PLACED`. If $\text{Total Exposure} > \text{Credit Limit}$, the order is not rejected; instead, it is placed in status `CREDIT_HOLD` and routed to the Order Desk clearance queue for owner/director review.
+  `Total Exposure = Current Ledger Balance + New Order Grand Total`  
+  If `Total Exposure <= Credit Limit`, the order is accepted in status `PLACED`. If `Total Exposure > Credit Limit`, the order is not rejected; instead, it is placed in status `CREDIT_HOLD` and routed to the Order Desk clearance queue for owner/director review.
 
 #### `[A15]` Atomic Stock Decrement & Concurrency
 - **Context:** High-concurrency ordering across 600 orders/day.
@@ -203,7 +203,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A32]` Header Synonym Tolerance & Safe Defaults
 - **Context:** Varied column naming conventions in distributor ERP exports (Tally, Busy, Marg, SAP).
-- **Assumption:** Ingestion normalizes column headers and tolerates standard synonyms: *"Item Name"*, *"Product"*, *"Description"* $\to$ Name; *"Dealer Price"*, *"Wholesale Rate"*, *"Case Price"*, *"Rate"* $\to$ Dealer Price; *"Case Pack"*, *"Units/Case"*, *"Packs Per Case"* $\to$ Units Per Case. When non-critical columns are missing, standard FMCG defaults are assigned (18.0% GST, 50 stock cases, 1 unit/case, ₹50,000 credit limit).
+- **Assumption:** Ingestion normalizes column headers and tolerates standard synonyms: *"Item Name"*, *"Product"*, *"Description"* -> Name; *"Dealer Price"*, *"Wholesale Rate"*, *"Case Price"*, *"Rate"* -> Dealer Price; *"Case Pack"*, *"Units/Case"*, *"Packs Per Case"* -> Units Per Case. When non-critical columns are missing, standard FMCG defaults are assigned (18.0% GST, 50 stock cases, 1 unit/case, ₹50,000 credit limit).
 
 ---
 
@@ -214,7 +214,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Assumption:** 
   1. Explicit wholesale packaging tokens (*"peti"*, *"petee"*, *"petti"*, *"carton"*, *"box"*, *"bora"*, *"katta"*, *"पेटी"*, *"कार्टन"*) map deterministically to **CASE**.
   2. Retail single packs (*"packet"*, *"pack"*, *"pkt"*, *"piece"*, *"pouch"*, *"tikiya"*, *"nang"*, *"पैकेट"*, *"पीस"*) map to **PACK**.
-  3. **The "Dabba" Polysemy Guardrail:** In Madhya Pradesh kirana trade, *"dabba"* is polysemic (meaning a 15L oil tin, a display inner carton of 12-24 packs, or a wholesale master case). **Mapping "dabba" blindly to CASE causes 4x over-shipment and delivery rejections.** Therefore, *"dabba"* / *"dibba"* / *"डिब्बा"* is classified as `AMBIGUOUS_UNIT` (`extractedUnit = "DABBA"`), capping confidence at $\le 0.70$ and rendering a 1-tap disambiguation card: *Did you mean Master Cases (peti) or Inner Boxes/Tins?*
+  3. **The "Dabba" Polysemy Guardrail:** In Madhya Pradesh kirana trade, *"dabba"* is polysemic (meaning a 15L oil tin, a display inner carton of 12-24 packs, or a wholesale master case). **Mapping "dabba" blindly to CASE causes 4x over-shipment and delivery rejections.** Therefore, *"dabba"* / *"dibba"* / *"डिब्बा"* is classified as `AMBIGUOUS_UNIT` (`extractedUnit = "DABBA"`), capping confidence at <= 0.70 and rendering a 1-tap disambiguation card: *Did you mean Master Cases (peti) or Inner Boxes/Tins?*
   4. If a message omits the unit entirely (e.g., *"bhaiya 5 biscuit chhota"*), the system **MUST NOT GUESS**. It flags the line as `isAmbiguous: true` with `ambiguityReason: "MISSING_UNIT"` and prompts: *5 Master Cases or 5 Loose Packs?*
 
 #### `[A17]` Multi-Modal Fallback Pipeline
@@ -222,7 +222,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Assumption:** Processing follows a tiered hierarchy:
   1. **Tier 1 (Deterministic Rules):** Normalization, regex token extraction, and retailer past-order alias lookup.
   2. **Tier 2 (Gemini LLM):** Invoked only for unresolved ambiguous lines, receiving candidate SKUs.
-  3. **Tier 3 (Zero-Crash Fallback):** If Gemini is unreachable or rate-limited (HTTP 429), the rule-based result is forwarded directly to the review UI. Photos are resized on client canvas to $\le 1000$px WebP before upload.
+  3. **Tier 3 (Zero-Crash Fallback):** If Gemini is unreachable or rate-limited (HTTP 429), the rule-based result is forwarded directly to the review UI. Photos are resized on client canvas to <= 1000px WebP before upload.
 
 #### `[A18]` Human-in-the-Loop Order Booking
 - **Context:** Preventing rogue orders.
@@ -341,7 +341,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Assumption:** Slabs do not compound. The calculation engine evaluates the line's `orderedCases` against all configured tiers in descending threshold order, selecting strictly the highest achieved tier. The selected discount percentage applies across the entire gross case value of that SKU.
 
 #### `[A46]` Cross-SKU Free Goods Gifting & ₹0.00 Composite Supply Valuation
-- **Context:** FMCG brand cross-promotions (e.g. "Buy 10 cases Detergent Powder $\to$ Get 2 cases Laundry Cake Free").
+- **Context:** FMCG brand cross-promotions (e.g. "Buy 10 cases Detergent Powder -> Get 2 cases Laundry Cake Free").
 - **Assumption:** When a scheme defines a separate `freeSkuId` and `freeSkuName`, bonus cases are awarded in the secondary SKU without altering the primary SKU's delivered case count. Under Circular 92/11/2019-GST, the promotional goods are legally treated as a composite supply with zero additional tax liability.
 
 #### `[A47]` Flat Per-Case Trade Cash Rebates
@@ -360,7 +360,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Context:** Multiple family members, counter clerks, or shop assistants attempting to place wholesale orders on behalf of the same Kirana retail store account simultaneously.
 - **Core Architectural Assumption:** **At any given moment, only ONE person/session is allowed to place orders or maintain an active authenticated session for a specific Kirana/retailer store account.** Concurrent multi-user access for the same merchant is strictly prohibited.
 - **Why This Is Enforced (Write Collision & Race Condition Elimination):**
-  1. **Credit Ledger Headroom Corruption:** Wholesale buyers operate under credit limits (e.g. ₹50,000 ceiling, ₹12,000 existing balance = ₹38,000 available headroom). If User A and User B concurrently submit orders worth ₹25,000 each at time $T_0$, both checkouts would validate against the unupdated headroom, placing ₹50,000 in new debt against a ₹38,000 headroom and causing severe financial risk exposure for Company A.
+  1. **Credit Ledger Headroom Corruption:** Wholesale buyers operate under credit limits (e.g. ₹50,000 ceiling, ₹12,000 existing balance = ₹38,000 available headroom). If User A and User B concurrently submit orders worth ₹25,000 each at time T_0, both checkouts would validate against the unupdated headroom, placing ₹50,000 in new debt against a ₹38,000 headroom and causing severe financial risk exposure for Company A.
   2. **Warehouse Stock Decrement Race Conditions:** Concurrent deductions on limited inventory (`deductSkuStock`) cause dirty reads, lost updates, or negative physical stock in the Jabalpur warehouse.
   3. **Duplicate Van Route Loading & Delivery Refusal:** Simultaneous orders from two store clerks create duplicate van dispatch manifests, leading to loading wasted cases onto morning vans and double billing that gets rejected at the store doorstep.
 - **Implementation & Operational Protocol:**
@@ -382,8 +382,8 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Assumption:** Each Kirana store operates in a strictly isolated, independent session. Different Kirana accounts (e.g. *Sharma Kirana Store* `RET-0001` and *Verma General Store* `RET-0002`) can log in concurrently without cross-blocking or state sharing.
 - **Client Storage Scoping Policy:**
   - Replaced all legacy global storage keys (`isolabs_draft_cart`, `isolabs_order_media`) with dynamically scoped keys:
-    - Cart items: `isolabs_draft_cart_${retailerId}`
-    - Audio/image media attachments: `isolabs_order_media_${retailerId}`
+    - Cart items: `shop-scoped draft cart`
+    - Audio/image media attachments: `isolabs_order_media_{retailerId}`
   - When User 1 logs out of Sharma Kirana and User 2 logs into Verma General on the same device, Verma General's cart is loaded strictly from `isolabs_draft_cart_RET-0002`. Sharma's unplaced cart lines remain segregated and never leak into Verma's checkout invoice.
 
 #### `[A51]` Neon PostgreSQL Persistent Order Re-hydration Across Serverless Cold Starts
@@ -398,12 +398,12 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Context:** Multiple distinct Kirana retailers (e.g. Sharma Kirana and Verma General Store) and Order Desk clerks accessing the platform simultaneously, placing wholesale orders for limited warehouse inventory.
 - **Core Architectural Assumption:** **Whenever warehouse stock changes (via order placement, desk stock adjustments, or batch imports), the updated stock levels MUST propagate simultaneously and instantly to all active user sessions across all seats without requiring a page refresh.**
 - **The "Movie Ticket / Seat Selection" Real-Time Behavior:**
-  1. **Instant Multi-Seat Reflection:** When Retailer A orders 5 cases of an SKU, Retailer B's screen (in Catalogue, Cart, Quick-Order, and Desk) immediately decrements available stock from $N$ to $N-5$.
+  1. **Instant Multi-Seat Reflection:** When Retailer A orders 5 cases of an SKU, Retailer B's screen (in Catalogue, Cart, Quick-Order, and Desk) immediately decrements available stock from N to N-5.
   2. **Zero-Stock Depletion Guard:** If Retailer A buys the last remaining cases of an item, Retailer B's catalogue card immediately transitions to a high-contrast red **`OUT OF STOCK`** badge (`स्टॉक समाप्त`), quantity steppers are instantly disabled, and the "Notify When Available" action appears.
   3. **Cart Real-Time Alert & Checkout Blocker:** If Retailer B already has the depleted item in their draft cart, an immediate high-visibility red alert banner is displayed:  
      *`"⚠️ Live Stock Alert: Warehouse Inventory Ran Out! Another retailer just placed an order for the remaining cases of [SKU Name]. Please remove them to proceed with checkout."`*
      The "Place Order" button is dynamically disabled with label: `"Remove Out of Stock Items to Order"`.
-  4. **Atomic Server-Side Checkout Invariant:** Even if two retailers submit checkout requests within milliseconds of each other, the server enforces an atomic stock deduction lock (`dbStore.deductSkuStock` & tagged Neon PostgreSQL SQL `GREATEST(0, stock_cases - ${totalCases})`). The second checkout is rejected with HTTP 400:  
+  4. **Atomic Server-Side Checkout Invariant:** Even if two retailers submit checkout requests within milliseconds of each other, the server enforces an atomic stock deduction lock (`dbStore.deductSkuStock` & tagged Neon PostgreSQL SQL `GREATEST(0, stock_cases - {totalCases})`). The second checkout is rejected with HTTP 400:  
      `"Insufficient stock for [SKU Name]. Available: 0 cases, requested: X cases."`
 - **Technical Multi-Layer Synchronization Protocol:**
   - **Layer 1 (Local Cross-Tab):** `BroadcastChannel("isolabs_warehouse_stock")` pushes 0ms latency events across multiple tabs or windows on the same browser session.
@@ -415,7 +415,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Context:** Retailers using the AI voice / text Quick Order parser (`/quick-order`) to dictate or paste colloquial orders, then clicking "Move to Cart" to review invoices in `/cart`.
 - **Core Architectural Assumption:** **Items parsed and matched in the Quick Order pipeline must NEVER be lost, dropped, or rendered as an empty cart upon transition to `/cart`, regardless of network latency, user role (Kirana, clerk, unauthenticated preview), or asynchronous session initialization.**
 - **Dual-Mirroring & Fallback Specification:**
-  1. **Dual Write Mirroring:** When "Move to Cart" is clicked, items are saved to both the scoped retailer storage key (`isolabs_draft_cart_${retailerId}`) and the universal fallback key (`isolabs_draft_cart`).
+  1. **Dual Write Mirroring:** When "Move to Cart" is clicked, items are saved to both the scoped retailer storage key (`shop-scoped draft cart`) and the universal fallback key (`isolabs_draft_cart`).
   2. **Tiered Fallback Resolution:** On cart hydration (`loadScopedCart`), the system checks the scoped key first; if null or empty, it automatically reads from the universal fallback key and silently migrates the draft into the scoped key.
   3. **Optimistic 0ms Render:** The `/cart` and `/catalogue` pages mount with immediate synchronous draft cart hydration from local storage, eliminating race conditions where waiting for `/api/catalogue` network responses would display a flash of empty cart state.
   4. **Retailer ID Cache:** The current retailer ID is cached in `localStorage("isolabs_current_retailer_id")` upon successful session retrieval, enabling instant scoped key derivation on subsequent page navigations.
@@ -426,20 +426,20 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A54]` Zero-AI Vernacular Hindi Localization & Mandi Lexicon
 - **Context:** Kirana store merchants and Mandi traders in Jabalpur, Katni, and Mahakoshal communicate and transact exclusively in Hindi and local market terminology (मंडी शब्दावली).
-- **Core Architectural Assumption:** **All vernacular localization across the application MUST be 100% deterministic, zero-AI, and instantaneous ($\le 0.05$ms). Generative AI (LLMs) MUST NEVER be used for runtime UI translation or invoice line conversion.**
+- **Core Architectural Assumption:** **All vernacular localization across the application MUST be 100% deterministic, zero-AI, and instantaneous (<= 0.05ms). Generative AI (LLMs) MUST NEVER be used for runtime UI translation or invoice line conversion.**
 - **Why Zero-AI Was Decided (Architectural Rationale):**
-  1. **Zero Runtime Latency:** LLM API roundtrips introduce 1,500ms to 4,000ms latency per page navigation, crippling 3G mobile performance for Kirana store owners. Deterministic dictionary lookups execute in $<0.05$ milliseconds.
+  1. **Zero Runtime Latency:** LLM API roundtrips introduce 1,500ms to 4,000ms latency per page navigation, crippling 3G mobile performance for Kirana store owners. Deterministic dictionary lookups execute in <0.05 milliseconds.
   2. **Zero Hallucination Risk on Commercial Invoices:** Generative models unpredictably hallucinate numbers, prices, tax percentages, or commercial terms (e.g. translating "Peti" into "Box" or altering ₹777.60). Legal commercial invoices under Madhya Pradesh Rule 46 GST cannot tolerate probabilistic non-determinism.
   3. **Zero Token Cost & Offline Resilience:** Eliminates recurring per-token cloud translation API bills. Operates entirely client-side and in local memory with zero external network dependencies.
   4. **Authentic Mandi Trade Terminology:** Generic translation engines produce formal literary Hindi (e.g. translating "Cart" to "शॉपिंग कार्ट" or "Wholesale Case" to "थोक डिब्बा"). IsoLabs enforces authentic Mandi terms:
-     - Master Wholesale Case $\to$ **पूरी पेटी**
-     - Loose Packets $\to$ **खुले पैकेट**
-     - Out of Stock $\to$ **स्टॉक समाप्त**
-     - Credit Limit $\to$ **उधार सीमा**
-     - Outstanding Balance $\to$ **बकाया राशि**
-     - Place Order $\to$ **ऑर्डर दर्ज करें**
-     - Slab Discount $\to$ **थोक स्लैब छूट**
-     - Free Scheme Goods $\to$ **मुफ्त माल (स्कीम)**
+     - Master Wholesale Case -> **पूरी पेटी**
+     - Loose Packets -> **खुले पैकेट**
+     - Out of Stock -> **स्टॉक समाप्त**
+     - Credit Limit -> **उधार सीमा**
+     - Outstanding Balance -> **बकाया राशि**
+     - Place Order -> **ऑर्डर दर्ज करें**
+     - Slab Discount -> **थोक स्लैब छूट**
+     - Free Scheme Goods -> **मुफ्त माल (स्कीम)**
 
 #### `[A55]` Universal Deterministic Transliteration Fallback for Arbitrary Catalogues
 - **Context:** Distributors upload custom Excel workbooks (`.xlsx`) containing arbitrary new brands, un-indexed product descriptions (e.g. *"Kisan Chana Dal 1kg"*, *"Rajesh Masala 50g"*), and new retail store accounts (e.g. *"Raju Kirana & General Store"*).
@@ -447,7 +447,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **The 3-Tier Cascade Transliteration Protocol (`transliterateToHindi`):**
   - **Tier 1 (Explicit Schema Attribute):** If the entity provides an explicit `nameHi`, `categoryHi`, or `shopNameHi`, the system renders the ground-truth field with zero alteration.
   - **Tier 2 (Curated Mandi Lexicon Match):** Scans the curated trade dictionary (`mandiTradeDict`) for exact token or multi-word matches across FMCG commodity words, brands, package units, and shop naming prefixes.
-  - **Tier 3 (Universal Phonetic Syllable Transliteration):** An algorithmic English-to-Devanagari phonetic converter parses input tokens into consonant-vowel syllable clusters, maps phonetic phonemes to Devanagari characters, handles aspirated consonants (`bh` $\to$ भ, `dh` $\to$ ध, `kh` $\to$ ख), conjunct ligatures, and converts English numerals (`0-9`) into Devanagari numerals (`०-९`).
+  - **Tier 3 (Universal Phonetic Syllable Transliteration):** An algorithmic English-to-Devanagari phonetic converter parses input tokens into consonant-vowel syllable clusters, maps phonetic phonemes to Devanagari characters, handles aspirated consonants (`bh` -> भ, `dh` -> ध, `kh` -> ख), conjunct ligatures, and converts English numerals (`0-9`) into Devanagari numerals (`०-९`).
 - **Ingestion-Time Pre-Computation:**
   - In `importer.ts` (Excel ingestion), if an uploaded catalogue row lacks Hindi fields, `transliterateToHindi(name)` and `transliterateToHindi(category)` pre-populate `nameHi` and `categoryHi` at import time.
   - In `AddProductModal.tsx` (Desk additions), entering an English product name auto-computes and displays the Devanagari equivalent in real time.
@@ -459,14 +459,14 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 - **Multi-Layer Synchronization Architecture (`LanguageContext.tsx`):**
   1. **React Context Tree:** Top-level provider in `layout.tsx` exposes `{ lang, setLang, t }` to all client components.
   2. **Local Storage Persistence:** Stores `localStorage.setItem("isolabs_lang", lang)`, restoring user preference upon page reload or browser restart.
-  3. **1-Year SameSite=Lax Cookie:** Writes `document.cookie = "isolabs_lang=${lang}; path=/; max-age=31536000; SameSite=Lax"`, enabling server components and middleware to align with the user's language preference and preventing hydration mismatches.
+  3. **1-Year SameSite=Lax Cookie:** Writes `document.cookie = "isolabs_lang={lang}; path=/; max-age=31536000; SameSite=Lax"`, enabling server components and middleware to align with the user's language preference and preventing hydration mismatches.
   4. **Cross-Tab Broadcast Synchronization:** Listens to `window.addEventListener("storage", ...)` and dispatches `CustomEvent("isolabs_language_change")`, guaranteeing that switching language in Tab A updates Tab B and the Walkthrough modal in 0ms without page reloads.
 
 #### `[A57]` Responsive Desktop Fluid Grid & Multi-Column Ergonomics
 - **Context:** Kirana retailers use budget mobile phones in retail shops, while distributor clerks and warehouse supervisors use 1080p desktop monitors and laptops.
 - **Core Architectural Assumption:** **The interface must provide native smartphone ergonomics on mobile devices without artificially compressing desktop and laptop viewports into narrow vertical tubes or causing text overflow in data containers.**
 - **Ergonomic Specifications:**
-  1. **Responsive Viewport Fluidity:** On desktop screens, pages expand gracefully to multi-column responsive grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk triage tables), utilizing available screen width while keeping touch targets $\ge 48$px.
+  1. **Responsive Viewport Fluidity:** On desktop screens, pages expand gracefully to multi-column responsive grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk triage tables), utilizing available screen width while keeping touch targets >= 48px.
   2. **Zero Text Clipping & Overflow Guards:** Data containers utilize flexible flexbox layouts with `break-words`, `min-w-0`, and responsive padding to ensure multi-tier scheme badges, Hindi matras, and unit rate calculations never clip or spill outside card boundaries.
   3. **Fully Draggable & Resizable Walkthrough Guide:** The onboarding widget features expanded touch handles (`touch-none`), desktop mouse drag listeners, and 1-tap `ZoomIn` / `ZoomOut` buttons, clamped safely within viewport boundaries (`window.innerWidth - 12`).
 
@@ -480,11 +480,11 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A59]` Mostly Deterministic Text Parsing, 15% Fallback Threshold & Ultra-Low Token Gemini Escalation
 - **Context:** Calling cloud LLMs for every unstructured text query causes 1.5–4.0s latency, per-token cloud costs, and non-deterministic behavior. LLMs must act purely as an edge-case fallback, not as the primary engine. Conversely, over-aggressive rejection floors (>20%) prematurely reject colloquial queries with 15%-20% candidate relevance without giving the LLM an opportunity to evaluate remote matches.
-- **Core Architectural Assumption:** **Local heuristics (Tiers 0–3) resolve exact and packaging cases deterministically in <20ms; if no exact match exists but candidates have a 15%-20% match (score $\ge 0.15$), Gemini is escalated with strict token caps (max 100 output tokens, reasoning $<8$ words) and closed-set guardrails to evaluate remote matches. If no match exists, it returns 'no match'.**
+- **Core Architectural Assumption:** **Local heuristics (Tiers 0–3) resolve exact and packaging cases deterministically in <20ms; if no exact match exists but candidates have a 15%-20% match (score >= 0.15), Gemini is escalated with strict token caps (max 100 output tokens, reasoning <8 words) and closed-set guardrails to evaluate remote matches. If no match exists, it returns 'no match'.**
 - **Guardrail Enforcement Specifications (`cascaded-parser.ts` & `gemini-chooser.ts`):**
   1. **Packaging Guardrail Isolation:** Packaging ambiguities (`DABBA`, `MISSING_UNIT`, `BROKEN_CASE`) are resolved 100% locally via plain-code UI Disambiguation Cards. Gemini is never called to guess pack sizes.
-  2. **Calibrated 15% Fallback Threshold:** When top candidate score $< 0.15$ (or candidate set is empty), the engine rejects the line in 0ms locally with `UNKNOWN_SKU` and plain-code reasoning.
-  3. **Ultra-Low Token Closed-Set Escalation:** If top candidate score $\ge 0.15$ and the line is not deterministically confirmed, Gemini evaluates the candidate set with `maxOutputTokens: 100` and prompt instructions to keep reasoning under 8 words.
+  2. **Calibrated 15% Fallback Threshold:** When top candidate score < 0.15 (or candidate set is empty), the engine rejects the line in 0ms locally with `UNKNOWN_SKU` and plain-code reasoning.
+  3. **Ultra-Low Token Closed-Set Escalation:** If top candidate score >= 0.15 and the line is not deterministically confirmed, Gemini evaluates the candidate set with `maxOutputTokens: 100` and prompt instructions to keep reasoning under 8 words.
   4. **Strict Closed-Set & Remote Match Guardrails:** Gemini can only choose an ID from the candidate set, or `"NONE"`. If Gemini selects `"NONE"` or fails closed-set validation, the system cleanly returns `UNKNOWN_SKU` ("no match") with zero hallucinations.
 
 #### `[A60]` Low-Bandwidth (<3G) Client-Side Canvas Media Compression
@@ -504,7 +504,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
   4. **Dynamic UI Suggestion Chips:** In `/quick-order`, `LineItemCard` consumes `line.candidates` to render interactive 1-tap candidate chips (`+ Brand Name (PackSize)`), enabling instant disambiguation with zero arbitrary catalog noise.
 
 #### `[A62]` Universal Client-Side Kirana Cart Purge on Master Reset
-- **Context:** When a distributor clerk executes a Master Reset (Clean Slate or Absolute Zero) from `/setup`, `/desk`, or the Walkthrough Guide, server-side memory or database records are wiped immediately. However, Kirana store draft carts (`isolabs_draft_cart_${retailerId}`, `isolabs_draft_cart`), media attachments (`isolabs_order_media_*`), and quick order drafts were persisted in client-side browser `localStorage`. When the retailer revisited `/catalogue` or `/cart`, the local storage layer immediately revived stale cart quantities and old order media from abandoned previous sessions.
+- **Context:** When a distributor clerk executes a Master Reset (Clean Slate or Absolute Zero) from `/setup`, `/desk`, or the Walkthrough Guide, server-side memory or database records are wiped immediately. However, Kirana store draft carts (`shop-scoped draft cart`, `isolabs_draft_cart`), media attachments (`isolabs_order_media_*`), and quick order drafts were persisted in client-side browser `localStorage`. When the retailer revisited `/catalogue` or `/cart`, the local storage layer immediately revived stale cart quantities and old order media from abandoned previous sessions.
 - **Core Architectural Assumption:** **Triggering a Master Reset must guarantee a 100% universal purge of all client-side draft carts, media attachments, and retailer session caches across all open tabs within 0ms.**
 - **Multi-Channel Purge Protocol (`cart-storage.ts`, `inventory-events.ts`, `useLiveStock.ts`):**
   1. **Direct Synchronous Purge (`clearAllKiranaClientData`):** Iterates all `localStorage` keys, identifying and removing all keys starting with `isolabs_draft_cart`, `isolabs_order_media`, `isolabs_current_retailer_id`, and `isolabs_quick_order_draft` while preserving non-transient UI preferences (such as `isolabs_lang`).
@@ -550,13 +550,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A66]` Option A Calibrated Learned Scorer, Pack-Size Extraction & Segmented Adaptive Thresholds
 - **Context:** In quick-order vernacular text parsing, relying on arbitrary heuristic confidence floors leads to false positive auto-confirms on look-alike size family variants (e.g. confirming Parle-G 75g when 250g was intended) or fails to catch order slips (e.g. typing 100 cases instead of 10).
-- **Core Architectural Assumption:** **High-confidence lines may only auto-confirm when an empirical machine learning model predicts $\ge 99\%$ precision on held-out trade queries (100% empirical precision, 96.9% 95% Wilson LCB), executed with zero external microservice dependencies in pure TypeScript at sub-millisecond latency.**
+- **Core Architectural Assumption:** **High-confidence lines may only auto-confirm when an empirical machine learning model predicts >= 99% precision on held-out trade queries (100% empirical precision, 96.9% 95% Wilson LCB), executed with zero external microservice dependencies in pure TypeScript at sub-millisecond latency.**
 - **Learned Scorer & Guardrail Specifications (`learned-scorer.ts`, `pack-size-extractor.ts`, `candidate-retriever.ts`):**
-  1. **Option A Pure TypeScript Invariant:** 12 features computed in TypeScript and passed to a vectorized logit dot product with Platt calibration. Mathematical parity with scikit-learn offline training is verified to $<10^{-14}$ max difference (`ml-parity.test.ts`), with runtime inference executing in **0.00048 ms** (~2.1M inferences/sec).
+  1. **Option A Pure TypeScript Invariant:** 12 features computed in TypeScript and passed to a vectorized logit dot product with Platt calibration. Mathematical parity with scikit-learn offline training is verified to <10^{-14} max difference (`ml-parity.test.ts`), with runtime inference executing in **0.00048 ms** (~2.1M inferences/sec).
   2. **Deterministic Pack-Size & Weight Extractor:** Dedicated extractor isolates gram/liter and colloquial size tokens (`75g`, `250g`, `500g`, `1kg`, `1L`, `15L`, `chhota`, `bada`, `double`, `aadha kilo`, `tin`). Injected into Cormack RRF candidate retrieval with a **+45% score boost** on size matches and **-75% score penalty** on size mismatches.
   3. **Segmented Adaptive Decision Thresholds:** Dynamically routes queries based on brand catalog topology:
-     - **Single-SKU Brands** (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar): $\tau_{\text{single}} = 0.75$, allowing safe auto-confirmation where size confusion is impossible.
-     - **Multi-SKU Size Families** (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict $\tau_{\text{family}} = 0.945$, preventing accidental auto-confirms of wrong pack sizes.
-  4. **Scheme-Aware Soft Slip Outlier Guard:** Requires $\ge 3$ prior orders for that SKU. Flags a soft warning only when requested quantity is $> 3\times$ median AND strictly above the retailer's historical maximum for that SKU. Automatically suppressed if quantity aligns with an active trade scheme threshold (e.g. Buy 10 Get 1).
+     - **Single-SKU Brands** (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar): Threshold = 0.75, allowing safe auto-confirmation where size confusion is impossible.
+     - **Multi-SKU Size Families** (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict Threshold = 0.945, preventing accidental auto-confirms of wrong pack sizes.
+  4. **Scheme-Aware Soft Slip Outlier Guard:** Requires >=3 prior orders for that SKU. Flags a soft warning only when requested quantity is > 3x median AND strictly above the retailer's historical maximum for that SKU. Automatically suppressed if quantity aligns with an active trade scheme threshold (e.g. Buy 10 Get 1).
   5. **Ambiguous Unit Invariant:** Lines with ambiguous units (`DABBA`, `UNKNOWN`) strictly never auto-confirm into cart, regardless of model score.
 

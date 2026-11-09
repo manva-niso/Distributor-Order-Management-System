@@ -258,7 +258,7 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Automatic order re-hydration from Neon PostgreSQL (`hydrateOrdersFromNeon`) preventing order disappearance across serverless cold starts and relogins (`[A51]`).
 - [x] **Kirana-Scoped Cart & Multi-Tenant Isolation (`[A50]`):**
   - Draft carts and media attachments dynamically partitioned by `retailerId` via `src/lib/catalogue/cart-storage.ts`:
-    - `isolabs_draft_cart_${retailerId}`
+    - `draft_cart_{shopId}`
     - `isolabs_order_media_${retailerId}`
   - Completely segregates unplaced items between different Kirana accounts sharing a device/browser.
 - [x] **Neon PostgreSQL Cold-Start Order Re-hydration (`[A51]`):**
@@ -270,7 +270,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 - `distributor-app/`
   - `src/db/store.ts` - Added `createOrder`, `getOrderById`, `getOrdersByRetailerId`, `updateOrderStatus`, `deductSkuStock`, and `upsertOrder`
   - `src/db/neon-sync.ts` - Added `hydrateOrdersFromNeon` for persistent order retrieval
-  - `src/lib/catalogue/cart-storage.ts` - Store-scoped storage keys (`isolabs_draft_cart_${retailerId}`)
+  - `src/lib/catalogue/cart-storage.ts` - Store-scoped storage keys (`draft_cart_{shopId}`)
   - `src/app/api/orders/checkout/route.ts` - Order placement & credit validation API with sequence collision avoidance
   - `src/app/api/orders/route.ts` - Order query API with Neon re-hydration
   - `src/app/api/catalogue/route.ts` - Scoped catalog retrieval without hardcoded impersonation fallbacks
@@ -300,7 +300,7 @@ This document tracks each Core Build Module step by step, its features, implemen
 ### 1. Features Implemented
 - [x] **Universal Excel / CSV Parser (`src/lib/excel/importer.ts`):**
   - Robust multi-tab workbook ingestion using `xlsx` (SheetJS) supporting `.xlsx`, `.xls`, and `.csv`.
-  - Header normalization and synonym tolerance (`[A32]`): automaps *"Rate"* / *"Wholesale Price"* $\to$ Dealer Price, *"Case Pack"* $\to$ Units Per Case.
+  - Header normalization and synonym tolerance (`[A32]`): automaps *"Rate"* / *"Wholesale Price"* -> Dealer Price, *"Case Pack"* -> Units Per Case.
   - Automatically parses trade schemes: Free Goods (`Buy 10 Get 1`) and Slab Discounts (`3% on 5+ cases`).
   - Automatically computes per-pack unit rates from case wholesale prices.
   - Generates downloadable sample `.xlsx` template files with realistic FMCG items and kirana accounts (`GET /api/setup/template`).
@@ -358,8 +358,8 @@ This document tracks each Core Build Module step by step, its features, implemen
 - [x] **Reciprocal Rank Fusion (Cormack RRF $k=60$) Candidate Retrieval (`candidate-retriever.ts`):**
   - Combines 3 independent ranking channels without fragile scale normalization:
     1. **Ranker A (Lexical Trigrams):** Character 3-gram Dice similarity over product names, brands, and categories.
-    2. **Ranker B (Keywords & Attributes):** Direct and synonym-expanded token overlap (`sabun` $\to$ soap/cake, `powder` $\to$ detergent, pack size weights).
-    3. **Ranker C (Phonetic Transliteration):** Token-level Indic phonetic key normalization (collapsing aspirated consonants `gh` $\to$ `g`, `bh` $\to$ `b`, `ph` $\to$ `f`, `ee` $\to$ `i`) and Levenshtein distance.
+    2. **Ranker B (Keywords & Attributes):** Direct and synonym-expanded token overlap (`sabun` -> soap/cake, `powder` -> detergent, pack size weights).
+    3. **Ranker C (Phonetic Transliteration):** Token-level Indic phonetic key normalization (collapsing aspirated consonants `gh` -> `g`, `bh` -> `b`, `ph` -> `f`, `ee` -> `i`) and Levenshtein distance.
   - Computes scale-free fusion score $RRF(d) = \sum \frac{1}{60 + r_m(d)}$ normalized between $0.0$ and $1.0$.
 - [x] **Pluggable Architecture & Strategy Pattern (`src/lib/ai/types.ts`, `src/lib/ai/pipeline.ts`):**
   - Defined strict `OrderParserPipeline` interface (`parseText(rawText, context): Promise<ParseResult>`).
@@ -367,20 +367,20 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Graceful zero-crash fallback to deterministic rules (`[A17]`) if the custom ML pipeline is offline or errors.
 - [x] **Jabalpur Regional FMCG Vernacular & Dialect Dictionary:**
   - **Tier 0 Data-Driven Regional Alias Table (`SEED_ALIASES`):**
-    - Parle-G 75g: *"pila wala"*, *"pila biscuit"*, *"chhota biscuit"*, *"parle pila"*, *"पीला वाला"*, *"छोटा बिस्कुट"* $\to$ `SKU-BS-075`
-    - Tata Tea Gold 500g: *"shakti chai"*, *"kadak chai"*, *"kadak patti"*, *"शक्ति चाय"* $\to$ `SKU-TE-TT500`
-    - Fortune Sunflower Oil 1L: *"surajmukhi tel"*, *"chidiya tel"*, *"refine tel"*, *"mitha tel"*, *"सूरजमुखी तेल"* $\to$ `SKU-OL-FT1L`
-    - Ghadi Detergent Powder 1kg: *"kapde dhone wala ghadi"*, *"ghari powder"*, *"घड़ी पाउडर"* $\to$ `SKU-DT-1KG`
-    - Ghadi Cake 250g: *"bartan bar"*, *"ghadi tikiya"*, *"kapde dhone ki tikiya"*, *"घड़ी टिकिया"* $\to$ `SKU-DT-CK250`
-    - Dettol Soap 125g: *"nahane wala dettol"*, *"डेटॉल साबुन"* $\to$ `SKU-PC-DT125`
-    - Lifebuoy Soap 100g: *"lal sabun"*, *"लाइफबॉय"* $\to$ `SKU-PC-LB100`
+    - Parle-G 75g: *"pila wala"*, *"pila biscuit"*, *"chhota biscuit"*, *"parle pila"*, *"पीला वाला"*, *"छोटा बिस्कुट"* -> `SKU-BS-075`
+    - Tata Tea Gold 500g: *"shakti chai"*, *"kadak chai"*, *"kadak patti"*, *"शक्ति चाय"* -> `SKU-TE-TT500`
+    - Fortune Sunflower Oil 1L: *"surajmukhi tel"*, *"chidiya tel"*, *"refine tel"*, *"mitha tel"*, *"सूरजमुखी तेल"* -> `SKU-OL-FT1L`
+    - Ghadi Detergent Powder 1kg: *"kapde dhone wala ghadi"*, *"ghari powder"*, *"घड़ी पाउडर"* -> `SKU-DT-1KG`
+    - Ghadi Cake 250g: *"bartan bar"*, *"ghadi tikiya"*, *"kapde dhone ki tikiya"*, *"घड़ी टिकिया"* -> `SKU-DT-CK250`
+    - Dettol Soap 125g: *"nahane wala dettol"*, *"डेटॉल साबुन"* -> `SKU-PC-DT125`
+    - Lifebuoy Soap 100g: *"lal sabun"*, *"लाइफबॉय"* -> `SKU-PC-LB100`
   - **Regional Fractional Weights & Multipliers:**
     - `aadha` / `adha` / `आधा` = $0.5$
     - `derh` / `dedh` / `डेढ़` = $1.5$
     - `dhai` / `adhai` / `ढाई` = $2.5$
     - `sawa` / `सवा` = $1.25$
     - `pao` / `pav` / `पाव` = $0.25$
-    - `darjan` / `dozen` / `दर्जन` = $12$ (with multipliers: *"2 darjan"* $\to 24$, *"aadha darjan"* $\to 6$)
+    - `darjan` / `dozen` / `दर्जन` = $12$ (with multipliers: *"2 darjan"* -> 24, *"aadha darjan"* -> 6)
   - **Devanagari Numeral Conversion:** Converts Hindi numerals (`०, १, २, ३, ४, ५, ६, ७, ८, ९`) into Arabic digits (`0-9`).
   - **Conversational Pleasantries Stripping:** Discards noise words (*"bhaiya"*, *"sethji"*, *"chahiye"*, *"jaldi bhejo"*, *"kal subah"*, *"नमस्ते"*, *"भैया"*).
 - [x] **The "Dabba" Semantic Ambiguity Guardrail (Invariant `[A16]` "Ask, Never Guess"):**
@@ -403,18 +403,18 @@ This document tracks each Core Build Module step by step, its features, implemen
 - [x] **Option A Learned Scorer & Auto-Confirm Engine (`learned-scorer.ts`):**
   - Converts 12-dimensional feature vector ($S_1$, $S_1 - S_2$, lexical trigrams, phonetic similarity, knowledge graph domain match, retailer SKU frequency, recency decay, usual unit consistency) into a calibrated probability via offline-trained Logistic Regression and Platt Sigmoid ($A = 1.2212, B = 0.1794$).
   - Evaluates in $< 0.0005$ms via pure TypeScript vector dot product with zero cloud dependencies.
-  - Mathematical parity with Python scikit-learn verified to machine epsilon ($|P_{\text{TS}} - P_{\text{sklearn}}| < 10^{-5}$) in `ml-parity.test.ts`.
+  - Mathematical parity with Python scikit-learn verified to machine epsilon ($|P_{TS} - P_{sklearn}| < 10^{-5}$) in `ml-parity.test.ts`.
 - [x] **Pack-Size & Size-Modifier Extractor (`pack-size-extractor.ts`):**
   - Disambiguates look-alike size families (Parle 75g vs 250g, Ghadi 500g vs 1kg, Fortune 1L vs 15L, Dettol 75g vs 125g, Maggi 70g vs 140g).
   - Extracts explicit metric values (`75g`, `250g`, `500g`, `1kg`, `1L`, `15L`) and colloquial modifiers (`chhota`, `bada`, `double pack`, `family pack`, `aadha kilo`, `tin`).
   - Integrated into Cormack RRF retrieval, providing a $+45\%$ boost to the matching size and penalizing competing size variants.
 - [x] **Adaptive Segmented Thresholds (`learned-scorer.ts`):**
-  - Resolves single-SKU brands (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar) at $\tau_{\text{single}} = 0.75$, safely unlocking auto-confirm volume with 0 errors.
-  - Strictly gates look-alike size families at $\tau_{\text{family}} = 0.945$ using the 95% Wilson Score Lower Confidence Bound.
+  - Resolves single-SKU brands (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar) at single-SKU threshold = 0.75, safely unlocking auto-confirm volume with 0 errors.
+  - Strictly gates look-alike size families at multi-pack threshold = 0.945 using the 95% Wilson Score Lower Confidence Bound.
   - Achieves **100% precision (96.9% 95% Wilson LCB)** at **2.1× higher auto-confirm volume (119 lines vs 56 lines in V2)** compared to flat thresholding, eliminating 100% of silent cart errors.
 - [x] **Retailer Empirical Prior & Soft 1-Tap Quantity Warning (`retailer-prior.ts`):**
   - Computes historical median cases, max cases, order frequency, and usual packaging unit per retailer-SKU pair.
-  - Proactively flags $10\times$ order slips ($>3\times$ median and $>$ historical max) for established retailers ($\ge 3$ past orders).
+  - Proactively flags 10x order slips (> 3x median and > historical max) for established retailers ($>= 3$ past orders).
   - **Promotional Exemption:** Automatically suppresses false alarms when the requested quantity hits an active scheme threshold (e.g. 10 cases for Buy 10 Get 1 Free).
 - [x] **Tier 0 Feedback Loop & Training Row Pipeline (`desk-feedback.ts`):**
   - When an office clerk edits or corrects an SKU on `/desk/orders/[id]`, the mapping is immediately saved to `retailer_aliases` for instant 0ms Tier 0 hits.
@@ -442,10 +442,10 @@ This document tracks each Core Build Module step by step, its features, implemen
 
 ### 3. Verification & Tests
 - **Distributor App Vitest Suite:** `distributor-app/src/__tests__/*.test.ts`
-  - **190/190 unit tests passing** across all 24 test suites.
+  - **191/191 unit tests passing** across all 25 test suites.
 - **Engine Vitest Suite:** `engine/src/__tests__/*.test.ts`
   - **68/68 unit tests passing** (schemes, text parser, candidate retriever, calibrated scorer, gemini chooser, cascaded parser).
-- **Combined Automated Verification:** **258/258 passing tests** across the entire codebase.
+- **Combined Automated Verification:** **259/259 passing tests** across all 32 test files.
 - **Production Build:** Verified with Next.js 16 (Turbopack) - **exit code 0 (35/35 routes compiled)**.
 
 ---
@@ -670,7 +670,7 @@ This document tracks each Core Build Module step by step, its features, implemen
     3. Adaptive polling fallback: `GET /api/catalogue/live-stock?poll=true&v={version}` every 2.5s returning 49-byte `{ changed: false }` responses when stock is unchanged.
     4. Database tier: `hydrateSkusFromNeon()` synchronizing stock across serverless containers.
 - [x] **Zero-Drop Quick Order to Cart Pipeline (`[A53]`):**
-  - Dual-write mirroring: `saveScopedCart` dual-writes to `isolabs_draft_cart_${retailerId}` and fallback `isolabs_draft_cart`.
+  - Dual-write mirroring: `saveScopedCart` dual-writes to `draft_cart_{shopId}` and fallback `isolabs_draft_cart`.
   - Tiered fallback & auto-migration: `loadScopedCart` reads scoped key first, falls back to un-scoped key, and auto-migrates draft items into the scoped retailer key.
   - Optimistic 0ms mount hydration: `/cart` and `/catalogue` hydrate draft cart synchronously on mount, eliminating blank-cart flashes.
   - Retailer ID caching: caches current retailer in `localStorage("isolabs_current_retailer_id")` for immediate scoped key derivation.
@@ -724,9 +724,9 @@ This document tracks each Core Build Module step by step, its features, implemen
 - [x] **Zero-AI Vernacular Hindi Localization & Mandi Lexicon (`[A54]`):**
   - Instantaneous ($\le 0.05$ms) deterministic dictionary and transliteration lookup, avoiding 1.5–4.0s LLM latency, API costs, and commercial invoice hallucination risks.
   - Native Devanagari Hindi localization across all 7 screens (`/catalogue`, `/cart`, `/quick-order`, `/orders`, `/login`, `/register`, `/setup`), Order Desk (`/desk`), and Walkthrough Guide (`WalkthroughGuide.tsx`).
-  - Strict Mandi trade terminology (मंडी शब्दावली): *Wholesale Case* $\to$ **पूरी पेटी**, *Loose Packs* $\to$ **खुले पैकेट**, *Out of Stock* $\to$ **स्टॉक समाप्त**, *Credit Limit* $\to$ **उधार सीमा**, *Current Balance* $\to$ **बकाया राशि**, *Place Order* $\to$ **ऑर्डर दर्ज करें**, *Trade Slab Discount* $\to$ **थोक स्लैब छूट**, *Scheme Free Goods* $\to$ **मुफ्त माल (स्कीम)**.
+  - Strict Mandi trade terminology (मंडी शब्दावली): *Wholesale Case* -> **पूरी पेटी**, *Loose Packs* -> **खुले पैकेट**, *Out of Stock* -> **स्टॉक समाप्त**, *Credit Limit* -> **उधार सीमा**, *Current Balance* -> **बकाया राशि**, *Place Order* -> **ऑर्डर दर्ज करें**, *Trade Slab Discount* -> **थोक स्लैब छूट**, *Scheme Free Goods* -> **मुफ्त माल (स्कीम)**.
 - [x] **Universal Deterministic Transliteration Engine for Arbitrary Catalogues (`[A55]`):**
-  - Solved the "random catalogue" limitation: when distributors upload arbitrary Excel sheets (e.g. *"Kisan Chana Dal 1kg"* $\to$ *"किसान चना दाल 1 किलो"*) or register new Kirana stores (*"Raju Kirana & General Store"* $\to$ *"राजू किराना व जनरल स्टोर"*), names translate dynamically without static dictionary hardcoding or AI services.
+  - Solved the "random catalogue" limitation: when distributors upload arbitrary Excel sheets (e.g. *"Kisan Chana Dal 1kg"* -> *"किसान चना दाल 1 किलो"*) or register new Kirana stores (*"Raju Kirana & General Store"* -> *"राजू किराना व जनरल स्टोर"*), names translate dynamically without static dictionary hardcoding or AI services.
   - 3-tier cascade:
     1. Tier 1: Explicit Devanagari schema attributes (`nameHi`, `categoryHi`, `shopNameHi`).
     2. Tier 2: Static Mandi trade dictionary (`mandiTradeDict`) covering commodity food items, personal care, package formats, brands, and shop prefixes.
@@ -741,7 +741,7 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Language selection persists across all page navigations, browser restarts, and open tabs without ever resetting to English.
   - 1-click language switcher in Walkthrough floating header for instant tour localization.
 - [x] **Responsive Desktop Fluid Grid & Multi-Column Ergonomics (`[A57]`):**
-  - Eliminated rigid 390px mobile tube on desktop/laptops while preserving centered ergonomics and touch targets $\ge 48$px.
+  - Eliminated rigid 390px mobile tube on desktop/laptops while preserving centered ergonomics and touch targets >= 48px.
   - Multi-column responsive product card grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk views).
   - Overflow prevention: flex-wrap, `min-w-0`, `break-words`, and dynamic padding ensuring multi-tier scheme badges, Hindi vowel matras, and unit rate calculations never clip or spill outside card boundaries.
   - Draggable & resizable Walkthrough Guide with 1-tap `ZoomIn` / `ZoomOut` buttons and mobile drawer collapsing.
@@ -782,8 +782,8 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Gemini Closed-Set Chooser is invoked *only* when legitimate warehouse SKUs compete closely (`MULTIPLE_CANDIDATES`).
 - [x] **ARTPARK-IISc Vaani Hindi Speech Recognition Integration (`[A58]`):**
   - Integrated `ARTPARK-IISc/whisper-large-v3-vaani-hindi` and `ARTPARK-IISc/Vaani-FastConformer-Hindi` via Hugging Face Inference API with an 8-second circuit-breaker timeout.
-  - 3-tier multimodal audio ingestion: Vaani Hindi Whisper $\to$ Gemini Audio $\to$ Offline simulated Mandi fallback.
-  - 2-tier handwritten kirana slip OCR: Gemini 2.5 Flash Vision OCR $\to$ Offline simulated slip fallback.
+  - 3-tier multimodal audio ingestion: Vaani Hindi Whisper -> Gemini Audio -> Offline simulated Mandi fallback.
+  - 2-tier handwritten kirana slip OCR: Gemini 2.5 Flash Vision OCR -> Offline simulated slip fallback.
 - [x] **Low-Bandwidth 3G Offscreen Canvas Compression (`[A60]`):**
   - Added client-side HTML5 offscreen canvas downscaling in `quick-order/page.tsx`.
   - Automatically downsizes 8MB-12MB phone camera photos to $\le 1280$px JPEG (~118KB, 98.6% payload reduction) in <100ms.
@@ -828,7 +828,7 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Out-of-domain inquiries (*"साइकिल का टायर"*, *"सीमेंट"*, *"मोर्टीन"*) return explicit plain-code rejection notes and `candidates: []`, completely eliminating false confectionery suggestions.
 - [x] **Contextual UI Suggestion Chips in `/quick-order`:**
   - `LineItemCard` renders 1-tap interactive candidate chips (`+ Brand Name (PackSize)`) populated directly from `line.candidates`.
-  - Merchants can resolve category-level ambiguity (*"सर्फ"* $\to$ Surf Excel 1kg or Ghadi 1kg) with a single tap, immediately confirming the item.
+  - Merchants can resolve category-level ambiguity (*"सर्फ"* -> Surf Excel 1kg or Ghadi 1kg) with a single tap, immediately confirming the item.
 - [x] **Authentic Hindi Kirana Slip & Jabalpur Mandi Audio Integration:**
   - **Kirana Slip Image:** Integrated authentic 17-line handwritten Hindi Kirana ledger slip (`kirana_slip_sample.png`, 666 KB) with 1-click test simulation button in Quick Order.
   - **Jabalpur Audio Note:** Integrated authentic synthesized colloquial Hindi voice note (`jabalpur_mandi_order.mp3`, 53.9 KB) with 1-click test simulation button.
