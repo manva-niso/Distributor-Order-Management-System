@@ -40,7 +40,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A28]** | Module 1: Auth/Onboarding | Single Phone Identity Constraint | Mobile numbers serve as primary entity keys; duplicate registrations with identical 10-digit phone numbers return HTTP 409 Conflict. |
 | **[A29]** | Module 4: Cart/Orders | B2B Order Status State Machine | Orders within headroom initiate as `PLACED`; orders exceeding credit headroom flag `CREDIT_HOLD` for clerk review (never dead buttons). |
 | **[A30]** | Module 4: Cart/Orders | Physical Promotional Stock Lock | Free promotional cases (`freeCases`) are deducted atomically alongside billed cases from warehouse stock to prevent stockout cuts. |
-| **[A31]** | Master Data / Setup | Dynamic Excel/CSV Catalog Ingestion | System dynamically ingests arbitrary distributor price lists and retailer credit sheets (.xlsx/.xls/.csv), eliminating hardcoded data dependency. |
+| **[A31]** | Master Data / Setup | Catalogue Excel Format Baseline | We operate under the foundational assumption that the product catalogue will be sent in the distributor's standard Excel format (.xlsx/.xls) used throughout this system. |
 | **[A32]** | Master Data / Setup | Header Synonym Tolerance & Safe Defaults | Ingestion engine tolerates varied column synonyms ("Rate", "Dealer Price", "Case Pack") and applies standard FMCG defaults when non-critical metadata is omitted. |
 | **[A33]** | Module 5: AI Capture | Pluggable Parser Strategy & ML Extensibility | Parser implements `OrderParserPipeline` adapter pattern so any custom ML microservice (Python/FastAPI) can drop-in replace rules without UI changes. |
 | **[A34]** | Module 5: AI Capture | Trilingual & Devanagari Numeral Normalization | Accepts Arabic digits (`0-9`), Devanagari numerals (`०-९`), and written words (`ek`, `paanch`, `दो`), stripping colloquial pleasantries before SKU matching. |
@@ -197,9 +197,9 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 ### Master Data Setup & Dynamic Excel Ingestion
 
-#### `[A31]` Dynamic Excel/CSV Catalog Ingestion
-- **Context:** Third-party distributors and evaluators testing the application with their own proprietary product catalogs, pack sizes, wholesale prices, and retail accounts.
-- **Assumption:** The application is not locked to hardcoded seed data. Users can upload arbitrary `.xlsx`, `.xls`, or `.csv` workbooks via `/setup` or `/api/setup/import-excel`. The ingestion engine parses items and retailers, dynamically updates in-memory and relational tables, generates per-pack unit pricing, and binds active trade schemes instantly across all screens.
+#### `[A31]` Catalogue Excel Format Baseline & Dynamic Ingestion
+- **Context:** Distributor product catalogue onboarding, price updates, pack sizing, and master retail account setups.
+- **Assumption:** We operate under the explicit foundational assumption that the product catalogue will be sent in the standard Excel format (`.xlsx`/`.xls`) established and demonstrated in this platform (`/setup` template). The system dynamically ingests workbooks in this format, parses SKU lines and retailer accounts, updates relational and in-memory tables, computes per-pack unit pricing, and binds active trade schemes instantly across all screens.
 
 #### `[A32]` Header Synonym Tolerance & Safe Defaults
 - **Context:** Varied column naming conventions in distributor ERP exports (Tally, Busy, Marg, SAP).

@@ -14,6 +14,9 @@ Company A is an established FMCG distributor in Jabalpur managing ~600 daily who
 - **Blind Field Ordering:** Counter salesmen had zero visibility into real-time warehouse inventory or active trade promotions, leading to warehouse stockout cuts, credit limit breaches, and customer disputes.
 - **The Solution:** A unified, installable, offline-resilient B2B order platform pairing direct kirana ordering with a smart Hindi voice and text order desk, real-time inventory synchronization, pure mathematical scheme calculations, and 1-click batch Tally XML export.
 
+> **Foundational Operating Assumption (Catalogue Format):**  
+> We operate under the foundational assumption that the product catalogue will be sent in the standard Excel (.xlsx / .xls) format used throughout this application. All product specifications, wholesale case units, dealer prices, and GST tax classifications are ingested directly from this Excel catalogue sheet.
+
 ---
 
 ## 2. Architecture & Technology Decisions
@@ -49,6 +52,7 @@ The relational database is strictly partitioned into two operational domains:
 
 ### Module Assumptions & Persistence Rules
 - `[A8]` **Wholesale Master Case Accounting:** Warehouse inventory is tracked strictly in physical sealed cases; pack quantities are informational.
+- `[A31]` **Catalogue Excel Format Assumption:** Master catalogues and pricing updates are assumed to be sent in the distributor's standard Excel format (`.xlsx`/`.xls`) established in the application template.
 - `[A50]` **Kirana-Scoped Cart Partitioning:** Active draft carts are strictly partitioned by store ID (`isolabs_draft_cart_${retailerId}`); devices shared by salesmen never leak items across retailers.
 - `[A51]` **Restoring Saved Orders from Database:** Read and checkout paths deterministically invoke `hydrateOrdersFromNeon(retailerId)` to ensure orders persist across serverless cold starts with clean sequential order numbers (`ORD-2026-XXXX`).
 
@@ -179,7 +183,7 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 - `[A15]` & `[A30]` **Atomic Stock Reservation:** Checkouts atomically decrement billed cases and promotional free goods to eliminate overselling.
 - `[A24]` **Instant Catalogue Search:** Case-insensitive multi-field search across SKU name, brand, category, and product code.
 - `[A26]` **Out-of-Stock Demand Tracking:** "Notify when available" registers demand events in `audit_logs` without allowing checkout.
-- `[A31]` & `[A32]` **Automatic Excel Price List Import:** Parses arbitrary distributor Excel/CSV workbooks with column synonym tolerance and safe FMCG defaults.
+- `[A31]` & `[A32]` **Catalogue Excel Format & Import Rules:** We go under the foundational assumption that the product catalogue will be sent in the standard Excel format (`.xlsx`/`.xls`) used in this system. The import engine parses SKU codes, case pack counts, dealer prices, and tax rates with column synonym tolerance and safe FMCG defaults.
 - `[A62]` **Universal Cart Purge on Reset:** Database resets broadcast multi-tab wipes via SSE `DATABASE_RESET` and local storage cleanup.
 - `[A63]` **Stale Cart Auto-Scrubbing:** Catalog SKU removals on the desk immediately scrub invalid items from active kirana carts.
 
