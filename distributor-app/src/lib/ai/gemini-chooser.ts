@@ -102,12 +102,13 @@ JSON Format:
       const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
       try {
-        const payload = {
+        const payload: Record<string, any> = {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.0, // Zero temperature for deterministic classification
-            maxOutputTokens: 100, // Minimal tokens for fast, concise responses
+            maxOutputTokens: 400, // Sufficient tokens for JSON payload without truncation
             responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 },
           },
         };
 
