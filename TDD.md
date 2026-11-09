@@ -101,6 +101,8 @@ The interface follows the **Merchant Utility** design tokens:
 
 The pricing engine is implemented in an independent package (`/engine`) as a **pure mathematical function** with zero database calls, network I/O, or mutable side effects:
 
+![Figure 7: Authoritative Wholesale Scheme & MP GST Calculation Engine](project-curation-and-research/Build%20Docs/diagrams/diagram_7_scheme_gst_engine.png)
+
 $$\text{calculateOrderPricing}(\text{lines}, \text{context}) \longrightarrow \text{PricingResult}$$
 
 ### Mathematical & Tax Invariants
@@ -127,7 +129,9 @@ The engine is verified by **68 automated tests** in `engine/src/__tests__`:
 
 The vernacular order parsing engine combines deterministic speed with a calibrated machine-learned scorer and constrained LLM semantic reasoning:
 
-![Figure 3: Multi-Tier Vernacular NLP & Calibrated Learned Scorer Pipeline](project-curation-and-research/Build%20Docs/diagrams/diagram_3_scorer_pipeline.png)
+![Figure 3A: Vernacular NLP & Pack-Size Grounded Retrieval Pipeline](project-curation-and-research/Build%20Docs/diagrams/diagram_3a_retrieval_pipeline.png)
+
+![Figure 3B: Platt Calibration & Segmented Adaptive Decision Engine](project-curation-and-research/Build%20Docs/diagrams/diagram_3b_scorer_decision.png)
 
 ### The 5-Stage Vernacular Decision Engine:
 1. **Tier 0 (Pre-Processor & Exact Aliases — <1ms):** Normalizes numerals (Devanagari to Arabic), strips conversational noise (*"where a case contains 24"*), and matches persistent kirana aliases.
