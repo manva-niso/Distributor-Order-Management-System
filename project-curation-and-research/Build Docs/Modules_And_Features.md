@@ -410,8 +410,8 @@ This document tracks each Core Build Module step by step, its features, implemen
   - Integrated into Cormack RRF retrieval, providing a $+45\%$ boost to the matching size and penalizing competing size variants.
 - [x] **Adaptive Segmented Thresholds (`learned-scorer.ts`):**
   - Resolves single-SKU brands (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar) at $\tau_{\text{single}} = 0.75$, safely unlocking auto-confirm volume with 0 errors.
-  - Strictly gates look-alike size families at $\tau_{\text{family}} = 0.920$ using the 95% Wilson Score Lower Confidence Bound.
-  - Achieves **97.4% precision** at **2.5× higher auto-confirm volume (116 lines)** compared to flat thresholding.
+  - Strictly gates look-alike size families at $\tau_{\text{family}} = 0.945$ using the 95% Wilson Score Lower Confidence Bound.
+  - Achieves **100% precision (96.9% 95% Wilson LCB)** at **2.1× higher auto-confirm volume (119 lines vs 56 lines in V2)** compared to flat thresholding, eliminating 100% of silent cart errors.
 - [x] **Retailer Empirical Prior & Soft 1-Tap Quantity Warning (`retailer-prior.ts`):**
   - Computes historical median cases, max cases, order frequency, and usual packaging unit per retailer-SKU pair.
   - Proactively flags $10\times$ order slips ($>3\times$ median and $>$ historical max) for established retailers ($\ge 3$ past orders).

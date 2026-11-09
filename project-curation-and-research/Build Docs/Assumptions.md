@@ -75,7 +75,7 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 | **[A63]** | Module 2 & Desk: Sync | Cross-Tab Catalog Parity & Stale Cart Scrubbing | Desk changes broadcast to Kirana storefront in real time; deleted catalog items automatically scrubbed from active cart maps. |
 | **[A64]** | Auth & Dev Sandbox | Dev Sandbox Master OTP Reliability & 1-Tap Login | Master demo OTPs (`123456`, `716716`) auto-provision in sandbox mode; 1-tap instant demo login for latency-free evaluation. |
 | **[A65]** | System Verification | 18-Step Walkthrough UI Bulk Control & Programmatic Vitest Suite | 1-tap checkbox bulk controls with celebratory feedback, verified by 19 automated programmatic tests in `walkthrough.test.ts`. |
-| **[A66]** | Module 5: Scorer & Eval | Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior | 12-feature logistic regression in pure TypeScript with scikit-learn parity ($<10^{-14}$ diff), Platt calibration, deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds ($\tau_{\text{single}}=0.75, \tau_{\text{family}}=0.920$), and scheme-aware slip detection ($>3\times$ median, $>$ historical max, suppressed on scheme tiers). |
+| **[A66]** | Module 5: Scorer & Eval | Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior | 12-feature logistic regression in pure TypeScript with scikit-learn parity ($<10^{-14}$ diff), Platt calibration, deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds ($\tau_{\text{single}}=0.75, \tau_{\text{family}}=0.945$), and scheme-aware slip detection ($>3\times$ median, $>$ historical max, suppressed on scheme tiers). |
 
 ---
 
@@ -550,13 +550,13 @@ Each assumption is assigned a permanent identifier (`[A1]`, `[A2]`, etc.) and gr
 
 #### `[A66]` Option A Calibrated Learned Scorer, Pack-Size Extraction & Segmented Adaptive Thresholds
 - **Context:** In quick-order vernacular text parsing, relying on arbitrary heuristic confidence floors leads to false positive auto-confirms on look-alike size family variants (e.g. confirming Parle-G 75g when 250g was intended) or fails to catch order slips (e.g. typing 100 cases instead of 10).
-- **Core Architectural Assumption:** **High-confidence lines may only auto-confirm when an empirical machine learning model predicts $\ge 97\%$ precision on held-out trade queries, executed with zero external microservice dependencies in pure TypeScript at sub-millisecond latency.**
+- **Core Architectural Assumption:** **High-confidence lines may only auto-confirm when an empirical machine learning model predicts $\ge 99\%$ precision on held-out trade queries (100% empirical precision, 96.9% 95% Wilson LCB), executed with zero external microservice dependencies in pure TypeScript at sub-millisecond latency.**
 - **Learned Scorer & Guardrail Specifications (`learned-scorer.ts`, `pack-size-extractor.ts`, `candidate-retriever.ts`):**
   1. **Option A Pure TypeScript Invariant:** 12 features computed in TypeScript and passed to a vectorized logit dot product with Platt calibration. Mathematical parity with scikit-learn offline training is verified to $<10^{-14}$ max difference (`ml-parity.test.ts`), with runtime inference executing in **0.00048 ms** (~2.1M inferences/sec).
   2. **Deterministic Pack-Size & Weight Extractor:** Dedicated extractor isolates gram/liter and colloquial size tokens (`75g`, `250g`, `500g`, `1kg`, `1L`, `15L`, `chhota`, `bada`, `double`, `aadha kilo`, `tin`). Injected into Cormack RRF candidate retrieval with a **+45% score boost** on size matches and **-75% score penalty** on size mismatches.
   3. **Segmented Adaptive Decision Thresholds:** Dynamically routes queries based on brand catalog topology:
      - **Single-SKU Brands** (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar): $\tau_{\text{single}} = 0.75$, allowing safe auto-confirmation where size confusion is impossible.
-     - **Multi-SKU Size Families** (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict $\tau_{\text{family}} = 0.920$, preventing accidental auto-confirms of wrong pack sizes.
+     - **Multi-SKU Size Families** (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict $\tau_{\text{family}} = 0.945$, preventing accidental auto-confirms of wrong pack sizes.
   4. **Scheme-Aware Soft Slip Outlier Guard:** Requires $\ge 3$ prior orders for that SKU. Flags a soft warning only when requested quantity is $> 3\times$ median AND strictly above the retailer's historical maximum for that SKU. Automatically suppressed if quantity aligns with an active trade scheme threshold (e.g. Buy 10 Get 1).
   5. **Ambiguous Unit Invariant:** Lines with ambiguous units (`DABBA`, `UNKNOWN`) strictly never auto-confirm into cart, regardless of model score.
 

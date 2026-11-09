@@ -390,7 +390,7 @@ $$\text{Decision} = \begin{cases}
 \end{cases}$$
 
 Where the adaptive threshold is segmented:
-$$\tau_{\text{adaptive}} = \begin{cases} 0.75 & \text{for Unambiguous Single-SKU Brands (Tata Salt, Nescafe, Harpic, Vim, Good Knight)} \\ 0.920 & \text{for Look-Alike Size Families (Parle, Ghadi, Fortune, Dettol, Maggi)} \end{cases}$$
+$$\tau_{\text{adaptive}} = \begin{cases} 0.75 & \text{for Unambiguous Single-SKU Brands (Tata Salt, Nescafe, Harpic, Vim, Good Knight)} \\ 0.945 & \text{for Look-Alike Size Families (Parle, Ghadi, Fortune, Dettol, Maggi)} \end{cases}$$
 
 #### Formula 13: Retailer Prior Soft 1-Tap Outlier Detection with Promotional Exemption
 $$\text{IsAnomaly} = (N_{\text{orders}} \ge 3) \;\land\; (q > 3.0 \times \text{MedianCases}) \;\land\; (q > \text{MaxCases}) \;\land\; \neg \text{MatchesSchemeThreshold}(q)$$
