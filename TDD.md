@@ -41,21 +41,25 @@ A unified, installable, offline-capable B2B order desk and mobile web applicatio
 
 The database schema is strictly partitioned into two operational domains:
 
-```
-┌──────────────────────────────────────────────┐    ┌──────────────────────────────────────────────┐
-│           SCHEMA A: USER INFLOW & AUTH       │    │      SCHEMA B: DISTRIBUTOR MASTER & ORDERS   │
-├──────────────────────────────────────────────┤    ├──────────────────────────────────────────────┤
-│  users (id, phone, name, role, retailerId)   │    │  retailers (id, name, creditLimit, route)    │
-│  otps (id, phone, otpCode, expiresAt, tries) │    │  skus (id, code, dealerPrice, stockCases)    │
-│  captures (id, retailerId, source, payload)  │───►│  retailer_aliases (retailerId, phrase, sku)  │
-│  capture_lines (captureId, mappedSku, qty)   │    │  orders (id, retailerId, grandTotal, occVer) │
-│                                              │    │  order_items (orderId, skuId, qty, gst, net) │
-└──────────────────────────────────────────────┘    └──────────────────────────────────────────────┘
-```
+![Figure 2: Two-Tier Database Architecture & Relational Entity Model](project-curation-and-research/Build%20Docs/diagrams/diagram_2_database_architecture.png)
+
+### Schema Partitioning & Key Relational Entities:
+- **Schema A (User Inflow, Auth & Multi-Modal Captures):**
+  - `users`: Core identity records scoped to B2B roles (`retailer`, `salesman`, `desk`).
+  - `otps`: 6-digit cryptographic verification codes with 5-minute expiry and attempt-rate limiting.
+  - `active_sessions`: Single-writer concurrency lock records enforcing kirana session exclusivity (`[A49]`).
+  - `captures` & `capture_lines`: Raw ingested text, audio voice note, or slip parchi photo payloads mapped to draft lines.
+- **Schema B (Distributor Master, Ledgers & Tally Orders):**
+  - `retailers`: Credit ceiling, current ledger balance, delivery route beat (`routeId`), and trade terms.
+  - `skus`: Master wholesale inventory, pack size, dealer price, master carton units, and GST rate.
+  - `retailer_aliases`: Self-learning kirana-specific colloquial phrase-to-SKU mappings (`[A20]`).
+  - `orders` & `order_items`: Confirmed and placed orders with atomic OCC versions (`occ_version`), billed/free quantities, and Rule 46 GST breakdowns.
 
 ---
 
 ## 4. End-to-End System Flows
+
+![Figure 1: End-to-End FMCG Wholesale Order Lifecycle](project-curation-and-research/Build%20Docs/diagrams/diagram_1_wholesale_lifecycle.png)
 
 ### A. Retailer Catalogue & Scheme Flow
 1. Retailer logs in via 6-digit OTP; middleware loads their linked store (`Sharma Kirana Store`) and available credit headroom (₹38,000).
@@ -123,29 +127,17 @@ The engine is verified by **68 automated tests** in `engine/src/__tests__`:
 
 The vernacular order parsing engine combines deterministic speed with a calibrated machine-learned scorer and constrained LLM semantic reasoning:
 
-```mermaid
-flowchart TD
-    A["Raw Retailer Utterance<br/>(e.g., 'bhaiya 2 peti chhota dettol')"] --> B["Tier 0: Pre-Processor & Exact Aliases<br/>Strip clauses ('where a case has 24'), normalize Hindi numerals, check dbStore.retailer_aliases"]
-    B -->|Hit| C["Direct Match (Score = 1.0)"]
-    B -->|Miss| D["Tier 1: Deterministic Structural Parser<br/>Regex quantity/unit extract + Trigram (n=3) fuzzy matching"]
-    D --> E["Tier 2: Pack-Size Grounded RRF Retrieval (k=60)<br/>Lexical + Phonetic + Category Ontology + Pack-Size Extractor (+45% boost / -75% mismatch penalty)"]
-    E --> F["Candidate SKU & Runner-Up"]
-    
-    F --> G["12-Dimensional Feature Extractor (Pure TypeScript)<br/>(s1, gap, lexical, phonetic, kg_domain, alias_hit, valid_qty, freq, recency, usual_unit, anomaly, ambig_unit)"]
-    G --> H["Platt Calibrated Logistic Sigmoid<br/>z = w·x + b; P = σ(1.2212·z + 0.1794)"]
-    
-    H --> I{"Is Packaging Unit Ambiguous?<br/>('DABBA' or 'UNKNOWN')"}
-    I -->|YES - Invariant [A16]| J["Decision: ASK_UNIT<br/>Auto-Confirm: FALSE<br/>Display 1-Tap Packaging Card"]
-    
-    I -->|NO| K{"Calibrated Probability P ≥ Adaptive Threshold?<br/>(τ_single = 0.75 vs τ_family = 0.920 with 95% Wilson LCB)"}
-    K -->|YES| L["Decision: AUTO_CONFIRM<br/>Auto-Confirm: TRUE<br/>Safe Direct Cart Resolution"]
-    K -->|0.50 ≤ P < τ| M["Decision: SUGGEST_TOP2<br/>Auto-Confirm: FALSE<br/>Display Top 2 Alternative Chips"]
-    K -->|P < 0.50| N["Tier 4: Constrained Gemini Closed Set<br/>Or Escalate to Office Desk"]
+![Figure 3: Multi-Tier Vernacular NLP & Calibrated Learned Scorer Pipeline](project-curation-and-research/Build%20Docs/diagrams/diagram_3_scorer_pipeline.png)
 
-    L --> O{"Retailer Prior Anomaly Check<br/>Qty > 3x Median AND > Max?"}
-    O -->|YES & Not hitting promo scheme| P["Trigger Soft Warning Card<br/>'You usually order X cases. Confirm Y?'"]
-    O -->|NO or Hits Promo Scheme| Q["Clean Cart Entry"]
-```
+### The 5-Stage Vernacular Decision Engine:
+1. **Tier 0 (Pre-Processor & Exact Aliases — <1ms):** Normalizes numerals (Devanagari to Arabic), strips conversational noise (*"where a case contains 24"*), and matches persistent kirana aliases.
+2. **Tier 1 (Structural Sentence Parser — <5ms):** Extracts numeric quantities, case packaging units (*peti*, *dabba*, *darjan*), and evaluates partial cut-pack policies.
+3. **Tier 2 (Pack-Size Grounded Candidate Retrieval — k=60):** Cormack RRF combining lexical trigram matching, phonetic metaphone distance, 12-domain category ontology, and pack-size extraction (+45% match boost / -75% mismatch penalty).
+4. **Option A Learned Scorer & Platt Calibration (0.00048ms / vector):** Evaluates a 12-dimensional feature vector via logistic dot product ($z = \mathbf{w} \cdot \mathbf{x} + b$) and Platt calibration ($P = \sigma(1.2212 z + 0.1794)$) verified to $<10^{-14}$ scikit-learn parity.
+5. **Segmented Adaptive Decision Rule & Slip Guard:**
+   - **Ambiguous Unit Rule (`[A16]`):** Lines with `DABBA` or `UNKNOWN` strictly never auto-confirm (0% auto-confirm).
+   - **Segmented Precision Thresholds:** Single-SKU brands auto-confirm at $\tau = 0.75$; multi-SKU size families require $\tau = 0.920$ to hit 97.4% precision.
+   - **Prior Slip Warning:** Orders $> 3\times$ median and $>$ historical maximum trigger a soft 1-tap confirmation card, automatically suppressed on bulk promotional schemes (Buy 10 Get 1).
 
 ### 3-Way Comparative Benchmark Across 444 Recorded Queries
 
@@ -293,6 +285,8 @@ All 48 operational and technical assumptions are cataloged with permanent identi
 
 ## 14. End-to-End Walkthrough Verification & Audit Matrix
 
+![Figure 6: 18-Step Operational Verification Matrix](project-curation-and-research/Build%20Docs/diagrams/diagram_6_verification_matrix.png)
+
 The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx) was rigorously verified end-to-end via an automated first-time user audit runner:
 
 | Step # | Domain Operational Flow | Input Utterance / User Action | Verification Criteria & Invariants Enforced | Status |
@@ -353,6 +347,9 @@ The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
   - Monotonically increasing order ID allocation (`ORD-2026-XXXX`) scans persistent records to eliminate primary key collisions.
 
 ### Invariant 6: Multi-Store Real-Time Warehouse Inventory Synchronization & Instant Out-of-Stock Guard ([A52])
+
+![Figure 5: Quad-Layer Warehouse Inventory Synchronization & Out-of-Stock Guard](project-curation-and-research/Build%20Docs/diagrams/diagram_5_stock_sync.png)
+
 - **Problem:** Multiple kirana stores ordering simultaneously can race on scarce inventory. Without instant synchronization, retailers order depleted items, creating warehouse stockout cuts and frustrated store owners.
 - **Architectural Guard:**
   - **Quad-Layer Synchronization Protocol:**
@@ -387,6 +384,9 @@ The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
   - Fully draggable and resizable Walkthrough Guide with 1-tap `ZoomIn` / `ZoomOut` buttons and mobile drawer collapsing.
 
 ### Invariant 10: FMCG Trade Knowledge Graph & Category Intent Disambiguation ([A61])
+
+![Figure 4: FMCG Trade Knowledge Graph & Longest-Phrase-First Domain Ontology](project-curation-and-research/Build%20Docs/diagrams/diagram_4_knowledge_graph.png)
+
 - **Problem:** Kirana merchants often use broad category words or Mandi slang (e.g., *"सर्फ"*, *"नहाने की साबुन"*, *"बर्तन बार"*, *"साइकिल का टायर"*). Legacy retrieval pipelines hardcoded blind candidate slicing, causing the engine to suggest sweet biscuits (Parle-G, Good Day) for detergent, dishwash, and automotive queries.
 - **Architectural Guard:**
   - **12-Domain Trade Ontology:** Encodes 400+ Indic Devanagari and Hinglish tokens into 12 domains (`LAUNDRY_DETERGENT`, `TOILET_SOAP`, `DISHWASH`, `EDIBLE_OIL`, `TEA_BEVERAGE`, `BISCUITS_CONFECTIONERY`, `PACKAGED_FOODS_NOODLES`, `STAPLES_GRAINS`, `SPICES_MASALA`, `PEST_CONTROL`, `AUTOMOTIVE_HARDWARE`, `CARBONATED_BEVERAGES`).

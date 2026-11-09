@@ -34,6 +34,7 @@ yarn-error.log*
 *.pem
 Thumbs.db
 [Dd]esktop.ini
+~$*
 .vscode/*
 !.vscode/extensions.json
 .idea/
