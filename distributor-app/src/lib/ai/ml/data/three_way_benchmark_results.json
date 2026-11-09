@@ -1,5 +1,5 @@
 {
-  "benchmarkDate": "2026-11-09T16:04:54.763Z",
+  "benchmarkDate": "2026-11-09T16:31:54.740Z",
   "totalQueries": 444,
   "engines": [
     {
@@ -16,7 +16,7 @@
       "autoConfirmErrors": 4,
       "unitAskRatePct": 17.1,
       "ece": 0.0737,
-      "avgLatencyMs": 14.92
+      "avgLatencyMs": 20.69
     },
     {
       "engineName": "2. Intermediate Learned Scorer (V2 Upgrade)",
@@ -32,7 +32,7 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0419,
-      "avgLatencyMs": 15.22
+      "avgLatencyMs": 21.11
     },
     {
       "engineName": "3. Enhanced Learned Scorer (V3 Production App on Main)",
@@ -48,7 +48,7 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0803,
-      "avgLatencyMs": 15.42
+      "avgLatencyMs": 21.77
     }
   ],
   "slices": [

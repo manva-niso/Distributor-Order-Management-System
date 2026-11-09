@@ -3,7 +3,7 @@
 
 **Client:** Company A, Jabalpur (4 Packaged Food & Home Care Brands, 1,800 Kirana Shops, 18 Salesmen)  
 **Built with:** Next.js 16 (App Router), TypeScript, Neon PostgreSQL, Drizzle ORM, Vitest  
-**Operational Status:** Production Ready • Version 3.2 • 258 Tests (100% Passing) • 100% Scorer Precision (96.9% 95% Wilson LCB)  
+**Operational Status:** Production Ready • Version 3.2 • 259 Tests (100% Passing) • 100% Scorer Precision (96.9% 95% Wilson LCB)  
 **Repository:** https://github.com/manva-niso/Distributor-Order-Management-System.git  
 **Live Application:** https://distributor-order-management-system.vercel.app/login  
 
@@ -38,7 +38,7 @@ Every technology choice balances low-cost smartphone performance, high morning o
 | **Database** | **PostgreSQL on Neon + Drizzle ORM** | ACID-compliant relational cloud database handling morning order bursts and preserving saved orders across serverless restarts. |
 | **Sign-In & Security** | **Mobile OTP + Signed Session Cookies** | Passwordless login for busy shopkeepers; keeps users signed in for 7 days and identifies roles (retailer, salesman, desk clerk). |
 | **Order Reading Engine** | **Rules-First + Scoring Model + Gemini AI Fallback** | 5-tier hybrid cascade: instant rules run in < 5 ms, 12-feature scoring model infers in 0.00048 ms, and Gemini AI resolves hard dialect cases. |
-| **Automated Testing** | **Vitest Test Runner** | Fast test runner executing all 258 tests across 31 test files in under 5 seconds with zero internet required. |
+| **Automated Testing** | **Vitest Test Runner** | Fast test runner executing all 259 tests across 32 test files in under 5 seconds with zero internet required. |
 
 ---
 
@@ -114,16 +114,6 @@ All financial math runs in an isolated, pure mathematical engine with zero exter
 3. **Slab Discounts Second:** Percentage discounts apply to the subtotal of paid cases; slabs do not stack, and only the highest tier applies.
 4. **Madhya Pradesh GST Last:** Intra-state sales split GST 50/50 into CGST and SGST, each rounded half-up to the nearest paisa.
 
-![Wholesale Base Cart Item Total Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_pricing_engine.png)
-
-![Slab Discount Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_slab_discount.png)
-
-![Free Goods Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_free_goods.png)
-
-![Madhya Pradesh GST Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_mp_gst.png)
-
-![Pack Ceiling Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_pack_ceiling.png)
-
 **ASSUMPTIONS ** :
 * 1. `[A2]` **Commercial Rounding & GST Split:** Currency rounding uses standard commercial half-up rounding to two decimal places, splitting intra-state GST 50/50.
 * 2. `[A11]` **Free Goods Division:** Free items use whole-number division and carry ₹0 billing value on invoices.
@@ -142,31 +132,28 @@ Shopkeepers write conversational Hindi/Hinglish messages like `"bhaiya 2 peti ch
 ![Figure 4: From a WhatsApp message to a cart line](project-curation-and-research/Build Docs/diagrams/diagram_3a_retrieval_pipeline.png)
 
 ### 7.1 Technical 5-Tier Parsing Pipeline
-- **Tier 0 (Instant Alias Hit):** Performs an in-memory hash lookup against `retailer_aliases`, matching previously confirmed shop nicknames in 0 ms.
-- **Tier 1 (Structural Normalizer):** Converts Devanagari numerals (`०-९`), cleans filler phrases (`"bhaiya bhejo"`), extracts units (`peti`, `dabba`), and detects fractional cases.
-- **Tier 2 (Tri-Vector Cormack RRF Retrieval):** Combines Trigram ($n=3$), Token Keyword, and Phonetic Metaphone ranks at $k=60$. Injects deterministic pack-size grounding (+45% match boost / -75% mismatch penalty) to prevent cross-size swaps.
-- **Tier 3 (Probabilistic ML Scorer & Outlier Guard):** Converts a 12-dimensional feature vector into a calibrated probability via logistic regression and Platt Sigmoid ($A=1.2212, B=0.1794$) in 0.00048 ms. Routes queries through segmented thresholds ($	au_{	ext{single}}=0.75, 	au_{	ext{family}}=0.945$) and flags $>3	imes$ median order slips while exempting trade schemes.
-- **Tier 4 (Constrained Gemini Closed-Set Chooser):** Zero-temperature ($T=0.0$), zero-thinking-budget ($B=0$) model restricted to choosing from retrieved candidates; strictly forbidden from inventing SKUs or deciding units.
-- **Tier 5 (Plain-Code Business Guardrails):** Enforces business rules (ambiguous packaging units, uncatalogued goods, broken cases) directly in TypeScript before cart addition.
+- **Tier 0 (Instant Alias Hit):** In-memory hash lookup matching confirmed shop nicknames in 0 ms.
+- **Tier 1 (Structural Normalizer):** Converts Devanagari numerals (०-९), strips filler words, extracts packaging units, and detects half-cases.
+- **Tier 2 (Tri-Vector Candidate Retrieval):** Combines 3-character spelling, keyword tokens, and phonetic sound matching across top 60 candidates with deterministic pack-size grounding (+45% match boost, -75% mismatch penalty).
+- **Tier 3 (Calibrated Scorer & Outlier Guard):** Evaluates a 12-feature vector in 0.00048 ms using dual safety thresholds (0.75 for single products, 0.945 for multi-pack families) and flags orders exceeding 3x median quantity to catch slips.
+- **Tier 4 (Constrained Gemini Chooser):** Fast zero-temperature AI model restricted strictly to choosing from retrieved catalog candidates; forbidden from inventing SKUs or deciding units.
+- **Tier 5 (Plain-Code Business Guardrails):** TypeScript safety checks blocking ambiguous units, uncatalogued goods, and broken cases before cart entry.
 
 ### 7.2 The FMCG Trade Knowledge Graph
-The knowledge graph acts as a semantic trade ontology and anti-hallucination barrier:
-- **Semantic Category Taxonomy:** Maintains 12 domain nodes (8 distributed by Company A, 4 non-distributed).
-- **Longest-Phrase-First Matcher:** Prioritizes multi-word colloquial compounds (`"बर्तन की साबुन"` $	o$ `DISHWASH` before `"साबुन"` $	o$ `TOILET_SOAP`).
-- **Feature 5 in ML Scorer (`kg_domain_match`):** Supplies binary category validation to penalize cross-category false positives.
-- **Zero-Cost Early Rejection:** Deterministically rejects non-distributed goods (automotive parts, carbonated sodas, mandi spices) in 0 ms without invoking cloud APIs.
-- **Anti-Hallucination Guardrail:** Eliminates blind fallback defaults (`skus.slice(0, 3)`), ensuring soaps never suggest biscuits.
+- **12 Semantic Trade Categories:** Distinguishes 8 distributor categories (e.g. soaps, biscuits, detergent) from 4 non-distributed categories.
+- **Longest-Phrase Matching:** Matches multi-word trade phrases first ("बर्तन की साबुन" -> dishwash before "साबुन" -> toilet soap).
+- **Cross-Category False-Positive Penalty:** Feeds category agreement into the ML scorer to block absurd cross-category recommendations.
+- **Zero-Cost Early Rejection:** Deterministically drops non-distributed items (car parts, cold drinks, loose spices) in 0 ms without external API calls.
+- **Anti-Hallucination Safe Mode:** Replaces blind catalog fallbacks with category-locked candidate lists so soaps never suggest biscuits.
 
 ![Figure 5: What the app does with each match](project-curation-and-research/Build Docs/diagrams/diagram_3b_scorer_decision.png)
 
-![Calibrated Scorer Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_platt_scorer.png)
-
 ### 7.3 Handling Uncertainty, Ambiguity & Mistakes
-- **Packaging Unit Ambiguity ("dabba", missing unit):** Strictly blocked from auto-adding (0% auto-confirm); shows an interactive Disambiguation Card asking the merchant to choose Case or Pack.
+- **Packaging Unit Ambiguity ("dabba", missing unit):** Strictly blocked from auto-adding (0% auto-confirm); shows an interactive card asking the merchant to choose Case or Pack.
 - **Look-Alike Pack Sizes:** Multi-SKU families (Parle-G 75g/250g, Ghadi 500g/1kg) require strict 94.5% confidence; single-SKU brands (Tata Salt, Vim Bar) auto-confirm at 75%.
-- **Top-2 Choice Chips:** For confidence between 50% and 94.5%, the UI presents the top-2 matching options for 1-tap confirmation.
-- **10× Typo Slip Protection:** Flags orders $>3	imes$ median and above historical maximum, while automatically suppressing false alarms on promotional purchases (Buy 10).
-- **Uncatalogued Products ("cycle tyre", gibberish):** Clearly marked as `UNKNOWN_SKU` with explanatory notes and manual assignment chips.
+- **Top-2 Choice Chips:** For confidence between 50% and 94.5%, the UI presents the top 2 matching options for 1-tap confirmation.
+- **10x Typo Slip Protection:** Flags orders exceeding 3x median and above historical maximum, while automatically allowing promotional purchases (Buy 10).
+- **Uncatalogued Products ("cycle tyre", gibberish):** Clearly marked as UNKNOWN_SKU with explanatory notes and manual assignment chips.
 - **Human-in-the-Loop Guarantee:** Parsed messages generate draft carts; no order is booked into the database without human review.
 
 ![Figure 6: How product words are sorted into categories](project-curation-and-research/Build Docs/diagrams/diagram_4_knowledge_graph.png)
@@ -193,7 +180,7 @@ The knowledge graph acts as a semantic trade ontology and anti-hallucination bar
 
 **ASSUMPTIONS ** :
 * 1. `[A16]` **Strict Packaging Clarification:** "Peti" means case; omitted or ambiguous units ("dabba") strictly prompt the user (0% auto-confirm).
-* 2. `[A17]` & `[A59]` **Instant Rules First:** Rules and ontology resolve queries locally; Gemini AI is escalated only for edge cases with score $\ge 0.15$ capped at 400 tokens.
+* 2. `[A17]` & `[A59]` **Instant Rules First:** Rules and ontology resolve queries locally; Gemini AI is escalated only for edge cases with score >= 0.15 capped at 400 tokens.
 * 3. `[A18]` **Human-in-the-Loop:** All automated parsing results in draft carts; no order is committed without human review.
 * 4. `[A33]` **Pluggable Architecture:** The parser implements an adapter interface allowing seamless engine replacement.
 * 5. `[A34]` **Devanagari Normalization:** Arabic digits, Devanagari numerals (`०-९`), and dialect tokens are normalized prior to matching.
@@ -202,7 +189,7 @@ The knowledge graph acts as a semantic trade ontology and anti-hallucination bar
 * 8. `[A58]` **Multi-Tier Audio Transcription:** Voice notes use local ASR models first, then Gemini Audio, with a pre-recorded offline fallback.
 * 9. `[A60]` **Client-Side Image Compression:** Slip photos are compressed in the browser to ~120 KB before upload to ensure 3G network speed.
 * 10. `[A61]` **Category Guardrails:** The knowledge graph prevents absurd cross-category recommendations (e.g. suggesting biscuits for soap).
-* 11. `[A66]` **Calibrated Scorer & Quantity Guard:** High-confidence lines require $\ge 99\%$ precision policy (100% empirical, 96.9% Wilson LCB). Slip guards flag orders $>3	imes$ median and above maximum.
+* 11. `[A66]` **Calibrated Scorer & Quantity Guard:** High-confidence lines require >= 99% precision policy (100% empirical, 96.9% Wilson LCB). Slip guards flag orders exceeding 3x median and above maximum.
 
 ---
 
@@ -238,9 +225,6 @@ The application protects merchant account data and prevents operational conflict
 - **Tenant Isolation:** The server determines shop identity strictly from the signed cookie, preventing cross-shop data leaks.
 - **Single-Writer Kirana Lock:** Prevents two people from editing the same shop's order at once, returning an HTTP 409 conflict.
 - **Multi-Clerk OCC Locking:** Orders use version numbers; concurrent clerk edits are rejected with a prompt to reload.
-
-![Optimistic Concurrency Control SQL Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_occ_sql.png)
-
 - **Credit Limit Enforcement:** Orders pushing unpaid balances beyond credit limits automatically pause in `CREDIT_HOLD`.
 
 **ASSUMPTIONS ** :
@@ -250,7 +234,7 @@ The application protects merchant account data and prevents operational conflict
 * 4. `[A7]` **7-Day Session Longevity:** Sign-in persists for 7 days to eliminate daily login friction for busy merchants.
 * 5. `[A14]` **Credit Hold Trigger:** Orders exceeding remaining credit ceilings route to `CREDIT_HOLD` for clerk review.
 * 6. `[A28]` **Unique Phone Enforcement:** Each mobile phone number can only be registered once.
-* 7. `[A29]` **Deterministic Order Progression:** Status progresses strictly: `PLACED` $	o$ `CREDIT_HOLD` (if needed) $	o$ `CONFIRMED` $	o$ `DISPATCHED` $	o$ `DELIVERED`.
+* 7. `[A29]` **Deterministic Order Progression:** Status progresses strictly: `PLACED` -> `CREDIT_HOLD` (if needed) -> `CONFIRMED` -> `DISPATCHED` -> `DELIVERED`.
 * 8. `[A37]` **Audited Credit Release:** Only office clerks can release credit holds, requiring a mandatory audit remark.
 * 9. `[A38]` **Full Recalculation on Edit:** Editing an order line recomputes the entire order via the pricing engine.
 * 10. `[A49]` **Non-Destructive Session Conflict:** Login clashes do not consume the OTP code, allowing immediate re-trial.
@@ -267,8 +251,6 @@ Confirmed wholesale orders feed directly into distributor logistics, accounting,
 - Exports standard Sales Order XML vouchers ready for direct import into Tally ERP 9 or Tally Prime.
 - Records delivered quantity (e.g. 11 cases) vs billed quantity (10 cases) so accounting stock matches warehouse inventory.
 - Debits and credits balance to exactly ₹0.00 across retailer ledgers, sales accounts, and GST classifications.
-
-![Tally Dual-Entry Balancing Formula](project-curation-and-research/Build Docs/diagrams/formulas/formula_tally_balance.png)
 
 ### B. Warehouse Logistics & Delivery Run Lists
 - **Totals Confirmed Orders:** Aggregates morning orders by delivery route beat (e.g. Napier Town Route 4, Gorakhpur Route 2).
@@ -299,7 +281,7 @@ To verify that the system is fully operational and reliable, I mapped the comple
 
 ### Automated Test Suite Coverage
 
-All 258 automated tests across 31 test files pass cleanly in under 5 seconds with zero external dependencies:
+All 259 automated tests across 32 test files pass cleanly in under 5 seconds with zero external dependencies:
 
 | Area | Test Files | Tests | What is Checked |
 | :--- | :--- | :---: | :--- |
@@ -310,16 +292,16 @@ All 258 automated tests across 31 test files pass cleanly in under 5 seconds wit
 | **Text and Speech** | `text-parser`, `cascaded-parser` | 30 | Digits, unit conversion, part-case clarification |
 | **Product Category Map** | `knowledge-graph.test.ts` | 5 | Category boundaries and trade synonym routing |
 | **Product Matching** | `candidate-retriever.test.ts` | 11 | Spelling, sound, and pack-size match scoring |
-| **Confidence & Slip Check** | `calibrated-scorer.test.ts` | 7 | Adaptive thresholds and 10× typo outlier detection |
+| **Confidence & Slip Check** | `calibrated-scorer.test.ts` | 7 | Adaptive thresholds and 10x typo outlier detection |
 | **Catalogue & Live Stock** | `catalogue`, `realtime-stock` | 13 | Pricing, inventory deduction, multi-tab sync |
 | **Cart and Orders** | `orders`, `cart-storage` | 11 | Credit limits, credit holds, draft cart isolation |
 | **Order Desk** | `desk.test.ts` | 9 | Version conflict detection, hold release, alias learning |
 | **Tally and Delivery** | `tally`, `manifest` | 12 | XML voucher formatting, zero balance, van pick lists |
 | **Inactive Shops** | `dormant.test.ts` | 4 | 14-day and 21-day dormancy tiers, WhatsApp links |
 | **Excel & Database Sync** | `excel-import`, `reset-sync-and-auth` | 11 | Sheet import flexibility, complete cache flush |
-| **Fallback & Hindi Names** | `gemini-random-words`, `dynamic-transliteration` | 8 | Out-of-catalog explanations, Hindi transliteration |
+| **Fallback & Hindi Names** | `gemini-random-words`, `gemini-live`, `dynamic-transliteration` | 9 | Out-of-catalog explanations, live API checks, transliteration |
 | **Deterministic Safety** | `deterministic-guardrails`, `gemini-chooser` | 17 | Audio fallbacks, closed-set candidate whitelists |
-| **Total** | **31 Test Files** | **258** | **100% Passing (0 Failures)** |
+| **Total** | **32 Test Files** | **259** | **100% Passing (0 Failures)** |
 
 **ASSUMPTIONS ** :
 * 1. `[A65]` **Programmatic Journey Verification:** The 18-step interactive walkthrough UI includes 1-tap bulk progress controls and a celebration card, verified by automated end-to-end tests.
@@ -336,7 +318,7 @@ The system was benchmarked against strict latency and payload budgets to guarant
 | **Scoring One Match** | Under 0.05 ms | **0.00048 ms** | Target Met (~2,100,000 checks/sec) |
 | **Gemini AI Answer for Hard Cases** | Under 2.0 s | **1.1 to 1.45 s** | Target Met |
 | **Production Build Execution** | Under 10 s | **2.2 s** | Target Met |
-| **All 258 Automated Tests** | Under 30 s | **4.8 s** | Target Met |
+| **All 259 Automated Tests** | Under 30 s | **4.8 s** | Target Met |
 | **Compressed CSS Bundle Size** | Under 50 KB | **17.4 KB** | Target Met |
 | **First Screen Load on 3G Phone** | Under 3.0 s | **1.8 s** | Target Met |
 
@@ -362,3 +344,78 @@ To deliver a reliable, working product on schedule, I made deliberate architectu
 - **Offline Service Worker Ordering:** Full offline order drafts allowing shopkeepers in deep basement counters with zero cellular signal to compose orders that sync automatically when connection resumes.
 - **Payment Gateway with Cash on Delivery (COD) Option:** Track which merchants prefer immediate digital payment versus credit/COD, dynamically adjusting credit limits based on payment reliability.
 - **Continuous ML & Knowledge Graph Retraining:** Automatically expand the trade synonym graph and fine-tune feature weights as clerks correct dialect phrases on the order desk.
+
+---
+
+## 14. Master Assumptions Index ([A1] - [A66])
+
+Every architectural, mathematical, and operational decision is grounded in explicit assumptions tracked throughout development:
+
+| ID | Focus Area | Core Assumption (Plain-English Summary) |
+| :--- | :--- | :--- |
+| **[A1]** | Ordering Cut-off | Orders confirmed by 2:00 PM are scheduled for next-morning delivery beat dispatch. |
+| **[A2]** | Tax & Rounding | Currency rounded half-up to 2 decimals; Madhya Pradesh intra-state GST split 50/50. |
+| **[A3]** | Phone & Locale | 10-digit Indian mobile numbers (+91); bilingual English and Devanagari Hindi support. |
+| **[A4]** | Role Model | B2B user roles restricted to retailer, salesman, and office desk clerk. |
+| **[A5]** | Master Kiranas | 1,800 Jabalpur kiranas pre-seeded; self-registrations receive provisional ₹25,000 credit. |
+| **[A6]** | OTP Security | 6-digit OTP codes expire in 5 minutes, enforce 30s cooldown, lock after 3 failed attempts. |
+| **[A7]** | Session Cookie | Cryptographically signed session cookies keep users safely signed in for 7 days. |
+| **[A8]** | Inventory Unit | Warehouse inventory is counted and deducted strictly in wholesale master cases. |
+| **[A9]** | Stockout Lock | Zero-stock items cannot be added to cart; out-of-stock disables buttons and blocks checkout. |
+| **[A10]** | Price Display | Catalog displays ex-GST rate, GST percentage, and GST-inclusive total simultaneously. |
+| **[A11]** | Free Goods Math | Buy X Get Y free items use whole-number division and carry ₹0 value on invoices. |
+| **[A12]** | Slab Discounts | Wholesale slab percentage discounts reduce taxable value prior to GST calculation. |
+| **[A13]** | Highest Slab Wins | Discount tiers do not stack; orders qualify for the single highest discount slab reached. |
+| **[A14]** | Credit Exposure | Orders exceeding available credit balance automatically pause in CREDIT_HOLD for review. |
+| **[A15]** | Atomic Deduction | Inventory deductions execute atomically during checkout to prevent negative stock. |
+| **[A16]** | Unit Ambiguity | "Peti" means case; ambiguous units like "dabba" strictly prompt the user (0% auto-confirm). |
+| **[A17]** | Local Rules First | Rules resolve queries locally; Gemini AI is escalated only for edge cases with score >= 0.15. |
+| **[A18]** | Human in the Loop | All automated parsing creates draft carts; no order commits without human review. |
+| **[A19]** | Clerk OCC Lock | Order records use version numbers so concurrent desk edits are safely prevented. |
+| **[A20]** | Alias Learning | Confirmed shop abbreviations save permanently to retailer_aliases for future 0 ms hits. |
+| **[A21]** | Tally Export | Exports standard Sales Order XML vouchers ready for direct import into Tally ERP. |
+| **[A22]** | Pick Manifests | Warehouse loading sheets aggregate total cases (paid + free) grouped by delivery beat. |
+| **[A23]** | Dormancy Risk | 14 days without an order triggers a sales warning; 21 days flags critical churn. |
+| **[A24]** | Search Indexing | Search matches item code, name, brand, and category, ignoring letter casing. |
+| **[A25]** | Local Cart Cache | Active draft carts persist in localStorage to survive accidental page refreshes. |
+| **[A26]** | Demand Signals | Tapping "Notify me when available" records demand without allowing checkout. |
+| **[A27]** | Self-Onboarding | New kiranas self-register with shop name, owner, beat, and phone number. |
+| **[A28]** | Phone Uniqueness | Each 10-digit mobile phone number can only be registered once in the system. |
+| **[A29]** | Order Lifecycle | Order status progresses: PLACED -> CREDIT_HOLD (if needed) -> CONFIRMED -> DISPATCHED -> DELIVERED. |
+| **[A30]** | Promotional Stock | Free promotional cases deduct from warehouse stock simultaneously with paid cases. |
+| **[A31]** | Excel Catalogue | Product master data updates arrive in standard distributor Excel format (.xlsx/.xls). |
+| **[A32]** | Header Tolerance | Excel importer tolerates variations in column names and applies safe defaults. |
+| **[A33]** | Pluggable Parser | Order parser implements an adapter interface allowing seamless engine replacement. |
+| **[A34]** | Dialect Cleaning | Arabic digits, Devanagari numerals (०-९), and dialect words are cleaned before matching. |
+| **[A35]** | Pack Conversion | Loose packs convert to wholesale cases using ceiling rounding (ceil(packs / unitsPerCase)). |
+| **[A36]** | Broken Cases | Fractional case requests prompt the user to choose full case rounding or loose packs. |
+| **[A37]** | Hold Release | Only office desk clerks can release credit holds, requiring a mandatory audit note. |
+| **[A38]** | Live Recalculation| Editing order lines on the desk terminal recomputes the entire invoice through pricing rules. |
+| **[A39]** | Actual vs Billed | Tally export records actual delivered quantity vs billed quantity for scheme items. |
+| **[A40]** | Zero-Sum Balance | Ledger debits and credits balance to exactly ₹0.00 across all accounts. |
+| **[A41]** | Unified Pick Lists| Warehouse pick lists sum paid and free promotional cases so loaders never miss items. |
+| **[A42]** | Vehicle Payloads | Cargo manifests calculate payload weight from case specifications to prevent overloading. |
+| **[A43]** | Churn Tiers | Inactivity is tiered into High Risk (14-20 days) and Critical Churn (21+ days). |
+| **[A44]** | WhatsApp Nudges | Re-engagement messages include shop name, days inactive, and live trade offers. |
+| **[A45]** | Multi-Tier Slabs | Highest reached discount slab applies to total order; tiers do not compound. |
+| **[A46]** | Bonus Gifting | Bonus promotional goods carry ₹0 billing value with zero additional tax liability. |
+| **[A47]** | Cash Rebates | Flat rupee rebates per case are deducted from taxable value prior to GST calculation. |
+| **[A48]** | Upsell Nudges | Interface calculates cases needed to reach next discount slab (e.g. "Add 2 more cases"). |
+| **[A49]** | Kirana Concurrency| Simultaneous logins to the same shop account return HTTP 409 to prevent duplicate orders. |
+| **[A50]** | Isolated Carts | Draft carts are partitioned by shop ID so shared salesman phones never mix cart items. |
+| **[A51]** | Order Sequencing | Order numbers (ORD-2026-0001) increment reliably from the database across cold starts. |
+| **[A52]** | Multi-Screen Sync | Server-Sent Events and tab event buses push warehouse stock changes simultaneously. |
+| **[A53]** | Dual Cart Backup | Quick-order transitions preserve draft items in memory and localStorage with zero drops. |
+| **[A54]** | Trade Terms | Interface uses authentic Mandi trade terms (पूरी पेटी, खुले पैकेट, थोक स्लैब छूट). |
+| **[A55]** | Hindi Dictionary | Catalog product names transliterate to Devanagari via a zero-cost 3-tier dictionary. |
+| **[A56]** | Persistent Locale | Language selection persists across browser restarts, open tabs, and navigation visits. |
+| **[A57]** | Touch Targets | Mobile layouts enforce minimum 48x48 px touch targets and relaxed line heights. |
+| **[A58]** | Audio Cascade | Voice notes transcribe via local models first, Gemini Audio second, with pre-recorded fallback. |
+| **[A59]** | AI Token Ceiling | Gemini AI calls are capped at 400 tokens with zero temperature to prevent hallucinations. |
+| **[A60]** | Slip Compression | Paper slip photos are compressed in the browser to ~120 KB before upload over 3G. |
+| **[A61]** | Domain Isolation | Trade knowledge graph prevents cross-category mix-ups (soaps never suggest biscuits). |
+| **[A62]** | Master Reset | Database resets coordinate instant multi-tab client cache and cart purges. |
+| **[A63]** | Catalog Scrub | Removing an SKU from the catalogue immediately purges it from active draft carts. |
+| **[A64]** | Evaluator Codes | Master OTPs (123456, 716716) provide instant 1-tap evaluator access in sandbox mode. |
+| **[A65]** | Journey Testing | The 18-step interactive walkthrough UI is verified by automated end-to-end tests. |
+| **[A66]** | Precision Guard | High-confidence auto-confirm requires >= 99% precision; slip guards flag > 3x median orders. |
