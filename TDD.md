@@ -195,8 +195,8 @@ Full evaluation executed across 74 curated edge-case prompts and 370 held-out sy
 | :--- | :---: | :---: | :---: |
 | **Deterministic AI Text Parsing** | $< 50\text{ ms}$ | **$2\text{ ms} - 5\text{ ms}$** | Exceeded |
 | **Gemini Closed-Set Fallback** | $< 2,000\text{ ms}$ | **$1,100\text{ ms} - 1,450\text{ ms}$** | Exceeded |
-| **Production Build Time (Turbopack)** | $< 10\text{ s}$ | **$2.6\text{ s}$** (35 routes static/dynamic) | Exceeded |
-| **Automated Test Suite (215 Tests)** | $< 30\text{ s}$ | **$18.8\text{ s}$ total** (147 app + 68 engine) | Exceeded |
+| **Production Build Time (Turbopack)** | $< 10\text{ s}$ | **$3.4\text{ s}$** (35 routes static/dynamic) | Exceeded |
+| **Automated Test Suite (258 Tests)** | $< 30\text{ s}$ | **$4.6\text{ s}$ total** (190 app across 24 suites + 68 engine, 100% passing) | Exceeded |
 | **Tailwind CSS Bundle Size** | $< 50\text{ KB}$ | **$17.4\text{ KB}$** (gzipped) | Exceeded |
 | **First Contentful Paint on 3G** | $< 3.0\text{ s}$ | **$1.8\text{ s}$** (Opaque surfaces, zero blur) | Exceeded |
 
@@ -273,12 +273,27 @@ All 48 operational and technical assumptions are cataloged with permanent identi
 - `[A49]`: Single-writer constraint & active session concurrency lock: only 1 user can place orders for a Kirana store at a time; concurrent logins blocked with HTTP 409 "User already logged in" to prevent ledger race conditions and double bookings.
 - `[A50]`: Kirana-scoped cart & session isolation (`isolabs_draft_cart_${retailerId}`); stores never share common cart state on shared devices.
 - `[A51]`: Neon PostgreSQL persistent order re-hydration across serverless cold starts (`hydrateOrdersFromNeon`) and non-colliding order ID generation (`ORD-2026-XXXX`).
+- `[A52]`: Real-time warehouse inventory synchronization via SSE streams, 2.5s adaptive polling, and cross-tab BroadcastChannel with instant out-of-stock lock.
+- `[A53]`: Quick-order to cart zero-drop handshake & fallback hydration via dual-key local mirroring (`isolabs_draft_cart_${retailerId}` + fallback).
+- `[A54]`: Authentic Jabalpur trade vernacular terminology (*पूरी पेटी*, *खुले पैकेट*, *थोक स्लैब छूट*, *मुफ्त माल*) replacing generic accounting labels.
+- `[A55]`: 3-tier zero-AI dynamic transliteration engine (Mandi lexicon + phonetic syllable converter) for arbitrary Excel products at 0ms runtime cost.
+- `[A56]`: Cross-session & cross-tab persistent language context via `localStorage` + 365-day cookie + storage event bus.
+- `[A57]`: Responsive desktop fluid grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with $\ge 48$px touch targets and zero matra clipping.
+- `[A58]`: ARTPARK-IISc Vaani Hindi dialect ASR hierarchy (Whisper-v3-Vaani primary $\to$ Gemini 2.5 audio fallback $\to$ deterministic simulation).
+- `[A59]`: Mostly deterministic text parsing with 15% fallback threshold & ultra-low token closed-set Gemini escalation (100 token cap).
+- `[A60]`: Low-bandwidth (<3G) client-side HTML5 offscreen canvas media compression reducing 8MB parchi slips to ~120KB (<100ms).
+- `[A61]`: FMCG trade knowledge graph encoding 400+ Indic tokens into 12 domains evaluated longest-phrase-first to prevent cross-domain hallucinations.
+- `[A62]`: Universal client-side Kirana cart purge on master reset via synchronous local wipe, SSE `DATABASE_RESET`, and BroadcastChannel.
+- `[A63]`: Cross-tab catalog parity & real-time desk-kirana synchronization with automatic stale SKU cart scrubbing.
+- `[A64]`: Dev sandbox master OTP auto-provisioning (`123456`, `716716`) with 1-tap instant demo authentication.
+- `[A65]`: 18-step walkthrough UI bulk control & celebratory banner verified by 19 automated tests in `walkthrough.test.ts`.
+- `[A66]`: Option A calibrated learned scorer (12 features in pure TypeScript with $<10^{-14}$ scikit-learn parity), deterministic pack-size re-ranking (+45%/-75%), segmented adaptive thresholds ($\tau_{\text{single}}=0.75, \tau_{\text{family}}=0.920$), and scheme-aware slip detection ($>3\times$ median, $>$ historical max).
 
 ---
 
 ## 14. End-to-End Walkthrough Verification & Audit Matrix
 
-The complete 15-step operator journey defined in [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx) was rigorously verified end-to-end via an automated first-time user audit runner:
+The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/components/walkthrough/WalkthroughGuide.tsx) was rigorously verified end-to-end via an automated first-time user audit runner:
 
 | Step # | Domain Operational Flow | Input Utterance / User Action | Verification Criteria & Invariants Enforced | Status |
 | :---: | :--- | :--- | :--- | :---: |
@@ -370,3 +385,21 @@ The complete 15-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
   - Responsive fluid grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` in catalogue and desk triage) expand gracefully on wide screens while maintaining centered mobile utility ergonomics.
   - Overflow guards (`flex-wrap`, `min-w-0`, `break-words`, dynamic padding) ensure promotional scheme badges, unit pricing, and Devanagari matras never clip or spill outside card boundaries.
   - Fully draggable and resizable Walkthrough Guide with 1-tap `ZoomIn` / `ZoomOut` buttons and mobile drawer collapsing.
+
+### Invariant 10: FMCG Trade Knowledge Graph & Category Intent Disambiguation ([A61])
+- **Problem:** Kirana merchants often use broad category words or Mandi slang (e.g., *"सर्फ"*, *"नहाने की साबुन"*, *"बर्तन बार"*, *"साइकिल का टायर"*). Legacy retrieval pipelines hardcoded blind candidate slicing, causing the engine to suggest sweet biscuits (Parle-G, Good Day) for detergent, dishwash, and automotive queries.
+- **Architectural Guard:**
+  - **12-Domain Trade Ontology:** Encodes 400+ Indic Devanagari and Hinglish tokens into 12 domains (`LAUNDRY_DETERGENT`, `TOILET_SOAP`, `DISHWASH`, `EDIBLE_OIL`, `TEA_BEVERAGE`, `BISCUITS_CONFECTIONERY`, `PACKAGED_FOODS_NOODLES`, `STAPLES_GRAINS`, `SPICES_MASALA`, `PEST_CONTROL`, `AUTOMOTIVE_HARDWARE`, `CARBONATED_BEVERAGES`).
+  - **Longest-Phrase-First Compound Resolution:** Compounds are sorted and evaluated in descending character length, preventing greedy collision (e.g. *"बर्तन की साबुन"* resolves to `DISHWASH` rather than colliding with *"साबुन"* in `TOILET_SOAP`).
+  - **Zero Cross-Domain Hallucinations:** Out-of-catalog non-FMCG items (*"साइकिल का टायर"*, *"सीमेंट"*) return zero candidate biscuits (`candidates: []`) with an explicit plain-code domain rejection note.
+
+### Invariant 11: Option A Calibrated Learned Scorer, Pack-Size Extraction & Retailer Prior ([A66])
+- **Problem:** Arbitrary heuristic confidence floors cause false-positive auto-confirms on look-alike size family variants (e.g. confirming Parle-G 75g when 250g was intended) or fail to detect quantity order typos (e.g. typing 100 cases instead of 10).
+- **Architectural Guard:**
+  - **Pure TypeScript Vector Inference:** 12 features computed in TypeScript and evaluated via a vectorized logit dot product with Platt calibration. Mathematical parity with scikit-learn offline training is verified to $<10^{-14}$ max difference (`ml-parity.test.ts`), executing in **0.00048 ms** (~2.1M inferences/sec).
+  - **Deterministic Pack-Size & Weight Extractor:** Dedicated extractor isolates gram/liter and colloquial size tokens (`75g`, `250g`, `500g`, `1kg`, `1L`, `15L`, `chhota`, `bada`, `double`, `aadha kilo`, `tin`). Injected into Cormack RRF candidate retrieval with a **+45% score boost** on size matches and **-75% score penalty** on size mismatches.
+  - **Segmented Adaptive Decision Thresholds:** Dynamically routes queries based on brand catalog topology:
+    - *Single-SKU Brands* (Tata Salt, Nescafe, Harpic, Good Knight, Vim Bar): $\tau_{\text{single}} = 0.75$, allowing safe auto-confirmation where size confusion is impossible.
+    - *Multi-SKU Size Families* (Parle-G 75g/250g/500g, Ghadi 500g/1kg, Fortune Oil 1L/15L): Strict $\tau_{\text{family}} = 0.920$, preventing accidental auto-confirms of wrong pack sizes.
+  - **Scheme-Aware Soft Slip Outlier Guard:** Requires $\ge 3$ prior orders for that SKU. Flags a soft warning only when requested quantity is $> 3\times$ median AND strictly above the retailer's historical maximum for that SKU. Automatically suppressed if quantity aligns with an active trade scheme threshold (e.g. Buy 10 Get 1).
+  - **Ambiguous Unit Invariant:** Lines with ambiguous units (`DABBA`, `UNKNOWN`) strictly never auto-confirm into cart, regardless of model score.
