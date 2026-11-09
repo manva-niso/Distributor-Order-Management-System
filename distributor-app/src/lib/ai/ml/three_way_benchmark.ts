@@ -136,6 +136,7 @@ export function runThreeWayBenchmark() {
           discountAmount: 0,
           netLineAmount: 1555.2,
           gstRate: 18,
+          gstAmount: 279.94,
         },
         {
           id: `item_prior_${i}_2`,
@@ -150,6 +151,7 @@ export function runThreeWayBenchmark() {
           discountAmount: 0,
           netLineAmount: 1756.8,
           gstRate: 18,
+          gstAmount: 316.22,
         },
         {
           id: `item_prior_${i}_3`,
@@ -164,6 +166,7 @@ export function runThreeWayBenchmark() {
           discountAmount: 0,
           netLineAmount: 2820,
           gstRate: 18,
+          gstAmount: 507.60,
         },
       ]
     );
