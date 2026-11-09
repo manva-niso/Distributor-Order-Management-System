@@ -125,8 +125,8 @@ export class RetailerPriorEngine {
     const detail = sku.schemeDetail;
 
     if (sku.schemeType === "FREE_GOODS" && detail.buyQty && detail.buyQty > 0) {
-      // Exactly matches or is integer multiple of buyQty
-      if (requestedCases === detail.buyQty || (requestedCases > 0 && requestedCases % detail.buyQty === 0)) {
+      // Exactly matches primary buyQty promo tier (e.g. retailer ordering 10 to hit Buy 10 Get 1)
+      if (requestedCases === detail.buyQty) {
         return true;
       }
     }

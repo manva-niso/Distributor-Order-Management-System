@@ -31,6 +31,15 @@ const CATEGORY_SYNONYMS: Record<string, string[]> = {
   oil: ["cooking oil", "oil"],
   powder: ["powder", "detergent"],
   surf: ["detergent", "powder"],
+  namak: ["salt", "iodised salt", "packaged foods"],
+  salt: ["salt", "iodised salt", "packaged foods"],
+  "kachi ghani": ["mustard", "mustard oil", "kachi ghani"],
+  ghani: ["mustard", "mustard oil", "kachi ghani"],
+  sarson: ["mustard", "mustard oil", "kachi ghani"],
+  sarso: ["mustard", "mustard oil", "kachi ghani"],
+  mustard: ["mustard", "mustard oil", "kachi ghani"],
+  bartan: ["dishwash", "dishwash bar", "lemon bar"],
+  dishwash: ["dishwash", "dishwash bar", "lemon bar"],
 };
 
 /**
@@ -129,10 +138,12 @@ export function phoneticDistance(a: string, b: string): number {
 export class CandidateRetriever {
   private k: number;
   private catalog: SeedSku[];
+  private enablePackSizeExtractor: boolean;
 
-  constructor(catalog: SeedSku[] = SEED_SKUS, k: number = 60) {
+  constructor(catalog: SeedSku[] = SEED_SKUS, k: number = 60, enablePackSizeExtractor: boolean = true) {
     this.catalog = catalog;
     this.k = k;
+    this.enablePackSizeExtractor = enablePackSizeExtractor;
   }
 
   /**
@@ -316,7 +327,7 @@ export class CandidateRetriever {
       let rrfScore = scoreTrigram + scoreKeyword + scorePhonetic;
 
       // Pack-size & Colloquial modifier disambiguation
-      if (rrfScore > 0) {
+      if (this.enablePackSizeExtractor && rrfScore > 0) {
         const sizeMatch = packSizeExtractor.evaluateMatch(queryText, sku.packSize, sku.id);
         if (sizeMatch.score > 0) {
           rrfScore *= (1.0 + sizeMatch.score * 0.45);

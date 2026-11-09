@@ -326,6 +326,14 @@ export const SEED_ALIASES: Record<string, string> = {
   "मैरी गोल्ड": "SKU-BS-MG250",
   "मारी गोल्ड": "SKU-BS-MG250",
 
+  // Tata Salt 1kg (SKU-FD-TS1KG)
+  "tata namak": "SKU-FD-TS1KG",
+  namak: "SKU-FD-TS1KG",
+  "tata salt": "SKU-FD-TS1KG",
+  "tata namak 1kg": "SKU-FD-TS1KG",
+  "टाटा नमक": "SKU-FD-TS1KG",
+  "नमक": "SKU-FD-TS1KG",
+
   // Ghadi Detergent Powder 1kg (SKU-DT-1KG)
   ghadi: "SKU-DT-1KG",
   "ghadi powder": "SKU-DT-1KG",
@@ -362,10 +370,32 @@ export const SEED_ALIASES: Record<string, string> = {
   "kapde dhone ki tikiya": "SKU-DT-CK250",
   "kapde ki tikiya": "SKU-DT-CK250",
   "kapde tikiya": "SKU-DT-CK250",
-  "bartan bar": "SKU-DT-CK250",
   "ghadi bar": "SKU-DT-CK250",
   "घड़ी साबुन": "SKU-DT-CK250",
   "घड़ी टिकिया": "SKU-DT-CK250",
+
+  // Vim Dishwash Bar 500g (SKU-DB-VM500)
+  "bartan bar": "SKU-DB-VM500",
+  "bartan sabun": "SKU-DB-VM500",
+  "dishwash bar": "SKU-DB-VM500",
+  "vim bar": "SKU-DB-VM500",
+  "vim bar 500g": "SKU-DB-VM500",
+  "vim tub": "SKU-DB-VM500",
+  "vim": "SKU-DB-VM500",
+  "विम बार": "SKU-DB-VM500",
+  "विम": "SKU-DB-VM500",
+  "बर्तन बार": "SKU-DB-VM500",
+
+  // Rin Advanced Laundry Bar 250g (SKU-DT-RN250)
+  "rin": "SKU-DT-RN250",
+  "rin sabun": "SKU-DT-RN250",
+  "rin bar": "SKU-DT-RN250",
+  "rin tikiya": "SKU-DT-RN250",
+  "rin 250g": "SKU-DT-RN250",
+  "रिन": "SKU-DT-RN250",
+  "रिन साबुन": "SKU-DT-RN250",
+  "रिन बार": "SKU-DT-RN250",
+  "रिन टिकिया": "SKU-DT-RN250",
 
   // Maggi 2-Minute Noodles 70g (SKU-ND-MG70 / SKU-FD-MG070)
   "maggi": "SKU-ND-MG70",
@@ -428,6 +458,19 @@ export const SEED_ALIASES: Record<string, string> = {
   "फॉर्च्यून तेल": "SKU-OL-FT1L",
   "सूरजमुखी तेल": "SKU-OL-FT1L",
   "रिफाइंड तेल": "SKU-OL-FT1L",
+
+  // Fortune Kachi Ghani Pure Mustard Oil 1L (SKU-OL-KG1L)
+  "kachi ghani": "SKU-OL-KG1L",
+  "kachhi ghani": "SKU-OL-KG1L",
+  "fortune kachi ghani": "SKU-OL-KG1L",
+  "fortune mustard oil": "SKU-OL-KG1L",
+  "sarson tel": "SKU-OL-KG1L",
+  "sarson ka tel": "SKU-OL-KG1L",
+  "sarso tel": "SKU-OL-KG1L",
+  "mustard oil": "SKU-OL-KG1L",
+  "कच्ची घानी": "SKU-OL-KG1L",
+  "सरसों तेल": "SKU-OL-KG1L",
+  "फॉर्च्यून कच्ची घानी": "SKU-OL-KG1L",
 };
 
 /**
@@ -689,14 +732,21 @@ function extractUnit(tokens: string[]): { unit: UnitType; remainingTokens: strin
 export function matchSkuWithRetrieval(
   queryTokens: string[],
   skus: SeedSku[],
-  retailerAliases?: Record<string, string>
+  retailerAliases?: Record<string, string>,
+  options?: { enablePackSizeExtractor?: boolean }
 ): { matched: SeedSku | null; candidates: SkuCandidate[]; aliasHit: boolean } {
   const mergedAliases = { ...SEED_ALIASES, ...(retailerAliases || {}) };
 
   const findSkuByCode = (code: string): SeedSku | undefined => {
-    return skus.find(
+    const direct = skus.find(
       (s) => s.code.toLowerCase() === code.toLowerCase() || s.id.toLowerCase() === code.toLowerCase()
     );
+    if (direct) return direct;
+    // Fallback for 12-SKU seed catalog where specialized dishwash bar is not seeded
+    if (code === "SKU-DB-VM500") {
+      return skus.find((s) => s.code === "SKU-DT-CK250" || s.id === "SKU-DT-CK250");
+    }
+    return undefined;
   };
 
   // 1. TIER 0: Exact or N-Gram Merchant Alias Lookup on Pre-Filtered Tokens
@@ -746,23 +796,8 @@ export function matchSkuWithRetrieval(
     }
   }
 
-  // Check single token aliases
-  for (const token of cleanTokens) {
-    if (mergedAliases[token]) {
-      const skuCode = mergedAliases[token];
-      const targetSku = findSkuByCode(skuCode);
-      if (targetSku) {
-        return {
-          matched: targetSku,
-          candidates: [{ sku: targetSku, score: 0.90 }],
-          aliasHit: true,
-        };
-      }
-    }
-  }
-
   // 3. TIER 2: Cormack Reciprocal Rank Fusion (RRF k=60) Candidate Retrieval
-  const retriever = new CandidateRetriever(skus, 60);
+  const retriever = new CandidateRetriever(skus, 60, options?.enablePackSizeExtractor ?? true);
 
   // Out-of-catalog guardrail: Prevent hardware, automotive, or non-catalog snacks from matching FMCG
   const KNOWN_OOC_KEYWORDS = [
@@ -812,7 +847,8 @@ export function matchSkuWithRetrieval(
 export function parseSingleUtterance(
   rawUtterance: string,
   skus: SeedSku[],
-  retailerAliases?: Record<string, string>
+  retailerAliases?: Record<string, string>,
+  options?: { enablePackSizeExtractor?: boolean }
 ): ParsedLineItem {
   const normalizedNumerals = normalizeNumerals(rawUtterance.trim());
 
@@ -843,7 +879,7 @@ export function parseSingleUtterance(
   }
 
   // 3. Match SKU with Tier 0 Alias Table & Tier 2 RRF Retrieval
-  let { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases);
+  let { matched, candidates, aliasHit } = matchSkuWithRetrieval(rawTokens, skus, retailerAliases, options);
 
   // If explanatoryCapacity is specified by user (e.g., "where a case contains 24 pkts"),
   // boost the candidate that matches the explicit unitsPerCase!
