@@ -10,7 +10,7 @@
 ## 1. Executive Summary & Problem Scope
 
 Company A is an established FMCG distributor in Jabalpur managing ~600 daily wholesale orders across 1,800 kirana retail counters. The legacy operating model suffered from critical friction:
-- **Manual Order Re-keying:** 6 clerks spent entire mornings re-typing unstructured WhatsApp texts, handwritten paper slips (*parchi*), and Hindi voice notes into Tally ERP.
+- **Manual Order Re-keying:** 6 clerks spent entire mornings re-typing unstructured WhatsApp texts, handwritten paper slips ("parchi"), and Hindi voice notes into Tally ERP.
 - **Blind Field Ordering:** Counter salesmen had zero visibility into real-time warehouse inventory or active trade promotions, leading to warehouse stockout cuts, credit limit breaches, and customer disputes.
 - **The Solution:** A unified, installable, offline-resilient B2B order platform pairing direct kirana ordering with a multi-modal AI vernacular capture desk, real-time inventory synchronization, pure mathematical scheme calculations, and 1-click batch Tally XML export.
 
@@ -20,12 +20,12 @@ Company A is an established FMCG distributor in Jabalpur managing ~600 daily who
 
 | Architectural Layer | Chosen Technology | Engineering Rationale & Alternatives Rejected |
 | :--- | :--- | :--- |
-| **Full-Stack Framework** | **Next.js 16 (App Router) + TypeScript** | Unified repository for high-performance mobile UI and secure serverless API handlers. Edge middleware enforces auth without CORS latency. *Rejected standalone Express/Vite SPA due to deployment fragmentation.* |
-| **Styling & Ergonomics** | **Tailwind CSS v4** | Utility-first CSS compiling to $<18\text{KB}$ gzipped. Enforces strict $\ge 48\text{px}$ touch targets and high-contrast styling on low-end 3G smartphones without runtime CSS-in-JS overhead. |
+| **Full-Stack Framework** | **Next.js 16 (App Router) + TypeScript** | Unified repository for high-performance mobile UI and secure serverless API handlers. Edge middleware enforces auth without CORS latency. (Rejected standalone Express/Vite SPA due to deployment fragmentation) |
+| **Styling & Ergonomics** | **Tailwind CSS v4** | Utility-first CSS compiling to < 18 KB gzipped. Enforces strict ≥ 48px touch targets and high-contrast styling on low-end 3G smartphones without runtime CSS-in-JS overhead. |
 | **Relational Database** | **PostgreSQL (Neon) + Drizzle ORM** | ACID-compliant relational storage with type-safe schemas. Neon serverless branching supports high morning order spikes with automated cold-start state rehydration. |
 | **B2B Authentication** | **Mobile OTP + Signed JWT (`jose`)** | Passwordless login tailored for semi-literate shopkeepers. Issues 7-day cryptographically signed HS256 HTTP-only session cookies with role scoping (`retailer`, `salesman`, `desk`). |
-| **Vernacular AI Pipeline** | **Rules-First + Learned Scorer + Gemini Flash** | 5-stage hybrid cascade: Deterministic tokenizers and trade knowledge graph execute in $<5\text{ms}$; 12-feature Platt-calibrated scorer infers in $0.00048\text{ms}$; Gemini Flash is restricted to ambiguous dialect edge cases. |
-| **Automated Verification** | **Vitest** | Native ESM test execution running 258 unit, integration, and mathematical parity tests in $<5\text{s}$ with zero cloud dependencies. |
+| **Vernacular AI Pipeline** | **Rules-First + Learned Scorer + Gemini Flash** | 5-stage hybrid cascade: Deterministic tokenizers and trade knowledge graph execute in < 5ms; 12-feature Platt-calibrated scorer infers in 0.00048ms; Gemini Flash is restricted to ambiguous dialect edge cases. |
+| **Automated Verification** | **Vitest** | Native ESM test execution running 258 unit, integration, and mathematical parity tests in < 5s with zero cloud dependencies. |
 
 ---
 
@@ -69,14 +69,14 @@ The relational database is strictly partitioned into two operational domains:
 
 The user interface follows a high-contrast **Merchant Utility** design system built for Jabalpur wholesale trade:
 
-- **Touch Ergonomics:** All interactive buttons, quantity steppers, and tabs enforce a strict $\ge 48\text{px} \times 48\text{px}$ touch target rule, enabling effortless operation on dusty counter screens.
-- **Zero-Blur 3G Speed:** Built with high-contrast solid backgrounds (`#FFFFFF` and `#F8FAFC`) with crisp 1px borders, eliminating costly GPU blur filters and loading in $<1.8\text{s}$ on 3G connections.
+- **Touch Ergonomics:** All interactive buttons, quantity steppers, and tabs enforce a strict ≥ 48px × 48px touch target rule, enabling effortless operation on dusty counter screens.
+- **Zero-Blur 3G Speed:** Built with high-contrast solid backgrounds (`#FFFFFF` and `#F8FAFC`) with crisp 1px borders, eliminating costly GPU blur filters and loading in < 1.8s on 3G connections.
 - **Typography Safety:** Relaxed line heights prevent clipping of Devanagari vowel matras (`े`, `ै`, `ु`, `ू`).
 
 ### Module Assumptions & UI Invariants
 - `[A3]` **Bilingual Locale Standard:** Supports 10-digit Indian mobile numbers (`+91`) and seamless English/Devanagari switching.
-- `[A54]` **Authentic Trade Vernacular:** Uses recognized Jabalpur Mandi terminology (*पूरी पेटी*, *खुले पैकेट*, *थोक स्लैब छूट*, *मुफ्त माल*) instead of generic SaaS labels.
-- `[A55]` **Zero-AI Transliteration Cascade:** 3-tier cascade (Ground-truth $\to$ Mandi trade dictionary $\to$ Phonetic syllable converter) provides instant Hindi localization for arbitrary uploaded product sheets at 0ms runtime cost.
+- `[A54]` **Authentic Trade Vernacular:** Uses recognized Jabalpur Mandi terminology ("पूरी पेटी", "खुले पैकेट", "थोक स्लैब छूट", "मुफ्त माल") instead of generic SaaS labels.
+- `[A55]` **Zero-AI Transliteration Cascade:** 3-tier cascade (Ground-truth → Mandi trade dictionary → Phonetic syllable converter) provides instant Hindi localization for arbitrary uploaded product sheets at 0ms runtime cost.
 - `[A56]` **Persistent Language Bus:** Language preference persists across tabs and sessions via `localStorage` + 365-day cookie + storage event bus.
 - `[A57]` **Fluid Multi-Column Desktop Grid:** Layouts scale fluidly from mobile single-column to wide multi-column tables (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with overflow protection.
 
@@ -88,15 +88,15 @@ The pricing engine is implemented in an independent package (`/engine`) as a **p
 
 ![Figure 7: Authoritative Wholesale Scheme & MP GST Calculation Engine](project-curation-and-research/Build%20Docs/diagrams/diagram_7_scheme_gst_engine.png)
 
-$$\text{calculateOrderPricing}(\text{lines}, \text{context}) \longrightarrow \text{PricingResult}$$
+![Pricing Engine Function](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_pricing_engine.png)
 
 ### Mathematical & Tax Invariants
 1. **Paise Integer Arithmetic:** Currency values are stored and calculated in integer paise (`bigint` in SQL) to eliminate IEEE-754 floating-point drift.
 2. **Trade Scheme Hierarchy:**
-   - Free goods schemes are evaluated first: $\text{Free Cases} = \lfloor \frac{\text{Paid Cases}}{\text{Buy Qty}} \rfloor \times \text{Free Qty}$.
-   - Slab percentage cash discounts are applied second against the gross taxable value of paid cases: $\text{Discount} = \text{Gross} \times \frac{\text{Discount Pct}}{100}$.
+   - Free goods schemes are evaluated first: ![Free Goods Formula](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_free_goods.png).
+   - Slab percentage cash discounts are applied second against the gross taxable value of paid cases: ![Slab Cash Discount Formula](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_slab_discount.png).
 3. **Madhya Pradesh Intra-State GST Split:** Intra-state wholesale supplies split GST 50/50 between CGST and SGST with half-up rounding:
-   $$\text{CGST} = \text{round}\left(\frac{\text{Taxable} \times \text{Rate}}{2}\right), \quad \text{SGST} = \text{round}\left(\frac{\text{Taxable} \times \text{Rate}}{2}\right)$$
+   ![Madhya Pradesh 50/50 GST Split](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_mp_gst.png)
 4. **Zero-Value Free Goods Invariant:** Promotional free goods carry ₹0.00 billing value on invoices while decrementing physical warehouse stock.
 
 ### Module Assumptions & Invariants
@@ -121,14 +121,14 @@ The vernacular order capture pipeline combines deterministic rules, an FMCG doma
 ![Figure 4: FMCG Trade Knowledge Graph & Longest-Phrase-First Domain Ontology](project-curation-and-research/Build%20Docs/diagrams/diagram_4_knowledge_graph.png)
 
 ### The 5-Stage Vernacular Pipeline
-1. **Tier 0: Normalization & Exact Aliases (<1ms):** Converts numerals (Devanagari `०-९` $\to$ Arabic `0-9`), strips conversational filler (*"bhaiya packet bhejo"*), and resolves pre-learned kirana aliases.
-2. **Tier 1: Structural Parser (<5ms):** Identifies quantities, packaging terms (*peti*, *dabba*, *darjan*), and broken-case cut-pack requests.
+1. **Tier 0: Normalization & Exact Aliases (<1ms):** Converts numerals (Devanagari `०-९` → Arabic `0-9`), strips conversational filler (""bhaiya packet bhejo""), and resolves pre-learned kirana aliases.
+2. **Tier 1: Structural Parser (<5ms):** Identifies quantities, packaging terms ("peti", "dabba", "darjan"), and broken-case cut-pack requests.
 3. **Tier 2: Pack-Size Grounded Retrieval (k=60):** Cormack RRF combining lexical trigram matching, phonetic metaphone distance, 12-domain category ontology, and pack-size extraction (+45% match boost / -75% mismatch penalty).
-4. **Tier 3: 12-Feature Learned Scorer (0.00048ms):** Logistic regression evaluated in TypeScript with Platt calibration ($P = \sigma(1.2212 z + 0.1794)$), verified to $<10^{-14}$ scikit-learn parity.
+4. **Tier 3: 12-Feature Learned Scorer (0.00048ms):** Logistic regression evaluated in TypeScript with Platt calibration :\n   ![Platt Calibration & Vector Dot Product](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_platt_scorer.png), verified to < 10^-14 scikit-learn parity.
 5. **Tier 4: Segmented Adaptive Decision & Outlier Slip Guard:**
-   - Single-SKU brands auto-confirm at $\tau_{\text{single}} = 0.75$.
-   - Multi-SKU size families require strict $\tau_{\text{family}} = 0.920$ to guarantee 97.4% precision.
-   - Flag orders exceeding $3\times$ median and retailer's historical maximum, suppressed automatically when ordering promo scheme thresholds (e.g. Buy 10).
+   - Single-SKU brands auto-confirm at tau_single = 0.75.
+   - Multi-SKU size families require strict tau_family = 0.920 to guarantee 97.4% precision.
+   - Flag orders exceeding 3× median and retailer's historical maximum, suppressed automatically when ordering promo scheme thresholds (e.g. Buy 10).
 
 ### 3-Way Comparative Benchmark Across 444 Recorded Queries
 
@@ -142,22 +142,22 @@ The vernacular order capture pipeline combines deterministic rules, an FMCG doma
 | **Top-1 Match Accuracy** | 68.2% | 68.2% | **68.2%** | Preserved candidate retriever accuracy |
 | **Top-3 Retrieval Recall** | 82.0% | 82.0% | **82.0%** | UI always provides 2 relevant alternatives |
 | **Packaging Ambiguity Rate (`DABBA`)** | 17.1% asked | 17.1% asked | **17.1% asked** | Guaranteed 0% auto-confirm on ambiguous units |
-| **Quantity Slips Caught ($10\times$ Typos)** | 0% (No prior) | 60.0% caught | **100.0% caught** | Proactive warning card on order typos |
+| **Quantity Slips Caught (10× Typos)** | 0% (No prior) | 60.0% caught | **100.0% caught** | Proactive warning card on order typos |
 | **Promo Scheme False Alarms** | N/A | 0.0% | **0.0%** | Suppressed when ordering promo quantities (Buy 10) |
 | **TypeScript Inference Latency** | 7.20 ms | **0.00045 ms** | **0.00048 ms** | Sub-microsecond pure vector execution |
 
 ### Module Assumptions & AI Invariants
-- `[A16]` **Strict Packaging Clarification:** Jabalpur term *"peti"* = Case. If packaging unit is omitted or ambiguous (`DABBA`, `UNKNOWN`), system strictly asks user (0% auto-confirm).
-- `[A17]` & `[A59]` **Deterministic Precedence:** Rules and knowledge graph resolve requests locally; Gemini LLM escalated only for remote candidates ($\ge 0.15$) capped at 100 tokens.
+- `[A16]` **Strict Packaging Clarification:** Jabalpur term ""peti"" = Case. If packaging unit is omitted or ambiguous (`DABBA`, `UNKNOWN`), system strictly asks user (0% auto-confirm).
+- `[A17]` & `[A59]` **Deterministic Precedence:** Rules and knowledge graph resolve requests locally; Gemini LLM escalated only for remote candidates (≥ 0.15) capped at 100 tokens.
 - `[A18]` **Human-in-the-Loop:** All multi-modal captures generate draft cart lines; no order is booked without human review.
 - `[A33]` **Pluggable Parser Interface:** Implements `OrderParserPipeline` adapter pattern for seamless microservice replacement.
 - `[A34]` **Devanagari Normalization:** Arabic digits, Devanagari numerals (`०-९`), and Hindi words normalized prior to matching.
-- `[A35]` **Pack Ceiling Conversion:** Loose pack demands converted to master cases via ceiling multiples (`ceil(packs / unitsPerCase)`).
+- `[A35]` **Pack Ceiling Conversion:** Loose pack demands converted to master cases via ceiling multiples :\n  ![Pack Ceiling Conversion](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_pack_ceiling.png).
 - `[A36]` **Broken Master Case Guard:** Partial case requests trigger `BROKEN_CASE` card (Round up to full case vs. request loose packs).
-- `[A58]` **Vaani ASR Hierarchy:** Speech recognition cascades: ARTPARK-IISc Vaani Whisper-v3 $\to$ Gemini 2.5 audio $\to$ deterministic simulation.
-- `[A60]` **Client-Side Media Compression:** HTML5 canvas resizes 8MB slip photos to ~120KB JPEG in $<100\text{ms}$ prior to upload.
+- `[A58]` **Vaani ASR Hierarchy:** Speech recognition cascades: ARTPARK-IISc Vaani Whisper-v3 → Gemini 2.5 audio → deterministic simulation.
+- `[A60]` **Client-Side Media Compression:** HTML5 canvas resizes 8MB slip photos to ~120KB JPEG in < 100ms prior to upload.
 - `[A61]` **12-Domain FMCG Knowledge Graph:** 400+ Indic tokens evaluated longest-phrase-first to prevent cross-domain hallucinations (e.g. suggesting biscuits for detergent or cycle tyres).
-- `[A66]` **Option A Scorer & Slip Guard:** 12-feature logistic regression in TypeScript with scikit-learn parity ($<10^{-14}$ diff), Platt calibration, and scheme-aware slip detection ($>3\times$ median, $>$ historical max).
+- `[A66]` **Option A Scorer & Slip Guard:** 12-feature logistic regression in TypeScript with scikit-learn parity (< 10^-14 diff), Platt calibration, and scheme-aware slip detection (> 3× median, > historical max).
 
 ---
 
@@ -191,16 +191,16 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 2. **Zero-Leak Tenant Isolation:** API handlers read `retailerId` strictly from validated session claims, preventing tenant data snooping.
 3. **Single-Writer Concurrency Lock:** Active kirana sessions maintain an exclusive lock record in `active_sessions`. Concurrent logins receive HTTP 409 Conflict.
 4. **Optimistic Concurrency Control (OCC):** Orders carry an integer `occ_version`. Concurrent clerk edits trigger HTTP 409 Conflict to protect ledger integrity:
-   $$\text{UPDATE orders SET ..., occ\_version = occ\_version + 1 WHERE id = \$1 AND occ\_version = \$2}$$
+   ![Optimistic Concurrency Control SQL Mutation](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_occ_sql.png)
 
 ### Module Assumptions & Security Invariants
 - `[A4]` **Closed B2B Ecosystem:** Access strictly restricted to authenticated `retailer`, `salesman`, and `desk` roles.
 - `[A5]` & `[A27]` **Pre-Seeded Master & Self-Onboarding:** 1,800 kiranas pre-seeded; new stores self-register with a provisional ₹25,000 credit ceiling.
 - `[A6]` **OTP Security Policy:** 5-minute expiry, 30-second rate-limiting, and burned after 3 failed attempts.
 - `[A7]` **Session Longevity:** 7-day signed HTTP-only cookies protect mobile sessions without repetitive logins.
-- `[A14]` **Credit Exposure Ceiling:** Orders where $\text{Current Balance} + \text{Order Total} > \text{Credit Limit}$ route to `CREDIT_HOLD` for clerk clearance.
+- `[A14]` **Credit Exposure Ceiling:** Orders where Current Balance + Order Total > Credit Limit route to `CREDIT_HOLD` for clerk clearance.
 - `[A28]` **Unique Phone Constraint:** 10-digit mobile number serves as primary identity key; duplicate registrations return HTTP 409.
-- `[A29]` **B2B Order State Machine:** Valid transitions: `PLACED` $\to$ `CREDIT_HOLD` $\to$ `CONFIRMED` $\to$ `DISPATCHED` $\to$ `DELIVERED` / `CANCELLED`.
+- `[A29]` **B2B Order State Machine:** Valid transitions: `PLACED` → `CREDIT_HOLD` → `CONFIRMED` → `DISPATCHED` → `DELIVERED` / `CANCELLED`.
 - `[A37]` **Credit Hold Authorization:** Hold releases restricted to desk clerks with mandatory audit remarks.
 - `[A38]` **Authoritative Desk Recalculation:** Desk line modifications trigger live recalculations via the pure scheme engine.
 - `[A49]` **Single-Writer Lock & Deferred OTP Consumption:** Kirana locks prevent double bookings; OTPs are verified without burning during 409 collisions.
@@ -214,7 +214,7 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 ### A. Tally ERP 9 / Prime Sales Voucher Integration
 - Generates schema-compliant `<ENVELOPE>` XML vouchers (`VCHTYPE="Sales Order"`).
 - Handles promotional trade schemes natively via `<ACTUALQTY>` (e.g. 11 cases delivered) vs `<BILLEDQTY>` (10 cases billed).
-- Enforces double-entry zero-sum balancing ($\text{Debtor Total} = \text{Sales Net} + \text{CGST} + \text{SGST}$).
+- Enforces double-entry zero-sum balancing :\n  ![Tally Double-Entry Zero-Sum Balance](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_tally_balance.png).
 
 ### B. Warehouse Logistics & Van Route Manifests
 - Aggregates confirmed morning orders by delivery route beat (e.g. Napier Town Route #4).
@@ -222,15 +222,15 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 - Provides vehicle cargo payload weight telemetry to ensure delivery vehicles operate within safe axle load limits.
 
 ### C. Dormant Retailer Retention Desk
-- Scans kiranas without orders for $\ge 14\text{ days}$.
-- Stratifies churn risk: *High Risk* (14–20 days) vs. *Critical Churn* ($\ge 21\text{ days}$).
+- Scans kiranas without orders for ≥ 14 days.
+- Stratifies churn risk: "High Risk" (14–20 days) vs. "Critical Churn" (≥ 21 days).
 - Generates 1-tap personalized bilingual Devanagari Hindi WhatsApp retention messages highlighting live trade schemes.
 
 ### Module Assumptions & Downstream Invariants
 - `[A1]` **2:00 PM Dispatch Cutoff:** Daily order placement cutoff for scheduled morning milk-run deliveries.
 - `[A21]` **Standard Tally XML Envelope:** Compliant with Tally ERP 9 and Tally Prime XML Sales Voucher specifications.
 - `[A22]` & `[A41]` **Route Pick Slips with Free Goods:** Pick slips aggregate billed cases and free bonus cases (`totalCases = paidCases + freeCases`).
-- `[A23]` & `[A43]` **Stratified Inactivity Thresholds:** 14-day inactivity triggers sales alerts; $\ge 21$ days escalates to critical churn.
+- `[A23]` & `[A43]` **Stratified Inactivity Thresholds:** 14-day inactivity triggers sales alerts; ≥ 21 days escalates to critical churn.
 - `[A39]` **Actual vs. Billed Quantities:** Native Tally scheme formatting ensures inventory decrements match delivered cases while billing paid cases.
 - `[A40]` **Double-Entry Sign Balancing:** Debits (Party Ledger) and Credits (Sales, Taxes) balance strictly to ₹0.00.
 - `[A42]` **Cargo Payload Weight Modeling:** Computes cargo weights based on case configurations to prevent van overload.
@@ -251,7 +251,7 @@ The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 | **Walkthrough Journey** | [`walkthrough.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/walkthrough.test.ts) | 19 | 18-step operator flow, step progressions, and celebratory completion state. |
 | **Auth & Session Locks** | [`auth.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/auth.test.ts), [`session-lock.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/session-lock.test.ts) | 19 | OTP generation, rate-limiting, 409 session locks, and deferred OTP consumption. |
 | **Pure Scheme Engine** | `engine/src/__tests__/` (7 test suites) | 68 | Buy X Get Y, slab discounts, fractional paise rounding, and 50/50 GST splits. |
-| **Scorer ML Parity** | [`ml-parity.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/ml-parity.test.ts) | 4 | Mathematical parity between TS and scikit-learn ($|P_{\text{TS}} - P_{\text{sklearn}}| < 10^{-14}$). |
+| **Scorer ML Parity** | [`ml-parity.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/ml-parity.test.ts) | 4 | Mathematical parity between TS and scikit-learn (|P_TS - P_sklearn| < 10^-14). |
 | **Text & Speech NLP** | [`text-parser.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/text-parser.test.ts), [`cascaded-parser.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/cascaded-parser.test.ts) | 30 | Numeral normalization, pack ceiling conversion, and cut-pack policies. |
 | **Knowledge Graph** | [`knowledge-graph.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/knowledge-graph.test.ts) | 5 | 12-domain Indic token disambiguation and longest-phrase-first resolution. |
 | **Candidate Retrieval** | [`candidate-retriever.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/candidate-retriever.test.ts) | 11 | Cormack RRF, phonetic matching, and pack-size match boost (+45%/-75%). |
@@ -274,13 +274,13 @@ The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 
 | Operational Metric | Target Benchmark | Measured Result | Operational Status |
 | :--- | :---: | :---: | :---: |
-| **Deterministic AI Text Parsing** | $< 50\text{ ms}$ | **$2\text{ ms} - 5\text{ ms}$** | Exceeded |
-| **Learned Scorer TS Vector Inference** | $< 0.05\text{ ms}$ | **$0.00048\text{ ms}$** (~2.1M inferences/sec) | Exceeded |
-| **Gemini Closed-Set Dialect Fallback** | $< 2,000\text{ ms}$ | **$1,100\text{ ms} - 1,450\text{ ms}$** | Exceeded |
-| **Production Build Time (Turbopack)** | $< 10\text{ s}$ | **$3.8\text{ s}$** (35 static and dynamic routes) | Exceeded |
-| **Full Automated Test Suite (258 Tests)** | $< 30\text{ s}$ | **$4.8\text{ s}$** (100% passing across app & engine) | Exceeded |
-| **Tailwind CSS Gzipped Bundle** | $< 50\text{ KB}$ | **$17.4\text{ KB}$** (Compiled utility CSS) | Exceeded |
-| **First Contentful Paint on 3G** | $< 3.0\text{ s}$ | **$1.8\text{ s}$** (Opaque high-contrast surfaces) | Exceeded |
+| **Deterministic AI Text Parsing** | < 50 ms | **2 ms - 5 ms** | Exceeded |
+| **Learned Scorer TS Vector Inference** | < 0.05 ms | **0.00048 ms** (~2.1M inferences/sec) | Exceeded |
+| **Gemini Closed-Set Dialect Fallback** | < 2,000 ms | **1,100 ms - 1,450 ms** | Exceeded |
+| **Production Build Time (Turbopack)** | < 10 s | **3.8 s** (35 static and dynamic routes) | Exceeded |
+| **Full Automated Test Suite (258 Tests)** | < 30 s | **4.8 s** (100% passing across app & engine) | Exceeded |
+| **Tailwind CSS Gzipped Bundle** | < 50 KB | **17.4 KB** (Compiled utility CSS) | Exceeded |
+| **First Contentful Paint on 3G** | < 3.0 s | **1.8 s** (Opaque high-contrast surfaces) | Exceeded |
 
 ---
 
