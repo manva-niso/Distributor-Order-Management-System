@@ -39,7 +39,7 @@ This guide details how to run the system locally, how it is deployed, the requir
 
 5. **(Optional) Run tests and verify production build**:
    ```bash
-   # Run all 190 automated unit tests
+   # Run all automated unit and integration tests (258 tests)
    npm --prefix distributor-app test -- --run
 
    # Verify Next.js production build
@@ -98,7 +98,7 @@ The application comes pre-configured with seed trade accounts for Jabalpur FMCG 
 
 | Role | Mobile Number | Demo Persona & Business | Accessible Interfaces & Purpose |
 | :--- | :--- | :--- | :--- |
-| **Retailer (Kirana)** | `9826000001` | Ramesh Sharma<br/>*Sharma Kirana Store* | `/catalogue`, `/cart`, `/quick-order`<br/>• Wholesale ordering, trade scheme math, vernacular WhatsApp text orders. |
+| **Retailer (Kirana)** | `9826000001` | Ramesh Sharma<br/>*Sharma Kirana Store* | `/catalogue`, `/cart`, `/quick-order`<br/>• Wholesale ordering, trade scheme math, Hindi and Hinglish WhatsApp text orders. |
 | **Order Desk (Admin)** | `9826000099` | Sunil Clerk<br/>*Company A Order Desk* | `/desk`<br/>• Split-screen WhatsApp verification, credit hold releases, van manifests, Tally Prime XML export. |
 | **Salesman (Field)** | `9826000018` | Rajesh Kumar<br/>*Field Sales Representative* | `/orders`<br/>• Field beat order booking, route retailer selection. |
 

@@ -1,5 +1,5 @@
 {
-  "benchmarkDate": "2026-11-09T14:44:59.382Z",
+  "benchmarkDate": "2026-11-09T15:27:05.531Z",
   "totalQueries": 444,
   "engines": [
     {
@@ -16,7 +16,7 @@
       "autoConfirmErrors": 4,
       "unitAskRatePct": 17.1,
       "ece": 0.0737,
-      "avgLatencyMs": 16.91
+      "avgLatencyMs": 17.13
     },
     {
       "engineName": "2. V2 Learned Scorer (Initial P0 Upgrade)",
@@ -32,7 +32,7 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0419,
-      "avgLatencyMs": 17.27
+      "avgLatencyMs": 17.48
     },
     {
       "engineName": "3. V3 Enhanced Learned Scorer (Pack-Size Extractor + Adaptive Thresholds)",
@@ -48,7 +48,7 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0803,
-      "avgLatencyMs": 17.29
+      "avgLatencyMs": 17.38
     }
   ],
   "slices": [
