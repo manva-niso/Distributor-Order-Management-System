@@ -1,9 +1,9 @@
 {
-  "benchmarkDate": "2026-11-09T15:40:03.560Z",
+  "benchmarkDate": "2026-11-09T16:04:54.763Z",
   "totalQueries": 444,
   "engines": [
     {
-      "engineName": "1. Baseline Heuristic Engine (Current App)",
+      "engineName": "1. Baseline Heuristic Engine (Original V1)",
       "totalQueries": 444,
       "inCatalogQueries": 427,
       "top1AccuracyPct": 67.3,
@@ -16,10 +16,10 @@
       "autoConfirmErrors": 4,
       "unitAskRatePct": 17.1,
       "ece": 0.0737,
-      "avgLatencyMs": 16.33
+      "avgLatencyMs": 14.92
     },
     {
-      "engineName": "2. V2 Learned Scorer (Initial P0 Upgrade)",
+      "engineName": "2. Intermediate Learned Scorer (V2 Upgrade)",
       "totalQueries": 444,
       "inCatalogQueries": 427,
       "top1AccuracyPct": 67.3,
@@ -32,10 +32,10 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0419,
-      "avgLatencyMs": 16.67
+      "avgLatencyMs": 15.22
     },
     {
-      "engineName": "3. V3 Enhanced Learned Scorer (Pack-Size Extractor + Adaptive Thresholds)",
+      "engineName": "3. Enhanced Learned Scorer (V3 Production App on Main)",
       "totalQueries": 444,
       "inCatalogQueries": 427,
       "top1AccuracyPct": 76.8,
@@ -48,7 +48,7 @@
       "autoConfirmErrors": 0,
       "unitAskRatePct": 17.1,
       "ece": 0.0803,
-      "avgLatencyMs": 16.64
+      "avgLatencyMs": 15.42
     }
   ],
   "slices": [

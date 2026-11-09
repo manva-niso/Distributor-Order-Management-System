@@ -460,7 +460,7 @@ export function runThreeWayBenchmark() {
   const inCatalogN = combinedQueries.filter((q) => q.targetSkuId !== null).length;
 
   const metrics_e1: AggregateEngineMetrics = {
-    engineName: "1. Baseline Heuristic Engine (Current App)",
+    engineName: "1. Baseline Heuristic Engine (Original V1)",
     totalQueries: N,
     inCatalogQueries: inCatalogN,
     top1AccuracyPct: Math.round((e1_top1 / N) * 1000) / 10,
@@ -477,7 +477,7 @@ export function runThreeWayBenchmark() {
   };
 
   const metrics_e2: AggregateEngineMetrics = {
-    engineName: "2. V2 Learned Scorer (Initial P0 Upgrade)",
+    engineName: "2. Intermediate Learned Scorer (V2 Upgrade)",
     totalQueries: N,
     inCatalogQueries: inCatalogN,
     top1AccuracyPct: Math.round((e2_top1 / N) * 1000) / 10,
@@ -494,7 +494,7 @@ export function runThreeWayBenchmark() {
   };
 
   const metrics_e3: AggregateEngineMetrics = {
-    engineName: "3. V3 Enhanced Learned Scorer (Pack-Size Extractor + Adaptive Thresholds)",
+    engineName: "3. Enhanced Learned Scorer (V3 Production App on Main)",
     totalQueries: N,
     inCatalogQueries: inCatalogN,
     top1AccuracyPct: Math.round((e3_top1 / N) * 1000) / 10,

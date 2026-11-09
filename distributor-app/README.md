@@ -104,7 +104,7 @@ When the app opens, a floating **Walkthrough Widget** appears on your screen. Yo
 
 ## 🔬 3-Way Comparative Benchmark (444 Recorded Queries)
 
-| Evaluation Metric | Engine 1: Baseline (Actual App) | Engine 2: V2 Learned Scorer | Engine 3: V3 Enhanced Scorer | Operational Impact |
+| Evaluation Metric | Engine 1: Original V1 Baseline | Engine 2: Intermediate V2 Scorer | Engine 3: V3 Enhanced (Production App on Main) | Operational Impact |
 | :--- | :---: | :---: | :---: | :--- |
 | **Top-1 Match Accuracy (All 444)** | 67.3% | 67.3% | **76.8%** | **+9.5% accuracy gain via size grounding** |
 | **Top-1 Match Accuracy (In-Catalog 427)** | 70.0% | 70.0% | **79.9%** | **+9.9% in-catalog candidate accuracy** |
