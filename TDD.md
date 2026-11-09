@@ -12,7 +12,7 @@
 Company A is an established FMCG distributor in Jabalpur managing ~600 daily wholesale orders across 1,800 kirana retail counters. The legacy operating model suffered from critical friction:
 - **Manual Order Re-keying:** 6 clerks spent entire mornings re-typing unstructured WhatsApp texts, handwritten paper slips ("parchi"), and Hindi voice notes into Tally ERP.
 - **Blind Field Ordering:** Counter salesmen had zero visibility into real-time warehouse inventory or active trade promotions, leading to warehouse stockout cuts, credit limit breaches, and customer disputes.
-- **The Solution:** A unified, installable, offline-resilient B2B order platform pairing direct kirana ordering with a multi-modal AI vernacular capture desk, real-time inventory synchronization, pure mathematical scheme calculations, and 1-click batch Tally XML export.
+- **The Solution:** A unified, installable, offline-resilient B2B order platform pairing direct kirana ordering with a smart Hindi voice and text order desk, real-time inventory synchronization, pure mathematical scheme calculations, and 1-click batch Tally XML export.
 
 ---
 
@@ -21,10 +21,10 @@ Company A is an established FMCG distributor in Jabalpur managing ~600 daily who
 | Architectural Layer | Chosen Technology | Engineering Rationale & Alternatives Rejected |
 | :--- | :--- | :--- |
 | **Full-Stack Framework** | **Next.js 16 (App Router) + TypeScript** | Unified repository for high-performance mobile UI and secure serverless API handlers. Edge middleware enforces auth without CORS latency. (Rejected standalone Express/Vite SPA due to deployment fragmentation) |
-| **Styling & Ergonomics** | **Tailwind CSS v4** | Utility-first CSS compiling to < 18 KB gzipped. Enforces strict ≥ 48px touch targets and high-contrast styling on low-end 3G smartphones without runtime CSS-in-JS overhead. |
-| **Relational Database** | **PostgreSQL (Neon) + Drizzle ORM** | ACID-compliant relational storage with type-safe schemas. Neon serverless branching supports high morning order spikes with automated cold-start state rehydration. |
+| **Screen Layout & Easy Touch Controls** | **Tailwind CSS v4** | Utility-first CSS compiling to < 18 KB gzipped. Enforces strict ≥ 48px touch targets and high-contrast styling on low-end 3G smartphones without runtime CSS-in-JS overhead. |
+| **Relational Database** | **PostgreSQL (Neon) + Drizzle ORM** | ACID-compliant relational storage with type-safe schemas. Neon serverless branching supports high morning order spikes with automatic restoring of saved orders from database. |
 | **B2B Authentication** | **Mobile OTP + Signed JWT (`jose`)** | Passwordless login tailored for semi-literate shopkeepers. Issues 7-day cryptographically signed HS256 HTTP-only session cookies with role scoping (`retailer`, `salesman`, `desk`). |
-| **Vernacular AI Pipeline** | **Rules-First + Learned Scorer + Gemini Flash** | 5-stage hybrid cascade: Deterministic tokenizers and trade knowledge graph execute in < 5ms; 12-feature Platt-calibrated scorer infers in 0.00048ms; Gemini Flash is restricted to ambiguous dialect edge cases. |
+| **Hindi & Hinglish Order Pipeline** | **Rules-First + Learned Scorer + Gemini Flash** | 5-stage hybrid cascade: Instant rule matching and trade word list execute in < 5ms; 12-feature Platt-calibrated scorer infers in 0.00048ms; Gemini Flash is restricted to ambiguous dialect edge cases. |
 | **Automated Verification** | **Vitest** | Native ESM test execution running 258 unit, integration, and mathematical parity tests in < 5s with zero cloud dependencies. |
 
 ---
@@ -47,10 +47,10 @@ The relational database is strictly partitioned into two operational domains:
    - `retailer_aliases`: Self-learning kirana-specific colloquial phrase-to-SKU mappings.
    - `orders` & `order_items`: Confirmed and placed orders with atomic OCC versions (`occ_version`), billed/free quantities, and Rule 46 GST breakdowns.
 
-### Module Assumptions & Persistence Invariants
+### Module Assumptions & Persistence Rules
 - `[A8]` **Wholesale Master Case Accounting:** Warehouse inventory is tracked strictly in physical sealed cases; pack quantities are informational.
 - `[A50]` **Kirana-Scoped Cart Partitioning:** Active draft carts are strictly partitioned by store ID (`isolabs_draft_cart_${retailerId}`); devices shared by salesmen never leak items across retailers.
-- `[A51]` **Cold-Start Ledger Rehydration:** Read and checkout paths deterministically invoke `hydrateOrdersFromNeon(retailerId)` to ensure orders persist across serverless cold starts with monotonically increasing identifiers (`ORD-2026-XXXX`).
+- `[A51]` **Restoring Saved Orders from Database:** Read and checkout paths deterministically invoke `hydrateOrdersFromNeon(retailerId)` to ensure orders persist across serverless cold starts with clean sequential order numbers (`ORD-2026-XXXX`).
 
 ---
 
@@ -65,17 +65,17 @@ The relational database is strictly partitioned into two operational domains:
 
 ---
 
-## 5. UI, Regional Localization & Ergonomics
+## 5. User Interface & Regional Language Support
 
 The user interface follows a high-contrast **Merchant Utility** design system built for Jabalpur wholesale trade:
 
-- **Touch Ergonomics:** All interactive buttons, quantity steppers, and tabs enforce a strict ≥ 48px × 48px touch target rule, enabling effortless operation on dusty counter screens.
+- **Easy Touch Controls:** All interactive buttons, quantity steppers, and tabs enforce a strict ≥ 48px × 48px touch target rule, enabling effortless operation on dusty counter screens.
 - **Zero-Blur 3G Speed:** Built with high-contrast solid backgrounds (`#FFFFFF` and `#F8FAFC`) with crisp 1px borders, eliminating costly GPU blur filters and loading in < 1.8s on 3G connections.
 - **Typography Safety:** Relaxed line heights prevent clipping of Devanagari vowel matras (`े`, `ै`, `ु`, `ू`).
 
-### Module Assumptions & UI Invariants
+### Module Assumptions & Screen Design Rules
 - `[A3]` **Bilingual Locale Standard:** Supports 10-digit Indian mobile numbers (`+91`) and seamless English/Devanagari switching.
-- `[A54]` **Authentic Trade Vernacular:** Uses recognized Jabalpur Mandi terminology ("पूरी पेटी", "खुले पैकेट", "थोक स्लैब छूट", "मुफ्त माल") instead of generic SaaS labels.
+- `[A54]` **Local Mandi Terms:** Uses recognized Jabalpur Mandi terminology ("पूरी पेटी", "खुले पैकेट", "थोक स्लैब छूट", "मुफ्त माल") instead of generic SaaS labels.
 - `[A55]` **Zero-AI Transliteration Cascade:** 3-tier cascade (Ground-truth → Mandi trade dictionary → Phonetic syllable converter) provides instant Hindi localization for arbitrary uploaded product sheets at 0ms runtime cost.
 - `[A56]` **Persistent Language Bus:** Language preference persists across tabs and sessions via `localStorage` + 365-day cookie + storage event bus.
 - `[A57]` **Fluid Multi-Column Desktop Grid:** Layouts scale fluidly from mobile single-column to wide multi-column tables (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with overflow protection.
@@ -90,40 +90,40 @@ The pricing engine is implemented in an independent package (`/engine`) as a **p
 
 ![Pricing Engine Function](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_pricing_engine.png)
 
-### Mathematical & Tax Invariants
+### Core Pricing & Tax Rules
 1. **Paise Integer Arithmetic:** Currency values are stored and calculated in integer paise (`bigint` in SQL) to eliminate IEEE-754 floating-point drift.
 2. **Trade Scheme Hierarchy:**
    - Free goods schemes are evaluated first: ![Free Goods Formula](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_free_goods.png).
    - Slab percentage cash discounts are applied second against the gross taxable value of paid cases: ![Slab Cash Discount Formula](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_slab_discount.png).
 3. **Madhya Pradesh Intra-State GST Split:** Intra-state wholesale supplies split GST 50/50 between CGST and SGST with half-up rounding:
    ![Madhya Pradesh 50/50 GST Split](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_mp_gst.png)
-4. **Zero-Value Free Goods Invariant:** Promotional free goods carry ₹0.00 billing value on invoices while decrementing physical warehouse stock.
+4. **Free Goods Invoicing Rule:** Promotional free goods carry ₹0.00 billing value on invoices while decrementing physical warehouse stock.
 
-### Module Assumptions & Invariants
+### Operating Rules for Schemes & Discounts
 - `[A2]` **Tax Rounding Standard:** Half-up rounding to 2 decimal places with compliant 50/50 CGST/SGST split.
 - `[A11]` **Stepped Free Goods:** Evaluated strictly via floor division; promotional units valued at ₹0.00.
 - `[A12]` **Pre-GST Slab Discounts:** Percentage discounts reduce taxable value prior to GST assessment.
 - `[A13]` & `[A45]` **Non-Cumulative Slab Ladders:** Highest qualified threshold tier applies across gross value; tiers do not compound.
 - `[A46]` **Cross-SKU Bonus Gifting:** Secondary gift SKUs are added at ₹0.00 with zero additional GST liability (CBIC Circular 92/11/2019-GST).
 - `[A47]` **Flat Case Rebates:** Direct rupee deductions per case applied pre-tax.
-- `[A48]` **Upsell Telemetry:** Engine dynamically computes remaining cases and potential savings to unlock the next discount tier (`nextTierNudge`).
+- `[A48]` **Helpful Upsell Prompts:** Engine dynamically computes remaining cases and potential savings to unlock the next discount tier (`nextTierNudge`).
 
 ---
 
 ## 7. Multi-Tier AI Capture & Option A Learned Scorer
 
-The vernacular order capture pipeline combines deterministic rules, an FMCG domain knowledge graph, a 12-feature Platt-calibrated scorer, and constrained Gemini fallback:
+The order processing pipeline combines deterministic rules, an FMCG domain knowledge graph, a 12-feature Platt-calibrated scorer, and constrained Gemini fallback:
 
-![Figure 3A: Vernacular NLP & Pack-Size Grounded Retrieval Pipeline](project-curation-and-research/Build%20Docs/diagrams/diagram_3a_retrieval_pipeline.png)
+![Figure 3A: Order Parsing & Product Matching Pipeline](project-curation-and-research/Build%20Docs/diagrams/diagram_3a_retrieval_pipeline.png)
 
 ![Figure 3B: Platt Calibration & Segmented Adaptive Decision Engine](project-curation-and-research/Build%20Docs/diagrams/diagram_3b_scorer_decision.png)
 
-![Figure 4: FMCG Trade Knowledge Graph & Longest-Phrase-First Domain Ontology](project-curation-and-research/Build%20Docs/diagrams/diagram_4_knowledge_graph.png)
+![Figure 4: FMCG Trade Knowledge Graph & Product Category Word List & Intent Guide](project-curation-and-research/Build%20Docs/diagrams/diagram_4_knowledge_graph.png)
 
-### The 5-Stage Vernacular Pipeline
-1. **Tier 0: Normalization & Exact Aliases (<1ms):** Converts numerals (Devanagari `०-९` → Arabic `0-9`), strips conversational filler (""bhaiya packet bhejo""), and resolves pre-learned kirana aliases.
+### The 5-Step Order Processing Pipeline
+1. **Tier 0: Normalization & Exact Aliases (<1ms):** Converts numerals (Devanagari `०-९` → Arabic `0-9`), strips conversational filler ("bhaiya packet bhejo"), and resolves pre-learned kirana aliases.
 2. **Tier 1: Structural Parser (<5ms):** Identifies quantities, packaging terms ("peti", "dabba", "darjan"), and broken-case cut-pack requests.
-3. **Tier 2: Pack-Size Grounded Retrieval (k=60):** Cormack RRF combining lexical trigram matching, phonetic metaphone distance, 12-domain category ontology, and pack-size extraction (+45% match boost / -75% mismatch penalty).
+3. **Tier 2: Pack-Size Grounded Retrieval (k=60):** Cormack RRF combining lexical trigram matching, phonetic metaphone distance, 12-category product dictionary, and pack-size extraction (+45% match boost / -75% mismatch penalty).
 4. **Tier 3: 12-Feature Learned Scorer (0.00048ms):** Logistic regression evaluated in TypeScript with Platt calibration :\n   ![Platt Calibration & Vector Dot Product](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_platt_scorer.png), verified to < 10^-14 scikit-learn parity.
 5. **Tier 4: Segmented Adaptive Decision & Outlier Slip Guard:**
    - Single-SKU brands auto-confirm at tau_single = 0.75.
@@ -146,9 +146,9 @@ The vernacular order capture pipeline combines deterministic rules, an FMCG doma
 | **Promo Scheme False Alarms** | N/A | 0.0% | **0.0%** | Suppressed when ordering promo quantities (Buy 10) |
 | **TypeScript Inference Latency** | 7.20 ms | **0.00045 ms** | **0.00048 ms** | Sub-microsecond pure vector execution |
 
-### Module Assumptions & AI Invariants
-- `[A16]` **Strict Packaging Clarification:** Jabalpur term ""peti"" = Case. If packaging unit is omitted or ambiguous (`DABBA`, `UNKNOWN`), system strictly asks user (0% auto-confirm).
-- `[A17]` & `[A59]` **Deterministic Precedence:** Rules and knowledge graph resolve requests locally; Gemini LLM escalated only for remote candidates (≥ 0.15) capped at 100 tokens.
+### Module Assumptions & Order Processing Rules
+- `[A16]` **Strict Packaging Clarification:** Jabalpur term "peti" = Case. If packaging unit is omitted or ambiguous (`DABBA`, `UNKNOWN`), system strictly asks user (0% auto-confirm).
+- `[A17]` & `[A59]` **Instant Rules First:** Rules and knowledge graph resolve requests locally; Gemini LLM escalated only for remote candidates (≥ 0.15) capped at 100 tokens.
 - `[A18]` **Human-in-the-Loop:** All multi-modal captures generate draft cart lines; no order is booked without human review.
 - `[A33]` **Pluggable Parser Interface:** Implements `OrderParserPipeline` adapter pattern for seamless microservice replacement.
 - `[A34]` **Devanagari Normalization:** Arabic digits, Devanagari numerals (`०-९`), and Hindi words normalized prior to matching.
@@ -167,19 +167,19 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 
 ![Figure 5: Quad-Layer Warehouse Inventory Synchronization & Out-of-Stock Guard](project-curation-and-research/Build%20Docs/diagrams/diagram_5_stock_sync.png)
 
-### Quad-Layer Synchronization Protocol
+### 4-Way Real-Time Stock Updates
 1. **Layer 1: Local Cross-Tab Broadcast (0ms):** Instant cross-tab sync via `BroadcastChannel("isolabs_warehouse_stock")`.
 2. **Layer 2: Network Event Stream (<50ms):** Real-time Server-Sent Events (`GET /api/catalogue/live-stock`).
 3. **Layer 3: Lightweight Adaptive Polling (2.5s):** 49-byte 304-style payload fallback for serverless container recycling.
-4. **Layer 4: Multi-Lambda Persistence:** Durable stock state rehydration via Neon PostgreSQL `SELECT ... FOR UPDATE`.
+4. **Layer 4: Multi-Lambda Persistence:** Safe atomic stock updates via Neon PostgreSQL `SELECT ... FOR UPDATE`.
 
-### Module Assumptions & Stock Invariants
+### Module Assumptions & Inventory Rules
 - `[A9]` & `[A52]` **Instant Out-of-Stock Lock:** Zero-stock items instantly disable steppers, display `"OUT OF STOCK"`, and prevent checkout.
 - `[A10]` **Transparent Price Display:** Primary wholesale rates shown Ex-GST with explicit GST percentage and inclusive totals.
 - `[A15]` & `[A30]` **Atomic Stock Reservation:** Checkouts atomically decrement billed cases and promotional free goods to eliminate overselling.
 - `[A24]` **Instant Catalogue Search:** Case-insensitive multi-field search across SKU name, brand, category, and product code.
-- `[A26]` **Stockout Telemetry:** "Notify when available" registers demand events in `audit_logs` without allowing checkout.
-- `[A31]` & `[A32]` **Dynamic Catalogue Ingestion:** Parses arbitrary distributor Excel/CSV workbooks with column synonym tolerance and safe FMCG defaults.
+- `[A26]` **Out-of-Stock Demand Tracking:** "Notify when available" registers demand events in `audit_logs` without allowing checkout.
+- `[A31]` & `[A32]` **Automatic Excel Price List Import:** Parses arbitrary distributor Excel/CSV workbooks with column synonym tolerance and safe FMCG defaults.
 - `[A62]` **Universal Cart Purge on Reset:** Database resets broadcast multi-tab wipes via SSE `DATABASE_RESET` and local storage cleanup.
 - `[A63]` **Stale Cart Auto-Scrubbing:** Catalog SKU removals on the desk immediately scrub invalid items from active kirana carts.
 
@@ -189,11 +189,11 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 
 1. **Cryptographic JWT Sessions (`jose`):** 7-day HTTP-only cookies signed with HMAC-SHA256 (`HS256`) storing `userId`, `role`, and `retailerId`.
 2. **Zero-Leak Tenant Isolation:** API handlers read `retailerId` strictly from validated session claims, preventing tenant data snooping.
-3. **Single-Writer Concurrency Lock:** Active kirana sessions maintain an exclusive lock record in `active_sessions`. Concurrent logins receive HTTP 409 Conflict.
+3. **Single-User Order Lock:** Active kirana sessions maintain an exclusive lock record in `active_sessions`. Concurrent logins receive HTTP 409 Conflict.
 4. **Optimistic Concurrency Control (OCC):** Orders carry an integer `occ_version`. Concurrent clerk edits trigger HTTP 409 Conflict to protect ledger integrity:
    ![Optimistic Concurrency Control SQL Mutation](project-curation-and-research/Build%20Docs/diagrams/formulas/formula_occ_sql.png)
 
-### Module Assumptions & Security Invariants
+### Module Assumptions & Security & Concurrency Rules
 - `[A4]` **Closed B2B Ecosystem:** Access strictly restricted to authenticated `retailer`, `salesman`, and `desk` roles.
 - `[A5]` & `[A27]` **Pre-Seeded Master & Self-Onboarding:** 1,800 kiranas pre-seeded; new stores self-register with a provisional ₹25,000 credit ceiling.
 - `[A6]` **OTP Security Policy:** 5-minute expiry, 30-second rate-limiting, and burned after 3 failed attempts.
@@ -204,7 +204,7 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 - `[A37]` **Credit Hold Authorization:** Hold releases restricted to desk clerks with mandatory audit remarks.
 - `[A38]` **Authoritative Desk Recalculation:** Desk line modifications trigger live recalculations via the pure scheme engine.
 - `[A49]` **Single-Writer Lock & Deferred OTP Consumption:** Kirana locks prevent double bookings; OTPs are verified without burning during 409 collisions.
-- `[A53]` **Zero-Drop Cart Handshake:** Dual-key local mirroring guarantees zero lost items during page transitions.
+- `[A53]` **Protected Cart Transfer:** Dual-key local mirroring guarantees zero lost items during page transitions.
 - `[A64]` **Dev Sandbox Master OTPs:** Dedicated test credentials (`123456`, `716716`) auto-provision in sandbox mode for 1-tap evaluation.
 
 ---
@@ -219,18 +219,18 @@ To prevent overselling and post-order warehouse stockout cuts, catalog inventory
 ### B. Warehouse Logistics & Van Route Manifests
 - Aggregates confirmed morning orders by delivery route beat (e.g. Napier Town Route #4).
 - Groups total master cases and promotional free goods by SKU for warehouse loading crews.
-- Provides vehicle cargo payload weight telemetry to ensure delivery vehicles operate within safe axle load limits.
+- Calculates total vehicle cargo weight so delivery vans do not exceed safe load limits.
 
 ### C. Dormant Retailer Retention Desk
 - Scans kiranas without orders for ≥ 14 days.
-- Stratifies churn risk: "High Risk" (14–20 days) vs. "Critical Churn" (≥ 21 days).
+- Categorizes inactive shops: "High Risk" (14–20 days) vs. "Critical Churn" (≥ 21 days).
 - Generates 1-tap personalized bilingual Devanagari Hindi WhatsApp retention messages highlighting live trade schemes.
 
-### Module Assumptions & Downstream Invariants
+### Module Assumptions & Logistics & Tally Rules
 - `[A1]` **2:00 PM Dispatch Cutoff:** Daily order placement cutoff for scheduled morning milk-run deliveries.
 - `[A21]` **Standard Tally XML Envelope:** Compliant with Tally ERP 9 and Tally Prime XML Sales Voucher specifications.
 - `[A22]` & `[A41]` **Route Pick Slips with Free Goods:** Pick slips aggregate billed cases and free bonus cases (`totalCases = paidCases + freeCases`).
-- `[A23]` & `[A43]` **Stratified Inactivity Thresholds:** 14-day inactivity triggers sales alerts; ≥ 21 days escalates to critical churn.
+- `[A23]` & `[A43]` **Shop Inactivity Warnings (14 and 21 Days):** 14-day inactivity triggers sales alerts; ≥ 21 days escalates to critical churn.
 - `[A39]` **Actual vs. Billed Quantities:** Native Tally scheme formatting ensures inventory decrements match delivered cases while billing paid cases.
 - `[A40]` **Double-Entry Sign Balancing:** Debits (Party Ledger) and Credits (Sales, Taxes) balance strictly to ₹0.00.
 - `[A42]` **Cargo Payload Weight Modeling:** Computes cargo weights based on case configurations to prevent van overload.
@@ -260,13 +260,13 @@ The complete 18-step operator journey defined in [`WalkthroughGuide.tsx`](file:/
 | **Cart & Order Lifecycle** | [`orders.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/orders.test.ts), [`cart-storage.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/cart-storage.test.ts) | 11 | Credit ceiling enforcement, `CREDIT_HOLD`, and draft cart isolation. |
 | **Order Desk Triage** | [`desk.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/desk.test.ts) | 9 | OCC conflict handling (HTTP 409), hold releases, and alias learning. |
 | **Tally & Logistics** | [`tally.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/tally.test.ts), [`manifest.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/manifest.test.ts) | 12 | `<ACTUALQTY>` vs `<BILLEDQTY>`, zero-sum balancing, and van manifests. |
-| **Dormant Kiranas** | [`dormant.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/dormant.test.ts) | 4 | Inactivity stratification (14 vs 21 days) and WhatsApp link formatting. |
+| **Dormant Kiranas** | [`dormant.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/dormant.test.ts) | 4 | Inactivity levels (14 vs 21 days) and WhatsApp link formatting. |
 | **Excel & Database Sync** | [`excel-import.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/excel-import.test.ts), [`reset-sync-and-auth.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/reset-sync-and-auth.test.ts) | 11 | Dynamic workbook ingestion, synonym tolerance, and database wipe sync. |
 | **Fallback & Transliteration** | [`gemini-random-words.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/gemini-random-words.test.ts), [`dynamic-transliteration.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/dynamic-transliteration.test.ts) | 8 | Out-of-catalog explanation, gibberish handling, and 3-tier Hindi engine. |
 | **Guardrails & Fallback** | [`deterministic-guardrails.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/deterministic-guardrails.test.ts), [`gemini-chooser.test.ts`](file:///V:/Projects/Resume%20Projects/IsoLabs/distributor-app/src/__tests__/gemini-chooser.test.ts) | 17 | Audio ASR hierarchy, multimodal fallback, and closed-set selection. |
 | **Total Automated Tests** | **Across 31 Test Suites** | **258** | **100% Automated Test Pass Rate (0 Failures)** |
 
-- `[A65]` **18-Step Walkthrough Matrix Invariant:** The walkthrough UI provides bulk progression controls and celebratory milestones verified by 19 automated tests in `walkthrough.test.ts`.
+- `[A65]` **18-Step Walkthrough Verification:** The walkthrough UI provides bulk progression controls and celebratory milestones verified by 19 automated tests in `walkthrough.test.ts`.
 
 ---
 
