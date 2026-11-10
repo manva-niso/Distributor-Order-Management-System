@@ -10,7 +10,7 @@
 
 - **Live Production App:** [https://distributor-order-management-system.vercel.app/login](https://distributor-order-management-system.vercel.app/login)
 - **GitHub Repository:** [https://github.com/manva-niso/Distributor-Order-Management-System.git](https://github.com/manva-niso/Distributor-Order-Management-System.git)
-- **Technical Design Document:** [`tdd_2.pdf`](./tdd_2.pdf) (or [`TDD.pdf`](./TDD.pdf))
+- **Technical Design Document:** [`tdd_2.pdf`](./tdd_2.pdf) | [`tdd_2.docx`](./tdd_2.docx) | [`tdd_2.md`](./tdd_2.md)
 - **Deployment & Run Guide:** [`deployment.md`](./deployment.md)
 
 ---
